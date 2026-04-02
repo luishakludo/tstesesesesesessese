@@ -52,6 +52,7 @@ const menuSections = [
     items: [
       { icon: CreditCard, label: "Pagamentos", href: "/dragon-adm/payments" },
       { icon: DollarSign, label: "Saques", href: "/dragon-adm/saques" },
+      { icon: DollarSign, label: "Saques Afiliados", href: "/dragon-adm/saques-afiliados" },
       { icon: Gift, label: "Premiacoes", href: "/dragon-adm/premiacoes" },
     ]
   },
