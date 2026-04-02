@@ -25,18 +25,7 @@ export async function GET(request: NextRequest) {
       userBotIds = userBots?.map(b => b.id) || []
     }
 
-    // Se nao tem bots, retornar vazio
-    if (userId && userBotIds.length === 0) {
-      return NextResponse.json({
-        payments: [],
-        stats: { total: 0, approved: 0, pending: 0, rejected: 0, cancelled: 0, totalApproved: 0, totalPending: 0 },
-        total: 0,
-        limit,
-        offset,
-      })
-    }
-
-    // Build query - buscar pagamentos dos bots do usuario
+    // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
     let query = supabase
       .from("payments")
       .select(`
@@ -49,9 +38,15 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
 
-    // Filtrar APENAS por bot_id dos bots do usuario (cada bot so pertence a um usuario)
-    if (userId && userBotIds.length > 0) {
-      query = query.in("bot_id", userBotIds)
+    // Filtrar por bot_id dos bots do usuario OU user_id direto (checkout)
+    if (userId) {
+      if (userBotIds.length > 0) {
+        // Tem bots: buscar por bot_id OU user_id
+        query = query.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+      } else {
+        // Sem bots: buscar apenas por user_id
+        query = query.eq("user_id", userId)
+      }
     }
 
     if (botId) {
@@ -72,13 +67,17 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Calculate stats - mesmo filtro por bot_id
+    // Calculate stats - mesmo filtro
     let statsQuery = supabase
       .from("payments")
       .select("status, amount")
 
-    if (userId && userBotIds.length > 0) {
-      statsQuery = statsQuery.in("bot_id", userBotIds)
+    if (userId) {
+      if (userBotIds.length > 0) {
+        statsQuery = statsQuery.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+      } else {
+        statsQuery = statsQuery.eq("user_id", userId)
+      }
     }
 
     if (botId) {
