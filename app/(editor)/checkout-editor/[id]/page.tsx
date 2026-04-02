@@ -110,7 +110,7 @@ export default function CheckoutEditorPage({ params }: PageProps) {
     if (!siteIdToFetch) return
     setLeadsLoading(true)
     try {
-      const res = await fetch(`/api/checkout-leads?siteId=${siteIdToFetch}`)
+      const res = await fetch(`/api/checkout-leads?siteId=${siteIdToFetch}`, { credentials: "include" })
       const data = await res.json()
       console.log("[v0] Leads response:", data)
       if (data.leads) setLeads(data.leads)
@@ -124,6 +124,13 @@ export default function CheckoutEditorPage({ params }: PageProps) {
   useEffect(() => {
     fetchSite()
   }, [id])
+  
+  // Buscar leads quando o site for carregado
+  useEffect(() => {
+    if (site?.id) {
+      fetchLeads()
+    }
+  }, [site?.id])
 
   const fetchSite = async () => {
     try {
