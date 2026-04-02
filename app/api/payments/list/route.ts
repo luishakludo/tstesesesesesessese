@@ -17,7 +17,18 @@ export async function GET(request: NextRequest) {
     
     console.log("[v0] Fetching payments - botId:", botId, "userId:", userId, "status:", status)
 
-    // Build query - buscar todos os pagamentos (filtrados por botId se passado)
+    // Se tiver userId, primeiro buscar os bots desse usuario
+    let userBotIds: string[] = []
+    if (userId) {
+      const { data: userBots } = await supabase
+        .from("bots")
+        .select("id")
+        .eq("user_id", userId)
+      userBotIds = userBots?.map(b => b.id) || []
+      console.log("[v0] User bots:", userBotIds.length)
+    }
+
+    // Build query - buscar todos os pagamentos
     let query = supabase
       .from("payments")
       .select(`
@@ -30,8 +41,11 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
 
-    // Filtrar por user_id se passado
-    if (userId) {
+    // Filtrar por user_id OU bot_id dos bots do usuario
+    if (userId && userBotIds.length > 0) {
+      // Buscar pagamentos onde user_id = userId OU bot_id pertence ao usuario
+      query = query.or(`user_id.eq.${userId},bot_id.in.(${userBotIds.join(",")})`)
+    } else if (userId) {
       query = query.eq("user_id", userId)
     }
 
@@ -60,7 +74,9 @@ export async function GET(request: NextRequest) {
       .from("payments")
       .select("status, amount")
 
-    if (userId) {
+    if (userId && userBotIds.length > 0) {
+      statsQuery = statsQuery.or(`user_id.eq.${userId},bot_id.in.(${userBotIds.join(",")})`)
+    } else if (userId) {
       statsQuery = statsQuery.eq("user_id", userId)
     }
 

@@ -3631,12 +3631,46 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div className="space-y-2">
                           <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="number" value={orderBumpPacks.price} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, price: parseFloat(e.target.value) || 0}); setHasChanges(true) }} className="bg-secondary/50" />
+                          <Input type="text" inputMode="decimal" value={orderBumpPacks.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, ""); setOrderBumpPacks({...orderBumpPacks, price: parseFloat(val.replace(",", ".")) || 0}); setHasChanges(true) }} placeholder="0,00" className="bg-secondary/50" />
                         </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-muted-foreground">Descricao</Label>
                         <Textarea value={orderBumpPacks.description} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-secondary/50" />
+                      </div>
+                      
+                      {/* Botoes */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Botao Aceitar</Label>
+                          <Input value={orderBumpPacks.acceptText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, acceptText: e.target.value}); setHasChanges(true) }} placeholder="ADICIONAR" className="bg-secondary/50 uppercase font-medium" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-muted-foreground">Botao Recusar</Label>
+                          <Input value={orderBumpPacks.rejectText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, rejectText: e.target.value}); setHasChanges(true) }} placeholder="NAO QUERO" className="bg-secondary/50 uppercase font-medium" />
+                        </div>
+                      </div>
+                      
+                      {/* Entrega */}
+                      <div className="space-y-2">
+                        <Label className="text-muted-foreground">Entrega do Order Bump</Label>
+                        <Select
+                          value={orderBumpPacks.deliveryType}
+                          onValueChange={(value: OrderBumpItem["deliveryType"]) => {
+                            setOrderBumpPacks({...orderBumpPacks, deliveryType: value})
+                            setHasChanges(true)
+                          }}
+                        >
+                          <SelectTrigger className="bg-secondary/50 border-border/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="same">Mesmo do fluxo principal</SelectItem>
+                            <SelectItem value="channel">Canal especifico</SelectItem>
+                            <SelectItem value="link">Link Externo</SelectItem>
+                            <SelectItem value="message">Apenas Mensagem</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       {/* Midias do Order Bump Packs */}
@@ -3833,10 +3867,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <div className="space-y-2">
                                 <Label className="text-muted-foreground">Preco (R$)</Label>
                                 <Input
-                                  type="number"
-                                  value={pack.price}
-                                  onChange={(e) => handleUpdatePack(pack.id, "price", parseFloat(e.target.value) || 0)}
-                                  placeholder="0"
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={pack.price || ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.,]/g, "")
+                                    handleUpdatePack(pack.id, "price", parseFloat(val.replace(",", ".")) || 0)
+                                  }}
+                                  placeholder="0,00"
                                   className="bg-secondary/50"
                                 />
                               </div>

@@ -294,14 +294,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 callback_data: `plan_${plan.id}`
               }])
               
-              // Adicionar botao de Packs se habilitado
-              if (packsEnabled) {
-                planButtons.push([{
-                  text: packsButtonText,
-                  callback_data: "show_packs"
-                }])
-              }
-              
               await sendTelegramMessage(
                 botToken, 
                 chatId, 
@@ -352,25 +344,43 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.log("[v0] packsList.length:", packsList.length)
           
           if (packsList.length > 0) {
-            // Enviar mensagem com botoes para cada pack
-            const packButtons = packsList.map(pack => [{
-              text: `${pack.emoji || "📦"} ${pack.name} - R$ ${pack.price.toFixed(2).replace(".", ",")}`,
-              callback_data: `pack_${pack.id}`
-            }])
+            // Enviar cada pack diretamente com foto, descricao e botao de compra
+            for (const pack of packsList) {
+              const packMessage = `${pack.emoji || "📦"} *${pack.name}*\n\n${pack.description || ""}\n\n💰 *R$ ${pack.price.toFixed(2).replace(".", ",")}*`
+              const packButton = [[{
+                text: pack.buttonText || `Comprar ${pack.name}`,
+                callback_data: `buy_pack_${pack.id}_${pack.price}`
+              }]]
+              
+              // Se tiver imagem de preview, enviar com foto
+              if (pack.previewMedias && pack.previewMedias.length > 0) {
+                try {
+                  await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      chat_id: chatId,
+                      photo: pack.previewMedias[0],
+                      caption: packMessage,
+                      parse_mode: "Markdown",
+                      reply_markup: { inline_keyboard: packButton }
+                    })
+                  })
+                } catch {
+                  // Se falhar enviar foto, envia so texto
+                  await sendTelegramMessage(botToken, chatId, packMessage, { inline_keyboard: packButton })
+                }
+              } else {
+                await sendTelegramMessage(botToken, chatId, packMessage, { inline_keyboard: packButton })
+              }
+            }
             
-            // Adicionar botao de voltar
-            packButtons.push([{
-              text: "Voltar aos Planos",
-              callback_data: "back_to_plans"
-            }])
-            
-            console.log("[v0] Enviando botoes de packs:", packButtons.length)
-            
+            // Botao de voltar aos planos
             await sendTelegramMessage(
               botToken,
               chatId,
-              "Escolha um pack:",
-              { inline_keyboard: packButtons }
+              "👆 Escolha um pack acima ou volte aos planos:",
+              { inline_keyboard: [[{ text: "⬅️ Voltar aos Planos", callback_data: "back_to_plans" }]] }
             )
           } else {
             console.log("[v0] Nenhum pack ativo encontrado")
@@ -480,9 +490,55 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ callback_query_id: callbackQueryId, text: "Gerando pagamento..." })
+          body: JSON.stringify({ callback_query_id: callbackQueryId, text: "Processando..." })
         })
         
+        // Buscar flow para ver order bump de packs
+        const flowForPack = await getActiveFlowForBot(supabase, botUuid)
+        const flowConfig = (flowForPack?.config as Record<string, unknown>) || {}
+        const orderBumpConfig = flowConfig.orderBump as { enabled?: boolean; packs?: { enabled?: boolean; name?: string; price?: number; description?: string; acceptText?: string; rejectText?: string; medias?: string[] } } | undefined
+        const orderBumpPacks = orderBumpConfig?.packs
+        
+        // Se order bump de packs estiver habilitado, enviar oferta
+        if (orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks.price && orderBumpPacks.price > 0) {
+          console.log("[v0] Enviando Order Bump para Pack")
+          
+          // Salvar estado
+          await supabase.from("user_flow_state").upsert({
+            bot_id: botUuid,
+            telegram_user_id: String(telegramUserId),
+            flow_id: flowForPack?.id,
+            status: "waiting_order_bump",
+            metadata: {
+              type: "pack",
+              pack_id: packId,
+              main_amount: packPrice,
+              order_bump_name: orderBumpPacks.name || "Oferta Especial",
+              order_bump_price: orderBumpPacks.price,
+              main_description: `Pack`
+            },
+            updated_at: new Date().toISOString()
+          }, { onConflict: "bot_id,telegram_user_id" })
+          
+          // Enviar midias do order bump se houver
+          if (orderBumpPacks.medias && orderBumpPacks.medias.length > 0) {
+            await sendMediaGroup(botToken, chatId, orderBumpPacks.medias, "")
+          }
+          
+          // Enviar mensagem do order bump
+          const obMessage = `*${orderBumpPacks.name || "Oferta Especial"}*\n\n${orderBumpPacks.description || ""}\n\n💰 Por apenas *R$ ${orderBumpPacks.price.toFixed(2).replace(".", ",")}*`
+          
+          await sendTelegramMessage(botToken, chatId, obMessage, {
+            inline_keyboard: [
+              [{ text: orderBumpPacks.acceptText || "ADICIONAR", callback_data: `ob_accept_${packPrice}_${orderBumpPacks.price}` }],
+              [{ text: orderBumpPacks.rejectText || "NAO QUERO", callback_data: `ob_decline_${packPrice}_0` }]
+            ]
+          })
+          
+          return
+        }
+        
+        // Sem order bump - gerar PIX direto
         // Buscar gateway de pagamento
         const { data: gateway } = await supabase
           .from("payment_gateways")
@@ -493,10 +549,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         
         if (gateway && packPrice > 0) {
           try {
-          // Buscar nome do pack via flow_bots
-          const flowForPackName = await getActiveFlowForBot(supabase, botUuid)
-          
-          const flowConfig = (flowForPackName?.config as Record<string, unknown>) || {}
             const packsConfig = flowConfig.packs as { list?: Array<{ id: string; name: string }> } | undefined
             const pack = packsConfig?.list?.find(p => p.id === packId)
             const packName = pack?.name || "Pack"
