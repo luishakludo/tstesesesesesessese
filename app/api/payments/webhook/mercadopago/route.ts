@@ -71,6 +71,31 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+// Criar link de convite unico para grupo VIP (limite de 1 uso)
+async function createVipInviteLink(botToken: string, chatId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        member_limit: 1, // Link unico para 1 pessoa
+        name: `VIP Access - ${Date.now()}`,
+      }),
+    })
+    const data = await res.json()
+    if (data.ok && data.result?.invite_link) {
+      console.log(`[VIP] Created invite link for chat ${chatId}: ${data.result.invite_link}`)
+      return data.result.invite_link
+    }
+    console.log(`[VIP] Failed to create invite link:`, data)
+    return null
+  } catch (error) {
+    console.error(`[VIP] Error creating invite link:`, error)
+    return null
+  }
+}
+
 function calculateDelayMs(value: number, unit: "minutes" | "hours" | "days"): number {
   switch (unit) {
     case "minutes": return value * 60 * 1000
@@ -143,6 +168,82 @@ async function sendUpsellOffer(
   console.log(`[UPSELL] Upsell ${upsellIndex} sent successfully`)
 }
 
+// Interface para entregavel
+interface Deliverable {
+  id: string
+  name: string
+  type: "media" | "vip_group" | "link"
+  medias?: string[]
+  link?: string
+  linkText?: string
+  vipGroupChatId?: string
+  vipGroupName?: string
+}
+
+// Funcao para enviar um entregavel especifico
+async function sendDeliverable(
+  botToken: string,
+  chatId: number,
+  deliverable: Deliverable
+) {
+  console.log(`[DELIVERY] Sending deliverable "${deliverable.name}" (type: ${deliverable.type}) to user ${chatId}`)
+
+  switch (deliverable.type) {
+    case "media":
+      // Enviar midias
+      if (deliverable.medias && deliverable.medias.length > 0) {
+        for (const mediaUrl of deliverable.medias) {
+          if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+            await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+          } else {
+            await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+          }
+          await sleep(500)
+        }
+        await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Seu conteudo foi liberado acima.")
+      }
+      break
+
+    case "link":
+      // Enviar link com botao
+      if (deliverable.link) {
+        const buttonText = deliverable.linkText || "Acessar conteudo"
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: buttonText, url: deliverable.link }]
+          ]
+        }
+        await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Clique no botao abaixo para acessar:", keyboard)
+      }
+      break
+
+    case "vip_group":
+      // Criar link de convite unico e enviar
+      if (deliverable.vipGroupChatId) {
+        const inviteLink = await createVipInviteLink(botToken, deliverable.vipGroupChatId)
+        if (inviteLink) {
+          const groupName = deliverable.vipGroupName || "Grupo VIP"
+          const keyboard = {
+            inline_keyboard: [
+              [{ text: `Entrar no ${groupName}`, url: inviteLink }]
+            ]
+          }
+          await sendTelegramMessage(
+            botToken,
+            chatId,
+            `Obrigado pela compra! Seu acesso ao <b>${groupName}</b> foi liberado.\n\n<i>Este link e unico e pode ser usado apenas uma vez.</i>`,
+            keyboard
+          )
+        } else {
+          await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Houve um problema ao gerar seu link de acesso. Entre em contato com o suporte.")
+        }
+      }
+      break
+  }
+
+  console.log(`[DELIVERY] Deliverable "${deliverable.name}" sent successfully`)
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendDelivery(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,38 +251,80 @@ async function sendDelivery(
   botToken: string,
   chatId: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  flowConfig: Record<string, any> | null
+  flowConfig: Record<string, any> | null,
+  deliverableId?: string // ID do entregavel especifico (para upsell/downsell)
 ) {
-  console.log(`[DELIVERY] Sending delivery to user ${chatId}`)
+  console.log(`[DELIVERY] Sending delivery to user ${chatId}, deliverableId: ${deliverableId || "main"}`)
 
-  if (!flowConfig?.delivery) {
-    await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Seu acesso foi liberado.")
-    return
+  // Se tiver um deliverableId especifico, buscar e usar esse entregavel
+  if (deliverableId && flowConfig?.deliverables) {
+    const deliverable = flowConfig.deliverables.find((d: Deliverable) => d.id === deliverableId)
+    if (deliverable) {
+      await sendDeliverable(botToken, chatId, deliverable)
+      return
+    }
   }
 
-  const delivery = flowConfig.delivery
+  // Se tiver mainDeliverableId configurado, usar o entregavel principal
+  if (flowConfig?.mainDeliverableId && flowConfig?.deliverables) {
+    const mainDeliverable = flowConfig.deliverables.find((d: Deliverable) => d.id === flowConfig.mainDeliverableId)
+    if (mainDeliverable) {
+      await sendDeliverable(botToken, chatId, mainDeliverable)
+      return
+    }
+  }
 
-  // Enviar midias de entrega
-  if (delivery.medias && delivery.medias.length > 0) {
-    for (const mediaUrl of delivery.medias) {
-      if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
-        await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+  // Fallback: usar o sistema antigo de delivery (para compatibilidade)
+  if (flowConfig?.delivery) {
+    const delivery = flowConfig.delivery
+
+    // Verificar tipo de entrega do sistema antigo
+    if (delivery.type === "vip_group" && delivery.vipGroupId) {
+      // Grupo VIP (sistema antigo)
+      const inviteLink = await createVipInviteLink(botToken, delivery.vipGroupId)
+      if (inviteLink) {
+        const groupName = delivery.vipGroupName || "Grupo VIP"
+        const keyboard = {
+          inline_keyboard: [
+            [{ text: `Entrar no ${groupName}`, url: inviteLink }]
+          ]
+        }
+        await sendTelegramMessage(
+          botToken,
+          chatId,
+          `Obrigado pela compra! Seu acesso ao <b>${groupName}</b> foi liberado.\n\n<i>Este link e unico e pode ser usado apenas uma vez.</i>`,
+          keyboard
+        )
       } else {
-        await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+        await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Houve um problema ao gerar seu link de acesso. Entre em contato com o suporte.")
       }
-      await sleep(500)
+      return
     }
-  }
 
-  // Enviar link de acesso
-  if (delivery.link) {
-    const buttonText = delivery.linkText || "Acessar conteudo"
-    const keyboard = {
-      inline_keyboard: [
-        [{ text: buttonText, url: delivery.link }]
-      ]
+    // Enviar midias de entrega (sistema antigo)
+    if (delivery.medias && delivery.medias.length > 0) {
+      for (const mediaUrl of delivery.medias) {
+        if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+          await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+        } else {
+          await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+        }
+        await sleep(500)
+      }
     }
-    await sendTelegramMessage(botToken, chatId, "Seu acesso foi liberado! Clique no botao abaixo:", keyboard)
+
+    // Enviar link de acesso (sistema antigo)
+    if (delivery.link) {
+      const buttonText = delivery.linkText || "Acessar conteudo"
+      const keyboard = {
+        inline_keyboard: [
+          [{ text: buttonText, url: delivery.link }]
+        ]
+      }
+      await sendTelegramMessage(botToken, chatId, "Seu acesso foi liberado! Clique no botao abaixo:", keyboard)
+    } else if (!delivery.medias || delivery.medias.length === 0) {
+      await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Seu acesso foi liberado.")
+    }
   } else {
     await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Seu acesso foi liberado.")
   }
@@ -417,8 +560,11 @@ export async function POST(request: NextRequest) {
                     }
                   } else {
                     // Acabou os upsells - enviar entrega
-                    console.log(`[UPSELL] All upsells processed, sending delivery`)
-                    await sendDelivery(supabase, bot.token, chatId, flowConfig)
+                    // Verificar se o ultimo upsell aceito tinha entregavel especifico
+                    const lastUpsell = upsellSequences[currentIndex]
+                    const upsellDeliverableId = lastUpsell?.deliveryType === "custom" ? lastUpsell?.deliverableId : undefined
+                    console.log(`[UPSELL] All upsells processed, sending delivery (deliverableId: ${upsellDeliverableId || "main"})`)
+                    await sendDelivery(supabase, bot.token, chatId, flowConfig, upsellDeliverableId)
                   }
                 }
               }
