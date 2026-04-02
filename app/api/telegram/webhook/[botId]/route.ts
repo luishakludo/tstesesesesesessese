@@ -610,7 +610,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${copyPaste}</code>`)
               
               // Salvar pagamento
-              await supabase.from("payments").insert({
+              console.log("[v0] Saving pack payment - user_id:", botDataPack.user_id, "bot_id:", botUuid, "amount:", packPrice)
+              const { data: savedPayment, error: saveError } = await supabase.from("payments").insert({
                 user_id: botDataPack.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
@@ -627,7 +628,13 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 copy_paste: copyPaste,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
-              })
+              }).select().single()
+              
+              if (saveError) {
+                console.error("[v0] Error saving pack payment:", saveError)
+              } else {
+                console.log("[v0] Pack payment saved:", savedPayment?.id)
+              }
             } else {
               console.error("[v0] Erro PIX Pack:", pixData)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
@@ -1402,7 +1409,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             .single()
           
           // Save payment record with correct fields including Telegram user info
-          await supabase.from("payments").insert({
+          console.log("[v0] Saving plan payment - user_id:", botData?.user_id, "bot_id:", botUuid, "amount:", planPrice)
+          const { data: savedPlanPayment, error: savePlanError } = await supabase.from("payments").insert({
             user_id: botData?.user_id,
             bot_id: botUuid,
             telegram_user_id: String(telegramUserId),
@@ -1417,7 +1425,13 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             qr_code_url: pixResult.qrCodeUrl,
             copy_paste: pixResult.copyPaste,
             status: "pending",
-          })
+          }).select().single()
+          
+          if (savePlanError) {
+            console.error("[v0] Error saving plan payment:", savePlanError)
+          } else {
+            console.log("[v0] Plan payment saved:", savedPlanPayment?.id)
+          }
           
           // DOWNSELLS DO TIPO "PIX" (para quem gerou pix mas nao pagou)
           // Buscar flow para pegar config de downsell
