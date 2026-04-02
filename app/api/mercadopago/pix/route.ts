@@ -15,13 +15,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Extrair dados do payer do formulario
-    const payerEmail = payer?.email || "cliente@checkout.com"
+    // Salvar lead no banco se tiver dados do formulario (apenas para coleta)
     const payerName = payer?.name || "Cliente"
-    const payerCpf = payer?.cpf?.replace(/\D/g, "") || ""
-    const payerPhone = payer?.phone?.replace(/\D/g, "") || ""
-
-    // Salvar lead no banco se tiver dados do formulario
     if (payer && (payer.email || payer.name || payer.cpf)) {
       try {
         const supabase = getSupabase()
@@ -36,11 +31,10 @@ export async function POST(request: NextRequest) {
         })
       } catch (err) {
         console.error("Error saving lead:", err)
-        // Continua mesmo se falhar salvar lead
       }
     }
 
-    // Criar pagamento PIX via Mercado Pago
+    // Criar pagamento PIX via Mercado Pago (sem enviar dados do payer - igual ao bot)
     const response = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
@@ -53,13 +47,7 @@ export async function POST(request: NextRequest) {
         description: description || "Pagamento PIX",
         payment_method_id: "pix",
         payer: {
-          email: payerEmail,
-          first_name: payerName.split(" ")[0] || "Cliente",
-          last_name: payerName.split(" ").slice(1).join(" ") || "",
-          identification: payerCpf ? {
-            type: "CPF",
-            number: payerCpf
-          } : undefined,
+          email: "cliente@checkout.com",
         },
       }),
     })
