@@ -38,6 +38,8 @@ function CadastroContent() {
   const [referralCoupon, setReferralCoupon] = useState<string | null>(null)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
+  const [termsData, setTermsData] = useState<{ sections: { title: string; content: string }[] }>({ sections: [] })
+  const [termsLoading, setTermsLoading] = useState(false)
   const { register, session, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -60,6 +62,23 @@ function CadastroContent() {
       }
     }
   }, [searchParams])
+
+  // Fetch terms from API when modal opens
+  const loadTerms = async () => {
+    if (termsData.sections.length > 0) return // Already loaded
+    setTermsLoading(true)
+    try {
+      const res = await fetch("/api/terms?type=terms_of_use")
+      const data = await res.json()
+      if (data.sections) {
+        setTermsData(data)
+      }
+    } catch (err) {
+      console.error("Error loading terms:", err)
+    } finally {
+      setTermsLoading(false)
+    }
+  }
 
   function formatPhone(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 11)
@@ -268,7 +287,7 @@ function CadastroContent() {
                   Eu li e aceito os{" "}
                   <button
                     type="button"
-                    onClick={() => setShowTermsModal(true)}
+                    onClick={() => { loadTerms(); setShowTermsModal(true); }}
                     className="text-[#b8ff29] hover:underline font-medium"
                   >
                     Termos de Uso
@@ -276,7 +295,7 @@ function CadastroContent() {
                   {" "}e{" "}
                   <button
                     type="button"
-                    onClick={() => setShowTermsModal(true)}
+                    onClick={() => { loadTerms(); setShowTermsModal(true); }}
                     className="text-[#b8ff29] hover:underline font-medium"
                   >
                     Politica de Privacidade
@@ -427,109 +446,32 @@ function CadastroContent() {
 
           {/* Content */}
           <div className="overflow-y-auto max-h-[60vh] p-5">
-            <div className="space-y-6 text-sm text-[#ccc]">
-              {/* Termos de Uso */}
-              <section>
-                <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">1</span>
-                  Termos de Uso
-                </h4>
-                <div className="space-y-3 pl-8">
-                  <div>
-                    <p className="font-medium text-white mb-1">1.1 Aceitacao dos Termos</p>
-                    <p className="text-[#888]">Ao acessar ou utilizar a plataforma DRAGON, o usuario declara que leu, compreendeu e concorda com todos os termos.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">1.2 Elegibilidade</p>
-                    <p className="text-[#888]">E obrigatorio ter 18 anos ou mais. O uso por menores e estritamente proibido.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">1.3 Uso da Plataforma</p>
-                    <p className="text-[#888]">O usuario concorda em nao utilizar a plataforma para atividades ilegais, nao fraudar pagamentos, nao burlar sistemas e nao usar bots ou automacoes indevidas.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">1.4 Conta do Usuario</p>
-                    <p className="text-[#888]">O usuario e responsavel pela seguranca da conta. A DRAGON pode suspender contas suspeitas. E proibido compartilhar contas.</p>
-                  </div>
-                </div>
-              </section>
+            {termsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-[#b8ff29]" />
+              </div>
+            ) : (
+              <div className="space-y-6 text-sm text-[#ccc]">
+                {termsData.sections.map((section, index) => (
+                  <section key={index}>
+                    <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
+                      <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">{index + 1}</span>
+                      {section.title}
+                    </h4>
+                    <div className="pl-8">
+                      <p className="text-[#888]">{section.content}</p>
+                    </div>
+                  </section>
+                ))}
 
-              {/* Politica de Conteudo */}
-              <section>
-                <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">2</span>
-                  Politica de Conteudo
-                </h4>
-                <div className="space-y-3 pl-8">
-                  <div>
-                    <p className="font-medium text-white mb-1">2.1 Proibicao de Conteudo com Menores</p>
-                    <p className="text-[#888]">A DRAGON proibe totalmente conteudo com menores de 18 anos, conteudo que pareca menor, conteudo sexualizado com aparencia juvenil e deepfake envolvendo menores.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">2.2 Conteudos Proibidos</p>
-                    <p className="text-[#888]">Tambem sao proibidos: violencia extrema, conteudo ilegal, fraudes e golpes, conteudo sem consentimento e vazamentos nao autorizados.</p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Pagamentos */}
-              <section>
-                <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">3</span>
-                  Pagamentos e Taxas
-                </h4>
-                <div className="space-y-3 pl-8">
-                  <div>
-                    <p className="font-medium text-white mb-1">3.1 Taxa da Plataforma</p>
-                    <p className="text-[#888]">Taxa fixa de R$0,50 por venda.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">3.2 Gateways de Pagamento</p>
-                    <p className="text-[#888]">Pagamentos sao processados por terceiros. A DRAGON nao controla taxas do gateway.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">3.3 Saques</p>
-                    <p className="text-[#888]">Saques podem ter prazo de processamento. A DRAGON pode reter valores em caso de suspeita.</p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Penalidades */}
-              <section>
-                <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">4</span>
-                  Penalidades
-                </h4>
-                <div className="pl-8">
-                  <p className="text-[#888]">Em caso de violacao: remocao de conteudo, suspensao da conta, banimento permanente, retencao de saldo e acao legal.</p>
-                </div>
-              </section>
-
-              {/* Privacidade */}
-              <section>
-                <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
-                  <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">5</span>
-                  Privacidade (LGPD)
-                </h4>
-                <div className="space-y-3 pl-8">
-                  <div>
-                    <p className="font-medium text-white mb-1">5.1 Coleta de Dados</p>
-                    <p className="text-[#888]">Coletamos: nome, email, dados de pagamento e dados de navegacao.</p>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white mb-1">5.2 Direitos do Usuario</p>
-                    <p className="text-[#888]">O usuario pode solicitar exclusao de dados, acessar informacoes e revogar consentimento.</p>
-                  </div>
-                </div>
-              </section>
-
-              {/* Aceite Final */}
-              <section className="rounded-xl bg-[#b8ff29]/5 border border-[#b8ff29]/20 p-4">
-                <p className="text-[#b8ff29] font-medium text-center">
-                  Ao usar a plataforma, o usuario concorda com todos os termos acima.
-                </p>
-              </section>
-            </div>
+                {/* Aceite Final */}
+                <section className="rounded-xl bg-[#b8ff29]/5 border border-[#b8ff29]/20 p-4">
+                  <p className="text-[#b8ff29] font-medium text-center">
+                    Ao usar a plataforma, o usuario concorda com todos os termos acima.
+                  </p>
+                </section>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
