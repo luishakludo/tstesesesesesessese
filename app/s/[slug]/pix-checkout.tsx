@@ -47,19 +47,19 @@ type CheckoutNormalData = {
   securityText?: string
 }
 
-export function PixCheckout({ data, siteId }: { data: Partial<CheckoutDiretoData & CheckoutNormalData>, siteId?: string }) {
+export function PixCheckout({ data, siteId, userId }: { data: Partial<CheckoutDiretoData & CheckoutNormalData>, siteId?: string, userId?: string }) {
   // Detectar tipo baseado nos campos presentes
   const isCheckoutDireto = !data.productName && !data.fields
   
   if (isCheckoutDireto) {
-    return <CheckoutDiretoPage data={data} siteId={siteId} />
+    return <CheckoutDiretoPage data={data} siteId={siteId} userId={userId} />
   }
   
-  return <CheckoutNormalPage data={data} siteId={siteId} />
+  return <CheckoutNormalPage data={data} siteId={siteId} userId={userId} />
 }
 
 // ========== CHECKOUT DIRETO ==========
-function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData>, siteId?: string }) {
+function CheckoutDiretoPage({ data, siteId, userId }: { data: Partial<CheckoutDiretoData>, siteId?: string, userId?: string }) {
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
   const [loading, setLoading] = useState(true)
@@ -94,6 +94,7 @@ function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData
             amount: priceNumber,
             description: headline,
             siteId: siteId,
+            userId: userId,
           }),
         })
 
@@ -229,7 +230,7 @@ function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData
 }
 
 // ========== CHECKOUT NORMAL (COM FORMULARIO) ==========
-function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData>, siteId?: string }) {
+function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNormalData>, siteId?: string, userId?: string }) {
   const [step, setStep] = useState<"form" | "pix">("form")
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
@@ -275,6 +276,7 @@ function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData
             description: productName,
             payer: formData,
             siteId: siteId,
+            userId: userId,
           }),
         })
 
