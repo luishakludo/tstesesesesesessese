@@ -5162,276 +5162,103 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Entregaveis - Only show in bots tab */}
           {activeTab === "bots" && (
             <Card className="border-border/50 mb-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Gift className="h-4 w-4 text-accent" />
-                  Entregavel
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!showDeliveryConfig ? (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Configure o que sera entregue apos o pagamento ser aprovado
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-auto py-3"
-                      onClick={() => setShowDeliveryConfig(true)}
-                    >
-                      <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Settings2 className="h-4 w-4 text-accent" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-sm">Configurar Entregavel</p>
-                        <p className="text-xs text-muted-foreground">Clique para definir o tipo de entrega</p>
-                      </div>
-                    </Button>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-5 w-5 text-accent" />
+                    <span className="font-semibold">Entregaveis</span>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Tipo de Entregavel */}
-                    <div className="space-y-3">
-                      <Label className="text-xs text-muted-foreground">Tipo de Entregavel</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        {/* Midia */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("media")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "media"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "media" ? "bg-accent text-black" : "bg-secondary/50"
+                  <Badge variant="secondary" className="text-muted-foreground">
+                    {deliverables.length} cadastrados
+                  </Badge>
+                </div>
+
+                {/* Botao Adicionar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingDeliverable(null)
+                    setDeliverableModalStep("select")
+                    setTempDeliverable({
+                      id: `del-${Date.now()}`,
+                      name: `Entregavel ${deliverables.length + 1}`,
+                      type: "media",
+                      medias: [],
+                      link: "",
+                      linkText: "",
+                      vipGroupChatId: "",
+                      vipGroupName: "",
+                      vipAutoAdd: true,
+                      vipAutoRemove: true,
+                    })
+                    setDeliverableModalOpen(true)
+                  }}
+                  disabled={deliverables.length >= 10}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-border/50 hover:border-accent/50 hover:bg-accent/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                    <Plus className="h-5 w-5 text-accent" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold">Adicionar Entregavel</p>
+                    <p className="text-sm text-muted-foreground">Midia, Grupo VIP ou Link</p>
+                  </div>
+                </button>
+
+                {deliverables.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground mt-4">
+                    Configure o que sera entregue apos o pagamento ser aprovado
+                  </p>
+                )}
+
+                {/* Lista de entregaveis existentes */}
+                {deliverables.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    {deliverables.map((del) => (
+                      <div
+                        key={del.id}
+                        onClick={() => {
+                          setEditingDeliverable(del)
+                          setDeliverableModalStep("form")
+                          setTempDeliverable({ ...del })
+                          setDeliverableModalOpen(true)
+                        }}
+                        className="flex items-center justify-between p-3 rounded-xl border border-border/50 hover:border-accent/30 cursor-pointer transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${
+                            del.type === "media" ? "bg-purple-500/10" : 
+                            del.type === "link" ? "bg-blue-500/10" : "bg-amber-500/10"
                           }`}>
-                            <ImageIcon className="h-5 w-5" />
+                            {del.type === "media" ? (
+                              <ImageIcon className="h-4 w-4 text-purple-500" />
+                            ) : del.type === "link" ? (
+                              <Link2 className="h-4 w-4 text-blue-500" />
+                            ) : (
+                              <Users className="h-4 w-4 text-amber-500" />
+                            )}
                           </div>
                           <div>
-                            <p className="font-medium text-sm">Entregavel de Midia</p>
-                            <p className="text-xs text-muted-foreground">Envie fotos, videos ou arquivos</p>
+                            <p className="font-medium text-sm">{del.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {del.type === "media" ? "Midia" : del.type === "link" ? "Link" : "Grupo VIP"}
+                            </p>
                           </div>
-                        </button>
-
-                        {/* Grupo VIP */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("vip_group")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "vip_group"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "vip_group" ? "bg-accent text-black" : "bg-secondary/50"
-                          }`}>
-                            <Users className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Entregavel de Grupo VIP</p>
-                            <p className="text-xs text-muted-foreground">Adicione automaticamente ao grupo</p>
-                          </div>
-                        </button>
-
-                        {/* Link */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("link")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "link"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "link" ? "bg-accent text-black" : "bg-secondary/50"
-                          }`}>
-                            <Link2 className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Entregavel de Link</p>
-                            <p className="text-xs text-muted-foreground">Envie um link de acesso</p>
-                          </div>
-                        </button>
+                        </div>
+                        {mainDeliverableId === del.id && (
+                          <Badge className="bg-accent/10 text-accent border-accent/30 text-xs">
+                            Principal
+                          </Badge>
+                        )}
                       </div>
-                    </div>
-
-                    {/* Config baseado no tipo */}
-                    {deliveryType === "media" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium">Midias do Entregavel</Label>
-                          <span className="text-[10px] text-muted-foreground">{deliveryMedias.length}/20</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {deliveryMedias.map((media, index) => (
-                            <div key={index} className="relative w-16 h-16 rounded-lg border border-border/50 overflow-hidden group">
-                              <img src={media} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDeliveryMedias(deliveryMedias.filter((_, i) => i !== index))
-                                  setHasChanges(true)
-                                }}
-                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                              >
-                                <Trash2 className="h-4 w-4 text-white" />
-                              </button>
-                            </div>
-                          ))}
-                          {deliveryMedias.length < 20 && (
-                            <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-accent/50 transition-colors">
-                              <Plus className="h-5 w-5 text-muted-foreground" />
-                              <input
-                                type="file"
-                                accept="image/*,video/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file && flow) {
-                                    try {
-                                      const fileExt = file.name.split('.').pop()
-                                      const fileName = `${flow.id}/delivery/${Date.now()}.${fileExt}`
-                                      const { data, error } = await supabase.storage
-                                        .from('flow-medias')
-                                        .upload(fileName, file, { cacheControl: '3600', upsert: false })
-                                      if (error) {
-                                        toast({ title: "Erro no upload", description: error.message, variant: "destructive" })
-                                        return
-                                      }
-                                      const { data: urlData } = supabase.storage.from('flow-medias').getPublicUrl(fileName)
-                                      setDeliveryMedias([...deliveryMedias, urlData.publicUrl])
-                                      setHasChanges(true)
-                                    } catch (err) {
-                                      toast({ title: "Erro", description: "Falha ao fazer upload", variant: "destructive" })
-                                    }
-                                  }
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Adicione ate 20 midias que serao enviadas apos o pagamento
-                        </p>
-                      </div>
-                    )}
-
-                    {deliveryType === "vip_group" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">ID do Grupo VIP</Label>
-                          <Input
-                            value={vipGroupId}
-                            onChange={(e) => {
-                              setVipGroupId(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="-1001234567890"
-                            className="bg-secondary/30 font-mono text-sm"
-                          />
-                          <p className="text-[10px] text-muted-foreground">
-                            ID do grupo no Telegram (use @userinfobot para obter)
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Nome do Grupo (opcional)</Label>
-                          <Input
-                            value={vipGroupName}
-                            onChange={(e) => {
-                              setVipGroupName(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="Grupo VIP Premium"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2 pt-2 border-t border-border/30">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-medium">Adicionar automaticamente</p>
-                              <p className="text-[10px] text-muted-foreground">Adicionar membro ao pagar</p>
-                            </div>
-                            <Switch
-                              checked={vipAutoAdd}
-                              onCheckedChange={(checked) => {
-                                setVipAutoAdd(checked)
-                                setHasChanges(true)
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-medium">Remover ao expirar</p>
-                              <p className="text-[10px] text-muted-foreground">Remover quando acesso expirar</p>
-                            </div>
-                            <Switch
-                              checked={vipAutoRemoveOnExpire}
-                              onCheckedChange={(checked) => {
-                                setVipAutoRemoveOnExpire(checked)
-                                setHasChanges(true)
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
-                          <p className="text-[10px] text-accent">
-                            O bot precisa ser administrador do grupo com permissao de adicionar membros
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {deliveryType === "link" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Link de Acesso</Label>
-                          <Input
-                            value={deliveryLink}
-                            onChange={(e) => {
-                              setDeliveryLink(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="https://exemplo.com/acesso"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Texto do Botao</Label>
-                          <Input
-                            value={deliveryLinkText}
-                            onChange={(e) => {
-                              setDeliveryLinkText(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="Acessar Conteudo"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          O link sera enviado como botao clicavel apos o pagamento
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Botao Voltar */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowDeliveryConfig(false)}
-                      className="w-full"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Voltar
-                    </Button>
+                    ))}
                   </div>
                 )}
               </CardContent>
             </Card>
           )}
+
+
 
 
 
