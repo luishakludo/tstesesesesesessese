@@ -40,7 +40,7 @@ interface Payment {
 }
 
 export default function VendasPage() {
-  const { session } = useAuth()
+  const { session, isLoading: authLoading } = useAuth()
   const userId = session?.user?.id
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,8 +61,13 @@ export default function VendasPage() {
   const ITEMS_PER_PAGE = 50
 
   useEffect(() => {
-    if (userId) fetchPayments()
-  }, [currentPage, activeTab, userId])
+    if (authLoading) return
+    if (userId) {
+      fetchPayments()
+    } else {
+      setLoading(false)
+    }
+  }, [currentPage, activeTab, userId, authLoading])
 
   const fetchPayments = async () => {
     if (!userId) return
