@@ -98,6 +98,12 @@ interface FlowPlan {
   order_bump_medias?: string[]
 }
 
+interface UpsellPlan {
+  id: string
+  buttonText: string
+  price: number
+}
+
 interface UpsellSequence {
   id: string
   name: string
@@ -106,7 +112,7 @@ interface UpsellSequence {
   sendTiming: "immediate" | "custom"
   sendDelayValue?: number
   sendDelayUnit?: "minutes" | "hours" | "days"
-  price: number
+  plans: UpsellPlan[]
   acceptButtonText: string
   rejectButtonText: string
   hideRejectButton: boolean
@@ -126,6 +132,12 @@ interface UpsellConfig {
   customDelivery?: string
 }
 
+interface DownsellPlan {
+  id: string
+  buttonText: string
+  price: number
+}
+
 interface DownsellSequence {
   id: string
   message: string
@@ -133,7 +145,7 @@ interface DownsellSequence {
   sendTiming: "immediate" | "custom"
   sendDelayValue?: number
   sendDelayUnit?: "minutes" | "hours" | "days"
-  price: number
+  plans: DownsellPlan[]
   deliveryType: "global" | "custom"
   customDelivery?: string
   targetType: "geral" | "pix" // geral = todos, pix = apenas quem gerou pix mas nao pagou
@@ -876,7 +888,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
       sendTiming: "immediate",
       sendDelayValue: 30,
       sendDelayUnit: "minutes",
-      price: 0,
+      plans: [{ id: `plan-${Date.now()}`, buttonText: "Plano 1", price: 0 }],
       acceptButtonText: "Quero essa oferta!",
       rejectButtonText: "Nao tenho interesse",
       hideRejectButton: false,
@@ -888,6 +900,33 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
     setUpsellSequences([...upsellSequences, newSequence])
     setExpandedSequence(newSequence.id)
     setHasChanges(true)
+  }
+
+  // Add plan to upsell sequence
+  const handleAddUpsellPlan = (seqId: string) => {
+    const seq = upsellSequences.find(s => s.id === seqId)
+    if (!seq || (seq.plans?.length || 0) >= 5) return
+    const newPlan: UpsellPlan = {
+      id: `plan-${Date.now()}`,
+      buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
+      price: 0
+    }
+    handleUpdateUpsellSequence(seqId, "plans", [...(seq.plans || []), newPlan])
+  }
+
+  // Remove plan from upsell sequence
+  const handleRemoveUpsellPlan = (seqId: string, planId: string) => {
+    const seq = upsellSequences.find(s => s.id === seqId)
+    if (!seq) return
+    handleUpdateUpsellSequence(seqId, "plans", (seq.plans || []).filter(p => p.id !== planId))
+  }
+
+  // Update plan in upsell sequence
+  const handleUpdateUpsellPlan = (seqId: string, planId: string, field: keyof UpsellPlan, value: string | number) => {
+    const seq = upsellSequences.find(s => s.id === seqId)
+    if (!seq) return
+    const updatedPlans = (seq.plans || []).map(p => p.id === planId ? { ...p, [field]: value } : p)
+    handleUpdateUpsellSequence(seqId, "plans", updatedPlans)
   }
 
   // Remove upsell sequence
@@ -988,13 +1027,40 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   sendTiming: "immediate",
   sendDelayValue: 30,
   sendDelayUnit: "minutes",
-  price: 0,
+  plans: [{ id: `plan-${Date.now()}`, buttonText: "Plano 1", price: 0 }],
   deliveryType: "global",
   targetType: downsellSubTab === "pix" ? "pix" : "geral", // Usa a aba atual como targetType
   }
   setDownsellSequences([...downsellSequences, newSequence])
   setExpandedDownsellSequence(newSequence.id)
   setHasChanges(true)
+  }
+
+  // Add plan to downsell sequence
+  const handleAddDownsellPlan = (seqId: string) => {
+    const seq = downsellSequences.find(s => s.id === seqId)
+    if (!seq || (seq.plans?.length || 0) >= 5) return
+    const newPlan: DownsellPlan = {
+      id: `plan-${Date.now()}`,
+      buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
+      price: 0
+    }
+    handleUpdateDownsellSequence(seqId, "plans", [...(seq.plans || []), newPlan])
+  }
+
+  // Remove plan from downsell sequence
+  const handleRemoveDownsellPlan = (seqId: string, planId: string) => {
+    const seq = downsellSequences.find(s => s.id === seqId)
+    if (!seq) return
+    handleUpdateDownsellSequence(seqId, "plans", (seq.plans || []).filter(p => p.id !== planId))
+  }
+
+  // Update plan in downsell sequence
+  const handleUpdateDownsellPlan = (seqId: string, planId: string, field: keyof DownsellPlan, value: string | number) => {
+    const seq = downsellSequences.find(s => s.id === seqId)
+    if (!seq) return
+    const updatedPlans = (seq.plans || []).map(p => p.id === planId ? { ...p, [field]: value } : p)
+    handleUpdateDownsellSequence(seqId, "plans", updatedPlans)
   }
 
   // Remove downsell sequence
@@ -2240,9 +2306,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <ChevronRight className="h-4 w-4 text-muted-foreground" />
                             )}
                             <span className="font-medium">{seq.name || `Upsell ${index + 1}`}</span>
-                            {seq.price > 0 && (
+                            {(seq.plans?.length || 0) > 0 && (
                               <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
-                                R$ {seq.price.toFixed(2).replace(".", ",")}
+                                {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
                               </span>
                             )}
                           </div>
@@ -2389,25 +2455,72 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </div>
                               )}
 
-                              {/* Preco */}
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <DollarSign className="h-4 w-4" />
-                                  <span>Preco:</span>
+                            </div>
+
+                            {/* Planos de Assinatura */}
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Crown className="h-4 w-4 text-amber-500" />
+                                  <h4 className="font-medium">Planos</h4>
                                 </div>
-                                <div className="relative">
-                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={seq.price || 0}
-                                    onChange={(e) => handleUpdateUpsellSequence(seq.id, "price", parseFloat(e.target.value) || 0)}
-                                    className="w-32 pl-10 bg-secondary/50 border-border/50"
-                                    placeholder="0,00"
-                                  />
-                                </div>
+                                <span className="text-xs text-muted-foreground">{(seq.plans?.length || 0)}/5</span>
                               </div>
+                              <p className="text-sm text-muted-foreground">
+                                Configure os planos que aparecerao como botoes para o cliente escolher.
+                              </p>
+                              
+                              <div className="space-y-2">
+                                {(seq.plans || []).map((plan, planIndex) => (
+                                  <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
+                                    <div className="flex-1 grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Texto do Botao</Label>
+                                        <Input
+                                          value={plan.buttonText}
+                                          onChange={(e) => handleUpdateUpsellPlan(seq.id, plan.id, "buttonText", e.target.value)}
+                                          placeholder="Ex: Mensal"
+                                          className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                                        <Input
+                                          type="number"
+                                          min="0"
+                                          step="0.01"
+                                          value={plan.price || 0}
+                                          onChange={(e) => handleUpdateUpsellPlan(seq.id, plan.id, "price", parseFloat(e.target.value) || 0)}
+                                          placeholder="0,00"
+                                          className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                        />
+                                      </div>
+                                    </div>
+                                    {(seq.plans?.length || 0) > 1 && (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0"
+                                        onClick={() => handleRemoveUpsellPlan(seq.id, plan.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+
+                              {(seq.plans?.length || 0) < 5 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full border-dashed"
+                                  onClick={() => handleAddUpsellPlan(seq.id)}
+                                >
+                                  <Plus className="h-4 w-4 mr-2" />
+                                  Adicionar Plano
+                                </Button>
+                              )}
                             </div>
 
                             {/* Mensagem */}
@@ -2425,43 +2538,36 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                             <div className="border-t border-border/50 pt-4" />
 
-                            {/* Botoes de Aceitar/Recusar */}
+                            {/* Botao de Recusar */}
                             <div className="space-y-3">
-                              <h4 className="font-medium">Botoes de Acao</h4>
-                              <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                  <Label className="text-sm text-muted-foreground">Botao Aceitar</Label>
-                                  <div className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
-                                    <Check className="h-4 w-4 text-emerald-500" />
-                                    <Input
-                                      value={seq.acceptButtonText}
-                                      onChange={(e) => handleUpdateUpsellSequence(seq.id, "acceptButtonText", e.target.value)}
-                                      className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
-                                    />
-                                  </div>
+                              <h4 className="font-medium">Botao de Recusar</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Os planos acima serao exibidos como botoes. Configure aqui o botao de recusar opcional.
+                              </p>
+                              <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
+                                <div>
+                                  <p className="text-sm font-medium">Mostrar botao de recusar</p>
+                                  <p className="text-xs text-muted-foreground">Adiciona um botao para o cliente pular a oferta</p>
                                 </div>
+                                <Switch
+                                  checked={!seq.hideRejectButton}
+                                  onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", !checked)}
+                                />
+                              </div>
+                              {!seq.hideRejectButton && (
                                 <div className="space-y-2">
-                                  <Label className="text-sm text-muted-foreground">Botao Recusar</Label>
+                                  <Label className="text-sm text-muted-foreground">Texto do Botao</Label>
                                   <div className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
                                     <X className="h-4 w-4 text-destructive" />
                                     <Input
                                       value={seq.rejectButtonText}
                                       onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
                                       className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+                                      placeholder="Nao tenho interesse"
                                     />
                                   </div>
                                 </div>
-                              </div>
-                              <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                                <div>
-                                  <p className="text-sm font-medium">Esconder botao de recusar</p>
-                                  <p className="text-xs text-muted-foreground">Mostra apenas o botao de aceitar</p>
-                                </div>
-                                <Switch
-                                  checked={seq.hideRejectButton}
-                                  onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", checked)}
-                                />
-                              </div>
+                              )}
                             </div>
 
                             {/* Entrega Personalizada */}
@@ -2676,13 +2782,18 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             onClick={() => setExpandedDownsellSequence(expandedDownsellSequence === seq.id ? null : seq.id)}
                           >
                             <div className="flex items-center gap-2">
-                              {expandedDownsellSequence === seq.id ? (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              )}
-                              <span className="font-medium">Sequencia {index + 1}</span>
-                            </div>
+  {expandedDownsellSequence === seq.id ? (
+  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+  ) : (
+  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+  )}
+  <span className="font-medium">Sequencia {index + 1}</span>
+  {(seq.plans?.length || 0) > 0 && (
+    <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+      {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
+    </span>
+  )}
+  </div>
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="ghost"
@@ -2815,25 +2926,72 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   </div>
                                 )}
 
-                                <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <DollarSign className="h-4 w-4" />
-                                    <span>Preco:</span>
+                              </div>
+
+                              {/* Planos de Assinatura */}
+                              <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Crown className="h-4 w-4 text-amber-500" />
+                                    <h4 className="font-medium">Planos</h4>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-sm text-muted-foreground">R$</span>
-                                    <Input
-                                      type="number"
-                                      value={seq.price || 0}
-                                      onChange={(e) => {
-                                        handleUpdateDownsellSequence(seq.id, "price", parseFloat(e.target.value) || 0)
-                                      }}
-                                      className="w-28 bg-secondary/50 border-border/50"
-                                      min={0}
-                                      step="0.01"
-                                    />
-                                  </div>
+                                  <span className="text-xs text-muted-foreground">{(seq.plans?.length || 0)}/5</span>
                                 </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Configure os planos que aparecerao como botoes para o cliente escolher.
+                                </p>
+                                
+                                <div className="space-y-2">
+                                  {(seq.plans || []).map((plan, planIndex) => (
+                                    <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
+                                      <div className="flex-1 grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                          <Label className="text-xs text-muted-foreground">Texto do Botao</Label>
+                                          <Input
+                                            value={plan.buttonText}
+                                            onChange={(e) => handleUpdateDownsellPlan(seq.id, plan.id, "buttonText", e.target.value)}
+                                            placeholder="Ex: Mensal"
+                                            className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                          />
+                                        </div>
+                                        <div className="space-y-1">
+                                          <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                                          <Input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={plan.price || 0}
+                                            onChange={(e) => handleUpdateDownsellPlan(seq.id, plan.id, "price", parseFloat(e.target.value) || 0)}
+                                            placeholder="0,00"
+                                            className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                      {(seq.plans?.length || 0) > 1 && (
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 shrink-0"
+                                          onClick={() => handleRemoveDownsellPlan(seq.id, plan.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {(seq.plans?.length || 0) < 5 && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full border-dashed"
+                                    onClick={() => handleAddDownsellPlan(seq.id)}
+                                  >
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Adicionar Plano
+                                  </Button>
+                                )}
                               </div>
 
                               {/* Mensagem */}
