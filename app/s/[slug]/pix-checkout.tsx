@@ -100,9 +100,9 @@ function CheckoutDiretoPage({ data, siteId, userId }: { data: Partial<CheckoutDi
 
         if (res.ok) {
           const result = await res.json()
-          if (result.qrCode && result.qrCodeBase64) {
-            setPixCode(result.qrCode)
-            setQrCodeBase64(result.qrCodeBase64)
+          if (result.success && result.copyPaste) {
+            setPixCode(result.copyPaste)
+            setQrCodeBase64(result.qrCode)
             setLoading(false)
             return
           }
@@ -286,9 +286,9 @@ function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNo
         const result = await res.json()
         console.log("[v0] PIX API response:", res.status, result)
 
-        if (res.ok && result.qrCode && result.qrCodeBase64) {
-          setPixCode(result.qrCode)
-          setQrCodeBase64(result.qrCodeBase64)
+        if (res.ok && result.success && result.copyPaste) {
+          setPixCode(result.copyPaste)
+          setQrCodeBase64(result.qrCode)
           setStep("pix")
           setLoading(false)
           return
