@@ -552,10 +552,9 @@ function CadastroContent() {
               <section className="rounded-xl bg-[#b8ff29]/5 border border-[#b8ff29]/20 p-4">
                 <p className="text-[#b8ff29] font-medium text-center">
                   Ao usar a plataforma, o usuario concorda com todos os termos acima.
-                  </p>
-                </section>
-              </div>
-            )}
+                </p>
+              </section>
+            </div>
           </div>
 
           {/* Footer */}
