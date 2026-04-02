@@ -201,10 +201,15 @@ export default function CheckoutDiretoEditor() {
                     Valor (R$)
                   </Label>
                   <Input
-                    value={pageData.price}
-                    onChange={(e) => updatePageData({ price: e.target.value })}
+                    type="text"
+                    inputMode="decimal"
+                    value={pageData.price || ""}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9.,]/g, "")
+                      updatePageData({ price: val })
+                    }}
                     className="h-10 text-sm"
-                    placeholder="97.00"
+                    placeholder="97,00"
                   />
                 </div>
 

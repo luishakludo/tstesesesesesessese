@@ -278,14 +278,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               callback_data: `plan_${plan.id}`
             }])
             
-            // Adicionar botao de Packs se habilitado
-            if (packsEnabled) {
-              planButtons.push([{
-                text: packsButtonText,
-                callback_data: "show_packs"
-              }])
-            }
-            
             await sendTelegramMessage(
               botToken, 
               chatId, 
@@ -412,20 +404,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             .eq("is_active", true)
             .order("position", { ascending: true })
           
-          const flowConfig = (flowForPlans.config as Record<string, unknown>) || {}
-          const packsConfig = flowConfig.packs as { enabled?: boolean; buttonText?: string; list?: Array<{ active?: boolean }> } | undefined
-          const packsEnabled = packsConfig?.enabled && packsConfig?.list && packsConfig.list.filter(p => p.active !== false).length > 0
-          const packsButtonText = packsConfig?.buttonText || "Packs Disponiveis"
-          
           if (plans && plans.length > 0) {
             const planButtons: Array<Array<{ text: string; callback_data: string }>> = plans.map(plan => [{
               text: plan.name,
               callback_data: `plan_${plan.id}`
             }])
-            
-            if (packsEnabled) {
-              planButtons.push([{ text: packsButtonText, callback_data: "show_packs" }])
-            }
             
             await sendTelegramMessage(botToken, chatId, "Escolha seu plano:", { inline_keyboard: planButtons })
           }
@@ -762,7 +745,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           await answerCallback(botToken, callbackQueryId, "Gerando pagamento...")
 
-          // Buscar gateway de pagamento
+          // Buscar gateway de pagamento e user_id
           const { data: gateway } = await supabase
             .from("user_gateways")
             .select("*")
@@ -775,6 +758,13 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             await sendTelegramMessage(botToken, chatId, "Erro: Gateway de pagamento nao configurado. Entre em contato com o suporte.")
             return
           }
+
+          // Buscar user_id do bot owner
+          const { data: botOwner } = await supabase
+            .from("bots")
+            .select("user_id")
+            .eq("id", botUuid)
+            .single()
 
           // Gerar PIX para o upsell
           try {
@@ -803,6 +793,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             if (pixData.id && pixData.point_of_interaction?.transaction_data?.qr_code) {
               // Salvar pagamento do upsell
               await supabase.from("payments").insert({
+                user_id: botOwner?.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
                 amount: upsellPrice,

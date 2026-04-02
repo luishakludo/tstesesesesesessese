@@ -47,19 +47,19 @@ type CheckoutNormalData = {
   securityText?: string
 }
 
-export function PixCheckout({ data, siteId }: { data: Partial<CheckoutDiretoData & CheckoutNormalData>, siteId?: string }) {
+export function PixCheckout({ data, siteId, userId }: { data: Partial<CheckoutDiretoData & CheckoutNormalData>, siteId?: string, userId?: string }) {
   // Detectar tipo baseado nos campos presentes
   const isCheckoutDireto = !data.productName && !data.fields
   
   if (isCheckoutDireto) {
-    return <CheckoutDiretoPage data={data} siteId={siteId} />
+    return <CheckoutDiretoPage data={data} siteId={siteId} userId={userId} />
   }
   
-  return <CheckoutNormalPage data={data} siteId={siteId} />
+  return <CheckoutNormalPage data={data} siteId={siteId} userId={userId} />
 }
 
 // ========== CHECKOUT DIRETO ==========
-function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData>, siteId?: string }) {
+function CheckoutDiretoPage({ data, siteId, userId }: { data: Partial<CheckoutDiretoData>, siteId?: string, userId?: string }) {
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
   const [loading, setLoading] = useState(true)
@@ -94,6 +94,7 @@ function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData
             amount: priceNumber,
             description: headline,
             siteId: siteId,
+            userId: userId,
           }),
         })
 
@@ -229,7 +230,7 @@ function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData
 }
 
 // ========== CHECKOUT NORMAL (COM FORMULARIO) ==========
-function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData>, siteId?: string }) {
+function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNormalData>, siteId?: string, userId?: string }) {
   const [step, setStep] = useState<"form" | "pix">("form")
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
@@ -263,9 +264,12 @@ function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData
   const generatePix = async () => {
     try {
       setLoading(true)
+      setError("")
+      console.log("[v0] generatePix called, accessToken:", !!data.accessToken, "pixKey:", data.pixKey)
       
       if (data.accessToken) {
         const priceNumber = parseFloat(price.replace(",", "."))
+        console.log("[v0] Calling PIX API with amount:", priceNumber)
         const res = await fetch("/api/mercadopago/pix", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -275,18 +279,24 @@ function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData
             description: productName,
             payer: formData,
             siteId: siteId,
+            userId: userId,
           }),
         })
 
-        if (res.ok) {
-          const result = await res.json()
-          if (result.qrCode && result.qrCodeBase64) {
-            setPixCode(result.qrCode)
-            setQrCodeBase64(result.qrCodeBase64)
-            setStep("pix")
-            setLoading(false)
-            return
-          }
+        const result = await res.json()
+        console.log("[v0] PIX API response:", res.status, result)
+
+        if (res.ok && result.qrCode && result.qrCodeBase64) {
+          setPixCode(result.qrCode)
+          setQrCodeBase64(result.qrCodeBase64)
+          setStep("pix")
+          setLoading(false)
+          return
+        } else {
+          // Mostrar erro da API
+          setError(result.error || "Erro ao gerar PIX")
+          setLoading(false)
+          return
         }
       }
 
@@ -300,6 +310,7 @@ function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData
       setError("PIX nao configurado")
       setLoading(false)
     } catch (err) {
+      console.error("[v0] PIX generation error:", err)
       setError("Erro ao gerar PIX")
       setLoading(false)
     }

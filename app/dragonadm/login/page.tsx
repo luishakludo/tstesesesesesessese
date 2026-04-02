@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Loader2, Shield, Eye, EyeOff } from "lucide-react"
 
-// Credenciais do admin (em producao, usar env vars ou banco de dados)
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@dragon.com"
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "dragon@2024"
+// Credenciais do admin
+const ADMIN_EMAIL = "1@gmail.com"
+const ADMIN_PASSWORD = "1"
 
 export default function DragonAdmLoginPage() {
   const router = useRouter()
@@ -34,7 +34,7 @@ export default function DragonAdmLoginPage() {
         loggedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
       }))
-      router.push("/dragon-adm")
+      router.push("/dragonadm")
     } else {
       setError("Email ou senha incorretos")
     }

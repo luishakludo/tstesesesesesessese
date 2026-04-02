@@ -30,7 +30,7 @@ export default function DragonAdmDashboardPage() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const res = await fetch("/api/dragon-adm/stats")
+        const res = await fetch("/api/dragonadm/stats")
         if (res.ok) {
           const data = await res.json()
           setStats(data)
