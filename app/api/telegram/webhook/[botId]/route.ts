@@ -1239,6 +1239,12 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               undefined
             )
             
+            // Enviar midias do order bump se houver
+            if (orderBumpInicial.medias && orderBumpInicial.medias.length > 0) {
+              console.log("[v0] Enviando midias do Order Bump:", orderBumpInicial.medias.length)
+              await sendMediaGroup(botToken, chatId, orderBumpInicial.medias, "")
+            }
+            
             // Enviar oferta do Order Bump
             await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
             
