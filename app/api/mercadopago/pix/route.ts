@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
         const { data: leadData, error: leadError } = await supabase.from("checkout_leads").insert({
           site_id: siteId || null,
-          user_id: userId || null,
           email: payer.email || null,
           name: payer.name || null,
           cpf: payer.cpf || null,
