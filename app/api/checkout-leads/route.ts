@@ -26,14 +26,27 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-    // Build query - filtrar por user_id diretamente
+    // Primeiro buscar os sites do usuario
+    const { data: userSites } = await supabase
+      .from("dragon_bio_sites")
+      .select("id")
+      .eq("user_id", userId)
+    
+    const userSiteIds = userSites?.map(s => s.id) || []
+    
+    // Se usuario nao tem sites, retornar vazio
+    if (userSiteIds.length === 0) {
+      return NextResponse.json({ leads: [], stats: { total: 0, pending: 0, paid: 0, totalAmount: 0 } })
+    }
+
+    // Build query - filtrar pelos sites do usuario
     let query = supabase
       .from("checkout_leads")
       .select("*")
-      .eq("user_id", userId)
+      .in("site_id", userSiteIds)
       .order("created_at", { ascending: false })
 
-    // Filter by site if provided
+    // Filter by specific site if provided
     if (siteId) {
       query = query.eq("site_id", siteId)
     }
