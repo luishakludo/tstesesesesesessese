@@ -5372,65 +5372,59 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 )}
 
                 {tempDeliverable.type === "vip_group" && (
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">ID do Grupo (chat_id)</Label>
-                      <Input
-                        value={tempDeliverable.vipGroupChatId || ""}
-                        onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
-                        placeholder="-1001234567890"
-                        className="h-9 font-mono text-xs"
-                      />
-                      <p className="text-[10px] text-muted-foreground">
-                        Use @userinfobot ou @RawDataBot para obter
-                      </p>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Nome do Grupo (opcional)</Label>
-                      <Input
-                        value={tempDeliverable.vipGroupName || ""}
-                        onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
-                        placeholder="Grupo VIP Premium"
-                        className="h-9"
-                      />
+                  <div className="space-y-2">
+                    {/* Inputs em grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-medium">Chat ID</Label>
+                        <Input
+                          value={tempDeliverable.vipGroupChatId || ""}
+                          onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
+                          placeholder="-100123..."
+                          className="h-8 font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-medium">Nome (opcional)</Label>
+                        <Input
+                          value={tempDeliverable.vipGroupName || ""}
+                          onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
+                          placeholder="Grupo VIP"
+                          className="h-8 text-xs"
+                        />
+                      </div>
                     </div>
                     
-                    {/* Toggles */}
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50">
-                        <div>
-                          <p className="text-xs font-medium">Adicionar automaticamente</p>
-                          <p className="text-[10px] text-muted-foreground">Gerar link de convite</p>
-                        </div>
+                    {/* Toggles inline */}
+                    <div className="flex items-center gap-4 py-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <Switch
                           checked={tempDeliverable.vipAutoAdd !== false}
                           onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoAdd: checked })}
+                          className="scale-75"
                         />
-                      </div>
-                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50">
-                        <div>
-                          <p className="text-xs font-medium">Remover ao expirar</p>
-                          <p className="text-[10px] text-muted-foreground">Remover quando expirar</p>
-                        </div>
+                        <span className="text-[10px]">Add auto</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
                         <Switch
                           checked={tempDeliverable.vipAutoRemove !== false}
                           onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoRemove: checked })}
+                          className="scale-75"
                         />
-                      </div>
+                        <span className="text-[10px]">Remover expirado</span>
+                      </label>
                     </div>
                     
-                    {/* Testar */}
-                    <Button variant="outline" size="sm" className="w-full h-8" type="button">
-                      <Zap className="h-3.5 w-3.5 mr-1.5" />
-                      Testar Grupo VIP
-                    </Button>
-                    
-                    {/* Aviso */}
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <p className="text-[10px] text-amber-600">
-                        O bot precisa ser ADMIN do grupo
-                      </p>
+                    {/* Aviso + Testar inline */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded bg-amber-500/10 text-amber-600">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        <p className="text-[9px]">Bot precisa ser ADMIN</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-2" type="button">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Testar
+                      </Button>
                     </div>
                   </div>
                 )}
