@@ -321,8 +321,13 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                         Preco (R$)
                       </Label>
                       <Input
-                        value={pageData.price}
-                        onChange={(e) => updatePageData({ price: e.target.value })}
+                        type="text"
+                        inputMode="decimal"
+                        value={pageData.price || ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.,]/g, "")
+                          updatePageData({ price: val })
+                        }}
                         className="h-10 text-sm"
                         placeholder="247,90"
                       />
@@ -332,8 +337,13 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                         Preco Original
                       </Label>
                       <Input
-                        value={pageData.originalPrice}
-                        onChange={(e) => updatePageData({ originalPrice: e.target.value })}
+                        type="text"
+                        inputMode="decimal"
+                        value={pageData.originalPrice || ""}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.,]/g, "")
+                          updatePageData({ originalPrice: val })
+                        }}
                         className="h-10 text-sm"
                         placeholder="297,90"
                       />
