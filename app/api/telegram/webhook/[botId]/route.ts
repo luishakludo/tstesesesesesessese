@@ -571,30 +571,43 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const pack = packsConfig?.list?.find(p => p.id === packId)
             const packName = pack?.name || "Pack"
             
-            // Gerar PIX usando a mesma API interna que o fluxo inicial usa
-            const pixResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/mercadopago/pix`, {
+            // Gerar PIX chamando a API do Mercado Pago diretamente (igual ao fluxo inicial)
+            const pixResponse = await fetch("https://api.mercadopago.com/v1/payments", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${gatewayPack.access_token}`,
+                "X-Idempotency-Key": `pack_${packId}_${telegramUserId}_${Date.now()}`,
+              },
               body: JSON.stringify({
-                accessToken: gatewayPack.access_token,
-                amount: packPrice,
+                transaction_amount: packPrice,
                 description: `Pack - ${packName}`,
-              })
+                payment_method_id: "pix",
+                payer: {
+                  email: `user${telegramUserId}@telegram.bot`,
+                  first_name: (from?.first_name as string) || "Cliente",
+                },
+                notification_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/payments/webhook/mercadopago`,
+              }),
             })
             
-            const pixResult = await pixResponse.json()
+            const pixData = await pixResponse.json()
             
-            if (pixResult.success && pixResult.qrCodeUrl) {
-              // Enviar QR Code usando a URL (igual ao fluxo inicial)
+            if (pixData.id && pixData.point_of_interaction?.transaction_data) {
+              const txData = pixData.point_of_interaction.transaction_data
+              const qrCodeUrl = txData.ticket_url
+              const copyPaste = txData.qr_code
+              
+              // Enviar QR Code
               await sendTelegramPhoto(
                 botToken,
                 chatId,
-                pixResult.qrCodeUrl,
+                qrCodeUrl,
                 `Escaneie o QR Code para pagar\n\nValor: R$ ${packPrice.toFixed(2).replace(".", ",")}\nProduto: ${packName}`
               )
               
-              // Enviar codigo PIX - usando <code> HTML para ser clicavel
-              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${pixResult.copyPaste}</code>`)
+              // Enviar codigo PIX
+              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${copyPaste}</code>`)
               
               // Salvar pagamento
               await supabase.from("payments").insert({
@@ -607,17 +620,16 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 status: "pending",
                 payment_method: "pix",
                 gateway: "mercadopago",
-                external_payment_id: String(pixResult.paymentId),
+                external_payment_id: String(pixData.id),
                 product_name: packName,
                 product_type: "pack",
-                qr_code: pixResult.qrCode,
-                qr_code_url: pixResult.qrCodeUrl,
-                copy_paste: pixResult.copyPaste,
+                qr_code_url: qrCodeUrl,
+                copy_paste: copyPaste,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
             } else {
-              console.error("[v0] Erro PIX Pack:", pixResult)
+              console.error("[v0] Erro PIX Pack:", pixData)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
             }
           } catch (err) {
