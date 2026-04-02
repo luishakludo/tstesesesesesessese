@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import {
   Plus, Zap, Link2, Workflow, RotateCcw, 
-  Loader2, Bot, Upload, CheckCircle2, Sparkles, Trash2
+  Loader2, Bot, Upload, CheckCircle2, Sparkles, Trash2, AlertTriangle
 } from "lucide-react"
 
 // Types
@@ -65,6 +65,11 @@ export default function FluxosPage() {
 
   // Import flow dialog
   const [showImportDialog, setShowImportDialog] = useState(false)
+
+  // Delete flow modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [flowToDelete, setFlowToDelete] = useState<Flow | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // Create flow handler
   const handleCreateFlow = async () => {
@@ -198,32 +203,34 @@ export default function FluxosPage() {
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
   }, [fetchFlows])
 
-  // Delete flow
-  const handleDeleteFlow = async (flowId: string) => {
-    console.log("[v0] handleDeleteFlow chamado com flowId:", flowId)
+  // Delete flow - open modal
+  const openDeleteModal = (flow: Flow) => {
+    setFlowToDelete(flow)
+    setShowDeleteModal(true)
+  }
+
+  // Confirm delete flow
+  const confirmDeleteFlow = async () => {
+    if (!flowToDelete) return
     
-    if (!confirm("Tem certeza que deseja excluir este fluxo?")) {
-      console.log("[v0] Exclusao cancelada pelo usuario")
-      return
-    }
-    
-    console.log("[v0] Usuario confirmou exclusao")
+    setIsDeleting(true)
     
     // Delete flow_bots first
-    const { error: flowBotsError } = await supabase.from("flow_bots").delete().eq("flow_id", flowId)
-    console.log("[v0] flow_bots delete result:", flowBotsError || "OK")
+    await supabase.from("flow_bots").delete().eq("flow_id", flowToDelete.id)
     
     // Delete flow
-    const { error } = await supabase.from("flows").delete().eq("id", flowId)
-    console.log("[v0] flows delete result:", error || "OK")
+    const { error } = await supabase.from("flows").delete().eq("id", flowToDelete.id)
     
     if (error) {
-      console.error("[v0] Erro ao excluir fluxo:", error)
+      toast({ title: "Erro", description: "Nao foi possivel excluir o fluxo", variant: "destructive" })
+      setIsDeleting(false)
       return
     }
     
-    console.log("[v0] Fluxo excluido com sucesso, atualizando lista...")
-    // Refresh list
+    toast({ title: "Fluxo excluido", description: "O fluxo foi removido com sucesso" })
+    setShowDeleteModal(false)
+    setFlowToDelete(null)
+    setIsDeleting(false)
     fetchFlows()
   }
 
@@ -283,10 +290,10 @@ export default function FluxosPage() {
               </div>
             </div>
             
-            {/* Delete button */}
-            <button 
-              className="p-2 rounded-lg bg-[#2a2a2e] hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
-              onClick={() => handleDeleteFlow(flow.id)}
+{/* Delete button */}
+  <button
+  className="p-2 rounded-lg bg-[#2a2a2e] hover:bg-red-500/20 text-gray-400 hover:text-red-400 transition-colors"
+  onClick={() => openDeleteModal(flow)}
               title="Excluir fluxo"
             >
               <Trash2 className="h-4 w-4" />
@@ -596,6 +603,41 @@ export default function FluxosPage() {
               className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-[#2a2a2e] transition-colors"
             >
               Fechar
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Flow Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="sm:max-w-[360px] bg-[#1c1c1e] border-[#2a2a2e] p-0 gap-0 overflow-hidden rounded-[20px] [&>button]:text-gray-400 [&>button]:hover:text-white">
+          <div className="p-5 text-center">
+            <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+            </div>
+            <h2 className="text-lg font-bold text-white mb-1">Excluir Fluxo</h2>
+            <p className="text-sm text-gray-400">
+              Tem certeza que deseja excluir <span className="text-white font-medium">{flowToDelete?.name}</span>?
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              Esta acao nao pode ser desfeita.
+            </p>
+          </div>
+          <div className="px-5 py-3 bg-[#18181a] border-t border-[#2a2a2e] flex gap-2">
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-[#2a2a2e] transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDeleteFlow}
+              disabled={isDeleting}
+              className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Excluir
             </button>
           </div>
         </DialogContent>
