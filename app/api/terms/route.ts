@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // Default terms if none in database
 const defaultTerms = {
@@ -33,6 +35,7 @@ const defaultPrivacy = {
 // GET - Public endpoint to get terms
 export async function GET(request: NextRequest) {
   const type = request.nextUrl.searchParams.get("type") || "terms_of_use"
+  const supabase = getSupabaseAdmin()
   
   try {
     const { data, error } = await supabase
