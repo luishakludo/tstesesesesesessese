@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies()
     const sessionCookie = cookieStore.get("dragon_session")
     
+    console.log("[v0] Checkout leads API called - hasSession:", !!sessionCookie)
+    
     if (!sessionCookie) {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
     }
@@ -23,19 +25,24 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get("siteId")
+    
+    console.log("[v0] Fetching leads - userId:", userId, "siteId:", siteId)
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Primeiro buscar os sites do usuario
-    const { data: userSites } = await supabase
+    const { data: userSites, error: sitesError } = await supabase
       .from("dragon_bio_sites")
       .select("id")
       .eq("user_id", userId)
+    
+    console.log("[v0] User sites:", userSites?.length, "error:", sitesError)
     
     const userSiteIds = userSites?.map(s => s.id) || []
     
     // Se usuario nao tem sites, retornar vazio
     if (userSiteIds.length === 0) {
+      console.log("[v0] No sites found for user")
       return NextResponse.json({ leads: [], stats: { total: 0, pending: 0, paid: 0, totalAmount: 0 } })
     }
 
@@ -52,9 +59,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: leads, error } = await query.limit(500)
+    
+    console.log("[v0] Leads found:", leads?.length, "error:", error)
 
     if (error) {
-      console.error("Error fetching leads:", error)
+      console.error("[v0] Error fetching leads:", error)
       return NextResponse.json({ error: "Erro ao buscar leads" }, { status: 500 })
     }
 

@@ -104,14 +104,18 @@ export default function CheckoutEditorPage({ params }: PageProps) {
   const [leadsLoading, setLeadsLoading] = useState(false)
 
   const fetchLeads = async () => {
-    if (!id) return
+    // Usar site.id se disponivel, senao usar id do params
+    const siteIdToFetch = site?.id || id
+    console.log("[v0] Fetching leads for site:", siteIdToFetch, "site:", site?.id, "params:", id)
+    if (!siteIdToFetch) return
     setLeadsLoading(true)
     try {
-      const res = await fetch(`/api/checkout-leads?siteId=${id}`)
+      const res = await fetch(`/api/checkout-leads?siteId=${siteIdToFetch}`)
       const data = await res.json()
+      console.log("[v0] Leads response:", data)
       if (data.leads) setLeads(data.leads)
     } catch (err) {
-      console.error("Error fetching leads:", err)
+      console.error("[v0] Error fetching leads:", err)
     } finally {
       setLeadsLoading(false)
     }
