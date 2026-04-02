@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,7 +53,7 @@ export default function SuportePage() {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [replyMessage, setReplyMessage] = useState("")
   const [sending, setSending] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = getSupabase()
   const { toast } = useToast()
 
   useEffect(() => {

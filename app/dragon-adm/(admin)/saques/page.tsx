@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,7 +43,7 @@ export default function SaquesPage() {
   const [activeTab, setActiveTab] = useState<"pending" | "approved" | "rejected" | "all">("pending")
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null)
   const [processing, setProcessing] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = getSupabase()
   const { toast } = useToast()
 
   useEffect(() => {

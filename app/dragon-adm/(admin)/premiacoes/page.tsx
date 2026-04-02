@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { getSupabase } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,7 +51,7 @@ export default function PremiacoesPage() {
   const [selectedAward, setSelectedAward] = useState<UserAward | null>(null)
   const [trackingCode, setTrackingCode] = useState("")
   const [processing, setProcessing] = useState(false)
-  const supabase = createClientComponentClient()
+  const supabase = getSupabase()
   const { toast } = useToast()
 
   useEffect(() => {
