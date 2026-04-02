@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useAuth } from "@/lib/auth-context"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -39,6 +40,8 @@ interface Payment {
 }
 
 export default function VendasPage() {
+  const { session } = useAuth()
+  const userId = session?.user?.id
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
@@ -58,15 +61,16 @@ export default function VendasPage() {
   const ITEMS_PER_PAGE = 50
 
   useEffect(() => {
-    fetchPayments()
-  }, [currentPage, activeTab])
+    if (userId) fetchPayments()
+  }, [currentPage, activeTab, userId])
 
   const fetchPayments = async () => {
+    if (!userId) return
     setLoading(true)
     try {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE
       const statusParam = activeTab !== "all" ? `&status=${activeTab}` : ""
-      const res = await fetch(`/api/payments/list?limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`, { credentials: "include" })
+      const res = await fetch(`/api/payments/list?userId=${userId}&limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`, { credentials: "include" })
       const data = await res.json()
       if (data.payments) {
         setPayments(data.payments)

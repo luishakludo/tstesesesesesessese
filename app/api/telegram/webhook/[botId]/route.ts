@@ -762,7 +762,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           await answerCallback(botToken, callbackQueryId, "Gerando pagamento...")
 
-          // Buscar gateway de pagamento
+          // Buscar gateway de pagamento e user_id
           const { data: gateway } = await supabase
             .from("user_gateways")
             .select("*")
@@ -775,6 +775,13 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             await sendTelegramMessage(botToken, chatId, "Erro: Gateway de pagamento nao configurado. Entre em contato com o suporte.")
             return
           }
+
+          // Buscar user_id do bot owner
+          const { data: botOwner } = await supabase
+            .from("bots")
+            .select("user_id")
+            .eq("id", botUuid)
+            .single()
 
           // Gerar PIX para o upsell
           try {
@@ -803,6 +810,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             if (pixData.id && pixData.point_of_interaction?.transaction_data?.qr_code) {
               // Salvar pagamento do upsell
               await supabase.from("payments").insert({
+                user_id: botOwner?.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
                 amount: upsellPrice,
