@@ -539,68 +539,105 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         }
         
         // Sem order bump - gerar PIX direto
-        // Buscar gateway de pagamento
-        const { data: gateway } = await supabase
-          .from("payment_gateways")
-          .select("*")
-          .eq("bot_id", botUuid)
-          .eq("is_active", true)
+        // Buscar dados do bot para pegar user_id
+        const { data: botDataPack } = await supabase
+          .from("bots")
+          .select("user_id")
+          .eq("id", botUuid)
           .single()
         
-        if (gateway && packPrice > 0) {
+        if (!botDataPack?.user_id) {
+          await sendTelegramMessage(botToken, chatId, "Erro: Bot nao configurado.")
+          return
+        }
+        
+        // Buscar gateway de pagamento do usuario
+        const { data: gatewayPack } = await supabase
+          .from("user_gateways")
+          .select("*")
+          .eq("user_id", botDataPack.user_id)
+          .eq("is_active", true)
+          .limit(1)
+          .single()
+        
+        if (!gatewayPack?.access_token) {
+          await sendTelegramMessage(botToken, chatId, "Erro: Gateway de pagamento nao configurado.")
+          return
+        }
+        
+        if (packPrice > 0) {
           try {
             const packsConfig = flowConfig.packs as { list?: Array<{ id: string; name: string }> } | undefined
             const pack = packsConfig?.list?.find(p => p.id === packId)
             const packName = pack?.name || "Pack"
             
-            // Gerar PIX
-            const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://dragonteste.onrender.com"}/api/mercadopago/pix`, {
+            // Gerar PIX usando a mesma API do fluxo inicial
+            const pixResponse = await fetch("https://api.mercadopago.com/v1/payments", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${gatewayPack.access_token}`,
+                "X-Idempotency-Key": `pack_${packId}_${telegramUserId}_${Date.now()}`
+              },
               body: JSON.stringify({
-                accessToken: gateway.credentials?.access_token,
-                amount: packPrice,
+                transaction_amount: packPrice,
                 description: `Pack - ${packName}`,
-                email: `${telegramUserId}@telegram.user`,
-                externalReference: `pack_${packId}_${telegramUserId}_${Date.now()}`
+                payment_method_id: "pix",
+                payer: { email: "cliente@dragonbot.com" }
               })
             })
             
-            const pixResult = await response.json()
+            const pixData = await pixResponse.json()
             
-            if (pixResult.success && pixResult.qrCode) {
+            if (pixData.id && pixData.point_of_interaction?.transaction_data) {
+              const qrCode = pixData.point_of_interaction.transaction_data.qr_code
+              const qrCodeBase64 = pixData.point_of_interaction.transaction_data.qr_code_base64
+              
               // Enviar QR Code
-              await sendTelegramPhoto(botToken, chatId, pixResult.qrCode, 
-                `Pague R$ ${packPrice.toFixed(2).replace(".", ",")} via PIX\n\nCopie o codigo abaixo:`
-              )
-              await sendTelegramMessage(botToken, chatId, `<code>${pixResult.copyPaste}</code>`)
+              if (qrCodeBase64) {
+                await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    chat_id: chatId,
+                    photo: `data:image/png;base64,${qrCodeBase64}`,
+                    caption: `Escaneie o QR Code para pagar\n\nValor: R$ ${packPrice.toFixed(2).replace(".", ",")}\nProduto: ${packName}`
+                  })
+                })
+              }
+              
+              // Enviar codigo PIX
+              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${qrCode}</code>`)
               
               // Salvar pagamento
               await supabase.from("payments").insert({
-                user_id: botData?.user_id,
+                user_id: botDataPack.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
                 telegram_username: from?.username || null,
                 telegram_first_name: from?.first_name || null,
-                gateway: gateway.gateway_name || "mercadopago",
-                external_payment_id: pixResult.paymentId,
                 amount: packPrice,
-                description: `Pack - ${packName}`,
-                qr_code: pixResult.qrCode,
-                qr_code_url: pixResult.qrCodeUrl,
-                copy_paste: pixResult.copyPaste,
                 status: "pending",
-                product_type: "pack"
+                payment_method: "pix",
+                gateway: "mercadopago",
+                external_payment_id: String(pixData.id),
+                product_name: packName,
+                product_type: "pack",
+                pix_code: qrCode,
+                qr_code: qrCodeBase64,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
               })
             } else {
+              console.error("[v0] Erro PIX Pack:", pixData)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
             }
           } catch (err) {
-            console.error("Erro ao gerar PIX do pack:", err)
+            console.error("[v0] Erro ao gerar PIX do pack:", err)
             await sendTelegramMessage(botToken, chatId, "Erro ao processar pagamento.")
           }
         } else {
-          await sendTelegramMessage(botToken, chatId, "Pagamento nao disponivel no momento.")
+          await sendTelegramMessage(botToken, chatId, "Preco invalido.")
         }
         
         return
@@ -724,6 +761,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             )
           }
           
+          // Determinar product_type baseado no tipo de compra (pack ou plan)
+          const sourceType = metadata?.type === "pack" ? "pack" : "plan"
+          const productType = isAccept ? `${sourceType}_order_bump` : sourceType
+          
           // Save payment
           await supabase.from("payments").insert({
             bot_id: botUuid,
@@ -733,13 +774,15 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             status: "pending",
             payment_method: "pix",
             gateway: "mercadopago",
-            external_id: pixResultOB.paymentId,
+            external_payment_id: pixResultOB.paymentId,
             pix_code: pixResultOB.copyPaste,
-            qr_code_url: pixResultOB.qrCodeUrl,
+            qr_code: pixResultOB.qrCodeBase64,
             telegram_user_id: String(telegramUserId),
             telegram_chat_id: String(chatId),
-            product_type: isAccept ? "order_bump" : "main_product",
-            metadata: { description, isOrderBump: isAccept, orderBumpName: isAccept ? orderBumpName : null }
+            product_name: description,
+            product_type: productType,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           })
           
         } catch (pixError) {
