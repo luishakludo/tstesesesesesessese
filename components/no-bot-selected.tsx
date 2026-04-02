@@ -22,6 +22,9 @@ export function NoBotSelected() {
   async function handleCreateBot(data: {
     name: string
     token: string
+    username?: string
+    telegram_bot_id?: string
+    photo_url?: string
     group_name?: string
     group_id?: string
     group_link?: string

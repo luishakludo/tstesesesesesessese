@@ -12,11 +12,10 @@ import {
   Bot as BotIcon,
   KeyRound,
   Users,
-  ArrowRight,
-  ArrowLeft,
   Check,
   Loader2,
   Settings,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,6 +25,9 @@ interface CreateBotWizardProps {
   onCreateBot: (data: {
     name: string
     token: string
+    username?: string
+    telegram_bot_id?: string
+    photo_url?: string
     group_name?: string
     group_id?: string
     group_link?: string
@@ -33,7 +35,14 @@ interface CreateBotWizardProps {
   isNewUser?: boolean
 }
 
-type Step = "name" | "token" | "group_choice" | "group_config"
+type Step = "token" | "group_choice" | "group_config"
+
+interface ValidatedBot {
+  id: number
+  first_name: string
+  username: string
+  photo_url?: string
+}
 
 export function CreateBotWizard({
   open,
@@ -41,26 +50,28 @@ export function CreateBotWizard({
   onCreateBot,
   isNewUser = false,
 }: CreateBotWizardProps) {
-  const [step, setStep] = useState<Step>("name")
+  const [step, setStep] = useState<Step>("token")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isValidating, setIsValidating] = useState(false)
   const [error, setError] = useState("")
 
   // Form data
-  const [name, setName] = useState("")
   const [token, setToken] = useState("")
+  const [validatedBot, setValidatedBot] = useState<ValidatedBot | null>(null)
   const [groupName, setGroupName] = useState("")
   const [groupId, setGroupId] = useState("")
   const [groupLink, setGroupLink] = useState("")
 
   const resetForm = () => {
-    setStep("name")
-    setName("")
+    setStep("token")
     setToken("")
+    setValidatedBot(null)
     setGroupName("")
     setGroupId("")
     setGroupLink("")
     setError("")
     setIsSubmitting(false)
+    setIsValidating(false)
   }
 
   const handleClose = () => {
@@ -70,37 +81,51 @@ export function CreateBotWizard({
     }
   }
 
-  const handleNext = () => {
+  const handleValidateToken = async () => {
+    if (!token.trim()) {
+      setError("Digite o token do bot")
+      return
+    }
+
+    setIsValidating(true)
     setError("")
-    if (step === "name") {
-      if (!name.trim()) {
-        setError("Digite um nome para o bot")
+    setValidatedBot(null)
+
+    try {
+      const response = await fetch("/api/telegram/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: token.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.bot) {
+        setError(data.error || "Token invalido. Verifique e tente novamente.")
         return
       }
-      setStep("token")
-    } else if (step === "token") {
-      if (!token.trim()) {
-        setError("Digite o token do bot")
-        return
-      }
+
+      setValidatedBot(data.bot)
       setStep("group_choice")
+    } catch {
+      setError("Erro ao validar token")
+    } finally {
+      setIsValidating(false)
     }
   }
 
-  const handleBack = () => {
-    setError("")
-    if (step === "token") setStep("name")
-    else if (step === "group_choice") setStep("token")
-    else if (step === "group_config") setStep("group_choice")
-  }
-
   const handleCreate = async (skipGroup: boolean) => {
+    if (!validatedBot) return
+
     setError("")
     setIsSubmitting(true)
     try {
       await onCreateBot({
-        name: name.trim(),
+        name: validatedBot.first_name,
         token: token.trim(),
+        username: validatedBot.username,
+        telegram_bot_id: String(validatedBot.id),
+        photo_url: validatedBot.photo_url,
         group_name: skipGroup ? undefined : groupName.trim() || undefined,
         group_id: skipGroup ? undefined : groupId.trim() || undefined,
         group_link: skipGroup ? undefined : groupLink.trim() || undefined,
@@ -115,8 +140,8 @@ export function CreateBotWizard({
   }
 
   const getStepNumber = () => {
-    if (step === "name") return 1
-    if (step === "token") return 2
+    if (step === "token") return 1
+    if (step === "group_choice") return 2
     return 3
   }
 
@@ -147,50 +172,6 @@ export function CreateBotWizard({
           </p>
         </div>
 
-        {/* Step: Name */}
-        {step === "name" && (
-          <div className="p-6 flex flex-col gap-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10">
-                <BotIcon className="h-8 w-8 text-accent" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-foreground">
-                  {isNewUser ? "Vamos criar seu primeiro bot!" : "Criar Novo Bot"}
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Qual o nome do seu bot?
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-foreground">Nome do Bot</Label>
-              <Input
-                placeholder="Ex: Bot de Vendas, VIP Premium..."
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleNext()}
-                className="bg-secondary border-border h-12 text-base"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Escolha um nome para identificar seu bot
-              </p>
-            </div>
-
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
-
-            <Button
-              onClick={handleNext}
-              className="bg-accent text-accent-foreground hover:bg-accent/90 h-12 text-base gap-2"
-            >
-              Continuar
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-
         {/* Step: Token */}
         {step === "token" && (
           <div className="p-6 flex flex-col gap-6">
@@ -199,9 +180,11 @@ export function CreateBotWizard({
                 <KeyRound className="h-8 w-8 text-accent" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">Token do Telegram</h2>
+                <h2 className="text-xl font-bold text-foreground">
+                  {isNewUser ? "Vamos criar seu primeiro bot!" : "Adicionar Bot"}
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Cole o token do seu bot
+                  Cole o token do seu bot do Telegram
                 </p>
               </div>
             </div>
@@ -209,10 +192,10 @@ export function CreateBotWizard({
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">Token do Bot</Label>
               <Input
-                placeholder="123456:ABC-DEF..."
+                placeholder="123456789:ABCdefGHI..."
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleNext()}
+                onKeyDown={(e) => e.key === "Enter" && handleValidateToken()}
                 className="bg-secondary border-border h-12 font-mono text-sm"
                 autoFocus
               />
@@ -221,44 +204,65 @@ export function CreateBotWizard({
               </p>
             </div>
 
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
 
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                className="flex-1 h-12 border-border hover:bg-secondary gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Voltar
-              </Button>
-              <Button
-                onClick={handleNext}
-                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 h-12 gap-2"
-              >
-                Continuar
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              onClick={handleValidateToken}
+              disabled={isValidating || !token.trim()}
+              className="bg-accent text-accent-foreground hover:bg-accent/90 h-12 text-base gap-2"
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Validando...
+                </>
+              ) : (
+                <>
+                  Continuar
+                  <Check className="h-4 w-4" />
+                </>
+              )}
+            </Button>
           </div>
         )}
 
         {/* Step: Group Choice */}
-        {step === "group_choice" && (
+        {step === "group_choice" && validatedBot && (
           <div className="p-6 flex flex-col gap-6">
+            {/* Bot Info */}
             <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10">
-                <Users className="h-8 w-8 text-accent" />
+              <div className="relative">
+                {validatedBot.photo_url ? (
+                  <img
+                    src={validatedBot.photo_url}
+                    alt={validatedBot.first_name}
+                    className="h-16 w-16 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10">
+                    <BotIcon className="h-8 w-8 text-accent" />
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-green-500 border-2 border-card flex items-center justify-center">
+                  <Check className="h-3 w-3 text-white" />
+                </div>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-foreground">Configurar Grupo</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Deseja configurar o grupo do Telegram agora?
-                </p>
+                <h2 className="text-xl font-bold text-foreground">{validatedBot.first_name}</h2>
+                <p className="text-sm text-muted-foreground">@{validatedBot.username}</p>
               </div>
             </div>
 
             <div className="flex flex-col gap-3">
+              <p className="text-sm text-center text-muted-foreground">
+                Deseja configurar o grupo do Telegram agora?
+              </p>
+
               <Button
                 variant="outline"
                 onClick={() => setStep("group_config")}
@@ -290,21 +294,25 @@ export function CreateBotWizard({
               </Button>
             </div>
 
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
 
             <Button
               variant="ghost"
-              onClick={handleBack}
-              className="text-muted-foreground hover:text-foreground gap-2"
+              onClick={() => { setStep("token"); setValidatedBot(null); }}
+              className="text-muted-foreground hover:text-foreground"
             >
-              <ArrowLeft className="h-4 w-4" />
               Voltar
             </Button>
           </div>
         )}
 
         {/* Step: Group Config */}
-        {step === "group_config" && (
+        {step === "group_config" && validatedBot && (
           <div className="p-6 flex flex-col gap-6">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent/10">
@@ -348,15 +356,19 @@ export function CreateBotWizard({
               </div>
             </div>
 
-            {error && <p className="text-sm text-destructive text-center">{error}</p>}
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {error}
+              </div>
+            )}
 
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={handleBack}
-                className="flex-1 h-12 border-border hover:bg-secondary gap-2"
+                onClick={() => setStep("group_choice")}
+                className="flex-1 h-12 border-border hover:bg-secondary"
               >
-                <ArrowLeft className="h-4 w-4" />
                 Voltar
               </Button>
               <Button
