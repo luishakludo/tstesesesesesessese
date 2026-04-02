@@ -5176,21 +5176,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
       {/* Modal de Novo/Editar Entregavel - Global */}
       <Dialog open={deliverableModalOpen} onOpenChange={setDeliverableModalOpen}>
-        <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[380px] p-0 gap-0">
           {/* Etapa 1: Selecao de Tipo */}
           {deliverableModalStep === "select" && (
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Gift className="h-5 w-5 text-accent" />
+            <div className="p-5">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Gift className="h-4 w-4 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold">Novo Entregavel</h3>
-                  <p className="text-sm text-muted-foreground">Selecione o tipo</p>
+                  <h3 className="font-semibold text-sm">Novo Entregavel</h3>
+                  <p className="text-xs text-muted-foreground">Selecione o tipo</p>
                 </div>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {[
                   { type: "media" as const, label: "Midia", desc: "Fotos, videos ou arquivos", icon: ImageIcon, color: "purple" },
                   { type: "vip_group" as const, label: "Grupo VIP", desc: "Adicao automatica ao grupo", icon: Users, color: "amber" },
@@ -5203,22 +5203,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       setTempDeliverable({ ...tempDeliverable, type: opt.type })
                       setDeliverableModalStep("form")
                     }}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-accent/50 hover:bg-accent/5 transition-all text-left group"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-accent/50 hover:bg-accent/5 transition-all text-left group"
                   >
-                    <div className={`h-11 w-11 rounded-xl flex items-center justify-center shrink-0 ${
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
                       opt.color === "purple" ? "bg-purple-500/10" :
                       opt.color === "amber" ? "bg-amber-500/10" : "bg-blue-500/10"
                     }`}>
-                      <opt.icon className={`h-5 w-5 ${
+                      <opt.icon className={`h-4 w-4 ${
                         opt.color === "purple" ? "text-purple-500" :
                         opt.color === "amber" ? "text-amber-500" : "text-blue-500"
                       }`} />
                     </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{opt.label}</p>
-                      <p className="text-sm text-muted-foreground">{opt.desc}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground">{opt.desc}</p>
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                   </button>
                 ))}
               </div>
@@ -5229,23 +5229,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {deliverableModalStep === "form" && (
             <>
               {/* Header */}
-              <div className="p-6 pb-0">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center ${
+              <div className="p-5 pb-0">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
                     tempDeliverable.type === "media" ? "bg-purple-500/10" :
                     tempDeliverable.type === "vip_group" ? "bg-amber-500/10" : "bg-blue-500/10"
                   }`}>
                     {tempDeliverable.type === "media" ? (
-                      <ImageIcon className="h-5 w-5 text-purple-500" />
+                      <ImageIcon className="h-4 w-4 text-purple-500" />
                     ) : tempDeliverable.type === "vip_group" ? (
-                      <Users className="h-5 w-5 text-amber-500" />
+                      <Users className="h-4 w-4 text-amber-500" />
                     ) : (
-                      <Link2 className="h-5 w-5 text-blue-500" />
+                      <Link2 className="h-4 w-4 text-blue-500" />
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold">{editingDeliverable ? "Editar" : "Novo"} Entregavel</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-sm">{editingDeliverable ? "Editar" : "Novo"} Entregavel</h3>
+                    <p className="text-xs text-muted-foreground">
                       {tempDeliverable.type === "media" ? "Midia" : 
                        tempDeliverable.type === "vip_group" ? "Grupo VIP" : "Link"}
                     </p>
@@ -5254,22 +5254,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </div>
               
               {/* Content */}
-              <div className="px-6 pb-6 space-y-4">
+              <div className="px-5 pb-5 space-y-3">
                 {/* Nome */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Nome do Entregavel</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Nome do Entregavel</Label>
                   <Input
                     value={tempDeliverable.name}
                     onChange={(e) => setTempDeliverable({ ...tempDeliverable, name: e.target.value })}
                     placeholder="Ex: Curso Completo"
-                    className="h-10"
+                    className="h-9"
                   />
                 </div>
 
                 {/* Tipo selector compacto */}
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Tipo</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Tipo</Label>
+                  <div className="grid grid-cols-3 gap-1.5">
                     {[
                       { type: "media" as const, label: "Midia", icon: ImageIcon, color: "purple" },
                       { type: "vip_group" as const, label: "Grupo VIP", icon: Users, color: "amber" },
@@ -5279,18 +5279,18 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         key={opt.type}
                         type="button"
                         onClick={() => setTempDeliverable({ ...tempDeliverable, type: opt.type })}
-                        className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border-2 transition-all ${
+                        className={`flex flex-col items-center gap-1 py-2 px-1.5 rounded-lg border-2 transition-all ${
                           tempDeliverable.type === opt.type
                             ? "border-accent bg-accent/5"
                             : "border-border hover:border-accent/30"
                         }`}
                       >
-                        <opt.icon className={`h-5 w-5 ${
+                        <opt.icon className={`h-4 w-4 ${
                           tempDeliverable.type === opt.type ? "text-accent" :
                           opt.color === "purple" ? "text-purple-500" :
                           opt.color === "amber" ? "text-amber-500" : "text-blue-500"
                         }`} />
-                        <span className={`text-xs font-medium ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`}>{opt.label}</span>
+                        <span className={`text-[10px] font-medium ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`}>{opt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -5298,18 +5298,18 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                 {/* Campos especificos por tipo */}
                 {tempDeliverable.type === "media" && (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <Label className="text-sm font-medium">Midias</Label>
-                      <span className="text-xs text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
+                      <Label className="text-xs font-medium">Midias</Label>
+                      <span className="text-[10px] text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {(tempDeliverable.medias || []).map((media, mediaIndex) => (
                         <div key={mediaIndex} className="relative group">
                           <img
                             src={media}
                             alt={`Media ${mediaIndex + 1}`}
-                            className="h-14 w-14 rounded-lg object-cover border border-border"
+                            className="h-12 w-12 rounded-lg object-cover border border-border"
                           />
                           <button
                             type="button"
@@ -5319,15 +5319,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 medias: (tempDeliverable.medias || []).filter((_, i) => i !== mediaIndex)
                               })
                             }}
-                            className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                           >
-                            <X className="h-3 w-3" />
+                            <X className="h-2.5 w-2.5" />
                           </button>
                         </div>
                       ))}
                       {(tempDeliverable.medias || []).length < 20 && (
-                        <label className="h-14 w-14 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
-                          <Plus className="h-5 w-5 text-muted-foreground" />
+                        <label className="h-12 w-12 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
+                          <Plus className="h-4 w-4 text-muted-foreground" />
                           <input
                             type="file"
                             accept="image/*,video/*"
@@ -5349,68 +5349,68 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 )}
 
                 {tempDeliverable.type === "link" && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Link de Acesso</Label>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Link de Acesso</Label>
                       <Input
                         value={tempDeliverable.link || ""}
                         onChange={(e) => setTempDeliverable({ ...tempDeliverable, link: e.target.value })}
                         placeholder="https://exemplo.com/acesso"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Texto do Botao</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Texto do Botao</Label>
                       <Input
                         value={tempDeliverable.linkText || ""}
                         onChange={(e) => setTempDeliverable({ ...tempDeliverable, linkText: e.target.value })}
                         placeholder="Acessar Conteudo"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
                   </div>
                 )}
 
                 {tempDeliverable.type === "vip_group" && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">ID do Grupo (chat_id)</Label>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">ID do Grupo (chat_id)</Label>
                       <Input
                         value={tempDeliverable.vipGroupChatId || ""}
                         onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
                         placeholder="-1001234567890"
-                        className="h-10 font-mono text-sm"
+                        className="h-9 font-mono text-xs"
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Use @userinfobot ou @RawDataBot para obter o chat_id
+                      <p className="text-[10px] text-muted-foreground">
+                        Use @userinfobot ou @RawDataBot para obter
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Nome do Grupo (opcional)</Label>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Nome do Grupo (opcional)</Label>
                       <Input
                         value={tempDeliverable.vipGroupName || ""}
                         onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
                         placeholder="Grupo VIP Premium"
-                        className="h-10"
+                        className="h-9"
                       />
                     </div>
                     
                     {/* Toggles */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50">
                         <div>
-                          <p className="text-sm font-medium">Adicionar automaticamente</p>
-                          <p className="text-xs text-muted-foreground">Gerar link de convite unico</p>
+                          <p className="text-xs font-medium">Adicionar automaticamente</p>
+                          <p className="text-[10px] text-muted-foreground">Gerar link de convite</p>
                         </div>
                         <Switch
                           checked={tempDeliverable.vipAutoAdd !== false}
                           onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoAdd: checked })}
                         />
                       </div>
-                      <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50">
                         <div>
-                          <p className="text-sm font-medium">Remover ao expirar</p>
-                          <p className="text-xs text-muted-foreground">Remover quando acesso expirar</p>
+                          <p className="text-xs font-medium">Remover ao expirar</p>
+                          <p className="text-[10px] text-muted-foreground">Remover quando expirar</p>
                         </div>
                         <Switch
                           checked={tempDeliverable.vipAutoRemove !== false}
@@ -5420,16 +5420,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                     
                     {/* Testar */}
-                    <Button variant="outline" className="w-full h-10" type="button">
-                      <Zap className="h-4 w-4 mr-2" />
+                    <Button variant="outline" size="sm" className="w-full h-8" type="button">
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />
                       Testar Grupo VIP
                     </Button>
                     
                     {/* Aviso */}
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                      <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                      <p className="text-xs text-amber-600">
-                        O bot precisa ser ADMIN do grupo com permissao de convidar membros
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                      <p className="text-[10px] text-amber-600">
+                        O bot precisa ser ADMIN do grupo
                       </p>
                     </div>
                   </div>
@@ -5437,9 +5437,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-end gap-3 px-6 py-4 border-t bg-secondary/30">
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-secondary/30">
                 <Button 
-                  variant="ghost" 
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
                   onClick={() => {
                     if (editingDeliverable) {
                       setDeliverableModalOpen(false)
@@ -5451,7 +5453,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   Cancelar
                 </Button>
                 <Button 
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                  size="sm"
+                  className="h-8 bg-accent hover:bg-accent/90 text-accent-foreground"
                   onClick={() => {
                     if (editingDeliverable) {
                       setDeliverables(deliverables.map(d => d.id === tempDeliverable.id ? tempDeliverable : d))
@@ -5462,7 +5465,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     setHasChanges(true)
                   }}
                 >
-                  Salvar Entregavel
+                  Salvar
                 </Button>
               </div>
             </>
