@@ -14,10 +14,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0")
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    
-    console.log("[v0] Fetching payments - botId:", botId, "userId:", userId, "status:", status)
 
-    // Se tiver userId, primeiro buscar os bots desse usuario
+    // Se tiver userId, buscar os bots desse usuario
     let userBotIds: string[] = []
     if (userId) {
       const { data: userBots } = await supabase
@@ -25,10 +23,20 @@ export async function GET(request: NextRequest) {
         .select("id")
         .eq("user_id", userId)
       userBotIds = userBots?.map(b => b.id) || []
-      console.log("[v0] User bots:", userBotIds.length)
     }
 
-    // Build query - buscar todos os pagamentos
+    // Se nao tem bots, retornar vazio
+    if (userId && userBotIds.length === 0) {
+      return NextResponse.json({
+        payments: [],
+        stats: { total: 0, approved: 0, pending: 0, rejected: 0, cancelled: 0, totalApproved: 0, totalPending: 0 },
+        total: 0,
+        limit,
+        offset,
+      })
+    }
+
+    // Build query - buscar pagamentos dos bots do usuario
     let query = supabase
       .from("payments")
       .select(`
@@ -41,12 +49,9 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
 
-    // Filtrar por user_id OU bot_id dos bots do usuario
+    // Filtrar APENAS por bot_id dos bots do usuario (cada bot so pertence a um usuario)
     if (userId && userBotIds.length > 0) {
-      // Buscar pagamentos onde user_id = userId OU bot_id pertence ao usuario
-      query = query.or(`user_id.eq.${userId},bot_id.in.(${userBotIds.join(",")})`)
-    } else if (userId) {
-      query = query.eq("user_id", userId)
+      query = query.in("bot_id", userBotIds)
     }
 
     if (botId) {
@@ -60,24 +65,20 @@ export async function GET(request: NextRequest) {
     const { data: payments, error, count } = await query
 
     if (error) {
-      console.error("[v0] Error fetching payments:", error)
+      console.error("Error fetching payments:", error)
       return NextResponse.json(
         { error: "Erro ao buscar pagamentos" },
         { status: 500 }
       )
     }
-    
-    console.log("[v0] Found", payments?.length || 0, "payments")
 
-    // Calculate stats - mesmo filtro
+    // Calculate stats - mesmo filtro por bot_id
     let statsQuery = supabase
       .from("payments")
       .select("status, amount")
 
     if (userId && userBotIds.length > 0) {
-      statsQuery = statsQuery.or(`user_id.eq.${userId},bot_id.in.(${userBotIds.join(",")})`)
-    } else if (userId) {
-      statsQuery = statsQuery.eq("user_id", userId)
+      statsQuery = statsQuery.in("bot_id", userBotIds)
     }
 
     if (botId) {
@@ -108,8 +109,7 @@ export async function GET(request: NextRequest) {
       offset,
     })
   } catch (error) {
-    console.error("[v0] ERROR in payments list:", error)
-    console.error("[v0] Error details:", JSON.stringify(error, null, 2))
+    console.error("ERROR in payments list:", error)
     return NextResponse.json(
       { error: "Erro interno do servidor", details: String(error) },
       { status: 500 }
