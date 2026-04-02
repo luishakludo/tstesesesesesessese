@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // GET - Get a setting by key
 export async function GET(request: NextRequest) {
+  const supabase = getSupabaseAdmin()
   const key = request.nextUrl.searchParams.get("key")
   
   if (!key) {
@@ -42,6 +45,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Update or create a setting
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdmin()
   try {
     const { key, value } = await request.json()
     
