@@ -294,14 +294,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 callback_data: `plan_${plan.id}`
               }])
               
-              // Adicionar botao de Packs se habilitado
-              if (packsEnabled) {
-                planButtons.push([{
-                  text: packsButtonText,
-                  callback_data: "show_packs"
-                }])
-              }
-              
               await sendTelegramMessage(
                 botToken, 
                 chatId, 
