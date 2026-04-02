@@ -571,43 +571,30 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const pack = packsConfig?.list?.find(p => p.id === packId)
             const packName = pack?.name || "Pack"
             
-            // Gerar PIX usando a mesma API do fluxo inicial
-            const pixResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+            // Gerar PIX usando a mesma API interna que o fluxo inicial usa
+            const pixResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/mercadopago/pix`, {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${gatewayPack.access_token}`,
-                "X-Idempotency-Key": `pack_${packId}_${telegramUserId}_${Date.now()}`
-              },
+              headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                transaction_amount: packPrice,
+                accessToken: gatewayPack.access_token,
+                amount: packPrice,
                 description: `Pack - ${packName}`,
-                payment_method_id: "pix",
-                payer: { email: "cliente@dragonbot.com" }
               })
             })
             
-            const pixData = await pixResponse.json()
+            const pixResult = await pixResponse.json()
             
-            if (pixData.id && pixData.point_of_interaction?.transaction_data) {
-              const qrCode = pixData.point_of_interaction.transaction_data.qr_code
-              const qrCodeBase64 = pixData.point_of_interaction.transaction_data.qr_code_base64
+            if (pixResult.success && pixResult.qrCodeUrl) {
+              // Enviar QR Code usando a URL (igual ao fluxo inicial)
+              await sendTelegramPhoto(
+                botToken,
+                chatId,
+                pixResult.qrCodeUrl,
+                `Escaneie o QR Code para pagar\n\nValor: R$ ${packPrice.toFixed(2).replace(".", ",")}\nProduto: ${packName}`
+              )
               
-              // Enviar QR Code
-              if (qrCodeBase64) {
-                await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    chat_id: chatId,
-                    photo: `data:image/png;base64,${qrCodeBase64}`,
-                    caption: `Escaneie o QR Code para pagar\n\nValor: R$ ${packPrice.toFixed(2).replace(".", ",")}\nProduto: ${packName}`
-                  })
-                })
-              }
-              
-              // Enviar codigo PIX
-              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${qrCode}</code>`)
+              // Enviar codigo PIX - usando <code> HTML para ser clicavel
+              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${pixResult.copyPaste}</code>`)
               
               // Salvar pagamento
               await supabase.from("payments").insert({
@@ -620,16 +607,17 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 status: "pending",
                 payment_method: "pix",
                 gateway: "mercadopago",
-                external_payment_id: String(pixData.id),
+                external_payment_id: String(pixResult.paymentId),
                 product_name: packName,
                 product_type: "pack",
-                pix_code: qrCode,
-                qr_code: qrCodeBase64,
+                qr_code: pixResult.qrCode,
+                qr_code_url: pixResult.qrCodeUrl,
+                copy_paste: pixResult.copyPaste,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
             } else {
-              console.error("[v0] Erro PIX Pack:", pixData)
+              console.error("[v0] Erro PIX Pack:", pixResult)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
             }
           } catch (err) {

@@ -124,10 +124,12 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
+      success: true,
       paymentId: paymentData.id,
       status: paymentData.status,
-      qrCode: pixData.qr_code,
-      qrCodeBase64: pixData.qr_code_base64,
+      qrCode: pixData.qr_code_base64,
+      qrCodeUrl: pixData.ticket_url,
+      copyPaste: pixData.qr_code,
       ticketUrl: pixData.ticket_url,
       leadId: leadId,
     })
