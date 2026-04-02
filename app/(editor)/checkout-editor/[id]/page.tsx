@@ -18,6 +18,10 @@ import {
   Eye,
   Settings,
   ShieldCheck,
+  Users,
+  Mail,
+  Phone,
+  Calendar,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -96,6 +100,22 @@ export default function CheckoutEditorPage({ params }: PageProps) {
   const [saved, setSaved] = useState(false)
   const [siteName, setSiteName] = useState("")
   const [siteSlug, setSiteSlug] = useState("")
+  const [leads, setLeads] = useState<any[]>([])
+  const [leadsLoading, setLeadsLoading] = useState(false)
+
+  const fetchLeads = async () => {
+    if (!id) return
+    setLeadsLoading(true)
+    try {
+      const res = await fetch(`/api/checkout-leads?siteId=${id}`)
+      const data = await res.json()
+      if (data.leads) setLeads(data.leads)
+    } catch (err) {
+      console.error("Error fetching leads:", err)
+    } finally {
+      setLeadsLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetchSite()
@@ -225,6 +245,19 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                 <TabsTrigger value="visual" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
                   <Palette className="w-3 h-3 mr-1" />
                   Visual
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="leads" 
+                  className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white"
+                  onClick={() => { if (leads.length === 0) fetchLeads() }}
+                >
+                  <Users className="w-3 h-3 mr-1" />
+                  Leads
+                  {leads.length > 0 && (
+                    <span className="ml-1 bg-blue-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                      {leads.length}
+                    </span>
+                  )}
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -469,6 +502,100 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                       ))}
                     </div>
                   </div>
+                </div>
+              </TabsContent>
+
+              {/* Leads Tab */}
+              <TabsContent value="leads" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-gray-900">Leads Coletados</h3>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchLeads}
+                      disabled={leadsLoading}
+                      className="h-8 text-xs"
+                    >
+                      {leadsLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : "Atualizar"}
+                    </Button>
+                  </div>
+
+                  {leadsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : leads.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500">Nenhum lead coletado ainda</p>
+                      <p className="text-xs text-gray-400 mt-1">Os leads aparecerão aqui quando pessoas preencherem o checkout</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {leads.map((lead) => (
+                        <div 
+                          key={lead.id} 
+                          className="p-3 rounded-xl border border-gray-200 bg-gray-50"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {(lead.name || lead.email || "?").charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{lead.name || "Sem nome"}</p>
+                                <p className="text-[10px] text-gray-500">
+                                  {new Date(lead.created_at).toLocaleDateString("pt-BR", { 
+                                    day: "2-digit", 
+                                    month: "short", 
+                                    hour: "2-digit", 
+                                    minute: "2-digit" 
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-medium ${
+                              lead.status === "paid" 
+                                ? "bg-green-100 text-green-700" 
+                                : "bg-amber-100 text-amber-700"
+                            }`}>
+                              {lead.status === "paid" ? "Pago" : "Pendente"}
+                            </span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {lead.email && (
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <Mail className="w-3 h-3 text-gray-400" />
+                                <span className="truncate">{lead.email}</span>
+                              </div>
+                            )}
+                            {lead.phone && (
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <Phone className="w-3 h-3 text-gray-400" />
+                                <span>{lead.phone}</span>
+                              </div>
+                            )}
+                            {lead.cpf && (
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <span className="text-[9px] text-gray-400">CPF:</span>
+                                <span>{lead.cpf}</span>
+                              </div>
+                            )}
+                            {lead.amount && (
+                              <div className="flex items-center gap-1.5 text-gray-600">
+                                <span className="text-[9px] text-gray-400">Valor:</span>
+                                <span className="font-medium">R$ {Number(lead.amount).toFixed(2)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </div>

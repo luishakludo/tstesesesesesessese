@@ -69,7 +69,7 @@ export default async function DragonBioPage({ params }: PageProps) {
   // Se for uma pagina Checkout PIX (detecta pelo slug)
   const isCheckoutPage = site.slug?.startsWith("checkout-")
   if (isCheckoutPage || (site.page_data && (site.page_data.accessToken || site.page_data.pixKey))) {
-    return <PixCheckout data={site.page_data || {}} />
+    return <PixCheckout data={site.page_data || {}} siteId={site.id} />
   }
 
   // Se for uma pagina Privacy/Conversao (detecta pelo slug ou page_data)
