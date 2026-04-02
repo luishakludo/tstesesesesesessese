@@ -343,6 +343,7 @@ export default function FlowEditorPage() {
   const [expandedDeliverable, setExpandedDeliverable] = useState<string | null>(null)
   const [uploadingDeliverableMedia, setUploadingDeliverableMedia] = useState<string | null>(null)
   const [deliverableModalOpen, setDeliverableModalOpen] = useState(false)
+  const [deliverableModalStep, setDeliverableModalStep] = useState<"select" | "form">("select")
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null)
   const [tempDeliverable, setTempDeliverable] = useState<Deliverable>({
     id: "",
@@ -4615,6 +4616,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     type="button"
                     onClick={() => {
                       setEditingDeliverable(null)
+                      setDeliverableModalStep("select")
                       setTempDeliverable({
                         id: `del-${Date.now()}`,
                         name: `Entregavel ${deliverables.length + 1}`,
@@ -4696,6 +4698,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       className="border-border/50 hover:border-accent/30 transition-colors cursor-pointer"
                       onClick={() => {
                         setEditingDeliverable(del)
+                        setDeliverableModalStep("form")
                         setTempDeliverable({ ...del })
                         setDeliverableModalOpen(true)
                       }}
@@ -4757,215 +4760,273 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               {/* Modal de Novo/Editar Entregavel */}
               <Dialog open={deliverableModalOpen} onOpenChange={setDeliverableModalOpen}>
-                <DialogContent className="sm:max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Gift className="h-5 w-5 text-accent" />
-                      {editingDeliverable ? "Editar Entregavel" : "Novo Entregavel"}
-                    </DialogTitle>
-                  </DialogHeader>
-                  
-                  <div className="space-y-5 py-4">
-                    {/* Nome */}
-                    <div className="space-y-2">
-                      <Label>Nome do Entregavel</Label>
-                      <Input
-                        value={tempDeliverable.name}
-                        onChange={(e) => setTempDeliverable({ ...tempDeliverable, name: e.target.value })}
-                        placeholder="Entregavel 1"
-                        className="h-12 border-accent/30 focus:border-accent"
-                      />
-                    </div>
-
-                    {/* Tipo */}
-                    <div className="space-y-3">
-                      <Label>Tipo de Entregavel</Label>
-                      <div className="grid grid-cols-3 gap-3">
+                <DialogContent className="sm:max-w-md">
+                  {/* Etapa 1: Selecao de Tipo */}
+                  {deliverableModalStep === "select" && (
+                    <>
+                      <div className="flex items-center gap-2 pb-4">
+                        <Gift className="h-5 w-5 text-accent" />
+                        <span className="font-semibold">Entregavel</span>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground mb-4">Tipo de Entregavel</p>
+                      
+                      <div className="space-y-3">
                         {[
-                          { type: "media" as const, label: "Midia", icon: ImageIcon },
-                          { type: "vip_group" as const, label: "Grupo VIP", icon: Users },
-                          { type: "link" as const, label: "Link", icon: Link2 },
+                          { type: "media" as const, label: "Entregavel de Midia", desc: "Envie fotos, videos ou arquivos", icon: ImageIcon },
+                          { type: "vip_group" as const, label: "Entregavel de Grupo VIP", desc: "Adicione automaticamente ao grupo", icon: Users },
+                          { type: "link" as const, label: "Entregavel de Link", desc: "Envie um link de acesso", icon: Link2 },
                         ].map((opt) => (
                           <button
                             key={opt.type}
                             type="button"
-                            onClick={() => setTempDeliverable({ ...tempDeliverable, type: opt.type })}
-                            className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
-                              tempDeliverable.type === opt.type
-                                ? "border-accent bg-accent/10"
-                                : "border-border hover:border-accent/50"
-                            }`}
+                            onClick={() => {
+                              setTempDeliverable({ ...tempDeliverable, type: opt.type })
+                              setDeliverableModalStep("form")
+                            }}
+                            className="w-full flex items-center gap-4 p-4 rounded-xl border border-border hover:border-accent/50 hover:bg-accent/5 transition-all text-left"
                           >
-                            <opt.icon className={`h-6 w-6 ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`} />
-                            <span className={`text-sm font-medium ${tempDeliverable.type === opt.type ? "text-accent" : ""}`}>{opt.label}</span>
+                            <div className="h-10 w-10 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0">
+                              <opt.icon className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{opt.label}</p>
+                              <p className="text-sm text-muted-foreground">{opt.desc}</p>
+                            </div>
                           </button>
                         ))}
                       </div>
-                    </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => setDeliverableModalOpen(false)}
+                        className="flex items-center justify-center gap-2 w-full mt-6 py-2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Voltar
+                      </button>
+                    </>
+                  )}
 
-                    {/* Campos especificos por tipo */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-4">
-                      {tempDeliverable.type === "media" && (
-                        <>
-                          <div className="flex items-center justify-between">
-                            <Label>Midias</Label>
-                            <span className="text-xs text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {(tempDeliverable.medias || []).map((media, mediaIndex) => (
-                              <div key={mediaIndex} className="relative group">
-                                <img
-                                  src={media}
-                                  alt={`Media ${mediaIndex + 1}`}
-                                  className="h-16 w-16 rounded-lg object-cover border border-border/50"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setTempDeliverable({
-                                      ...tempDeliverable,
-                                      medias: (tempDeliverable.medias || []).filter((_, i) => i !== mediaIndex)
-                                    })
-                                  }}
-                                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                              </div>
+                  {/* Etapa 2: Formulario */}
+                  {deliverableModalStep === "form" && (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Gift className="h-5 w-5 text-accent" />
+                          {editingDeliverable ? "Editar Entregavel" : "Novo Entregavel"}
+                        </DialogTitle>
+                      </DialogHeader>
+                      
+                      <div className="space-y-5 py-4">
+                        {/* Nome */}
+                        <div className="space-y-2">
+                          <Label>Nome do Entregavel</Label>
+                          <Input
+                            value={tempDeliverable.name}
+                            onChange={(e) => setTempDeliverable({ ...tempDeliverable, name: e.target.value })}
+                            placeholder="Entregavel 1"
+                            className="h-12 border-accent/30 focus:border-accent"
+                          />
+                        </div>
+
+                        {/* Tipo selecionado (visual) */}
+                        <div className="space-y-3">
+                          <Label>Tipo de Entregavel</Label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { type: "media" as const, label: "Midia", icon: ImageIcon },
+                              { type: "vip_group" as const, label: "Grupo VIP", icon: Users },
+                              { type: "link" as const, label: "Link", icon: Link2 },
+                            ].map((opt) => (
+                              <button
+                                key={opt.type}
+                                type="button"
+                                onClick={() => setTempDeliverable({ ...tempDeliverable, type: opt.type })}
+                                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                                  tempDeliverable.type === opt.type
+                                    ? "border-accent bg-accent/10"
+                                    : "border-border hover:border-accent/50"
+                                }`}
+                              >
+                                <opt.icon className={`h-5 w-5 ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`} />
+                                <span className={`text-xs font-medium ${tempDeliverable.type === opt.type ? "text-accent" : ""}`}>{opt.label}</span>
+                              </button>
                             ))}
-                            {(tempDeliverable.medias || []).length < 20 && (
-                              <label className="h-16 w-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
-                                <Plus className="h-5 w-5 text-muted-foreground" />
-                                <input
-                                  type="file"
-                                  accept="image/*,video/*"
-                                  className="hidden"
-                                  onChange={async (e) => {
-                                    const file = e.target.files?.[0]
-                                    if (!file) return
-                                    const url = URL.createObjectURL(file)
-                                    setTempDeliverable({
-                                      ...tempDeliverable,
-                                      medias: [...(tempDeliverable.medias || []), url]
-                                    })
-                                  }}
+                          </div>
+                        </div>
+
+                        {/* Campos especificos por tipo */}
+                        <div className="rounded-xl border border-border/50 p-4 space-y-4">
+                          {tempDeliverable.type === "media" && (
+                            <>
+                              <div className="flex items-center justify-between">
+                                <Label>Midias</Label>
+                                <span className="text-xs text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {(tempDeliverable.medias || []).map((media, mediaIndex) => (
+                                  <div key={mediaIndex} className="relative group">
+                                    <img
+                                      src={media}
+                                      alt={`Media ${mediaIndex + 1}`}
+                                      className="h-16 w-16 rounded-lg object-cover border border-border/50"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTempDeliverable({
+                                          ...tempDeliverable,
+                                          medias: (tempDeliverable.medias || []).filter((_, i) => i !== mediaIndex)
+                                        })
+                                      }}
+                                      className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                                {(tempDeliverable.medias || []).length < 20 && (
+                                  <label className="h-16 w-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
+                                    <Plus className="h-5 w-5 text-muted-foreground" />
+                                    <input
+                                      type="file"
+                                      accept="image/*,video/*"
+                                      className="hidden"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0]
+                                        if (!file) return
+                                        const url = URL.createObjectURL(file)
+                                        setTempDeliverable({
+                                          ...tempDeliverable,
+                                          medias: [...(tempDeliverable.medias || []), url]
+                                        })
+                                      }}
+                                    />
+                                  </label>
+                                )}
+                              </div>
+                            </>
+                          )}
+
+                          {tempDeliverable.type === "link" && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>Link de Acesso</Label>
+                                <Input
+                                  value={tempDeliverable.link || ""}
+                                  onChange={(e) => setTempDeliverable({ ...tempDeliverable, link: e.target.value })}
+                                  placeholder="https://exemplo.com/acesso"
+                                  className="h-12"
                                 />
-                              </label>
-                            )}
-                          </div>
-                        </>
-                      )}
-
-                      {tempDeliverable.type === "link" && (
-                        <>
-                          <div className="space-y-2">
-                            <Label>Link de Acesso</Label>
-                            <Input
-                              value={tempDeliverable.link || ""}
-                              onChange={(e) => setTempDeliverable({ ...tempDeliverable, link: e.target.value })}
-                              placeholder="https://exemplo.com/acesso"
-                              className="h-12"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Texto do Botao</Label>
-                            <Input
-                              value={tempDeliverable.linkText || ""}
-                              onChange={(e) => setTempDeliverable({ ...tempDeliverable, linkText: e.target.value })}
-                              placeholder="Acessar Conteudo"
-                              className="h-12"
-                            />
-                          </div>
-                        </>
-                      )}
-
-                      {tempDeliverable.type === "vip_group" && (
-                        <>
-                          <div className="space-y-2">
-                            <Label>ID do Grupo (chat_id)</Label>
-                            <Input
-                              value={tempDeliverable.vipGroupChatId || ""}
-                              onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
-                              placeholder="-1001234567890"
-                              className="h-12 font-mono"
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Use @userinfobot ou @RawDataBot para obter o chat_id
-                            </p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Nome do Grupo (opcional)</Label>
-                            <Input
-                              value={tempDeliverable.vipGroupName || ""}
-                              onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
-                              placeholder="Grupo VIP Premium"
-                              className="h-12"
-                            />
-                          </div>
-                          
-                          {/* Toggles de VIP */}
-                          <div className="space-y-3 pt-2">
-                            <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                              <div>
-                                <p className="text-sm font-medium">Adicionar automaticamente</p>
-                                <p className="text-xs text-muted-foreground">Gerar link de convite unico</p>
                               </div>
-                              <Switch
-                                checked={tempDeliverable.vipAutoAdd !== false}
-                                onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoAdd: checked })}
-                              />
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                              <div>
-                                <p className="text-sm font-medium">Remover ao expirar</p>
-                                <p className="text-xs text-muted-foreground">Remover quando acesso expirar</p>
+                              <div className="space-y-2">
+                                <Label>Texto do Botao</Label>
+                                <Input
+                                  value={tempDeliverable.linkText || ""}
+                                  onChange={(e) => setTempDeliverable({ ...tempDeliverable, linkText: e.target.value })}
+                                  placeholder="Acessar Conteudo"
+                                  className="h-12"
+                                />
                               </div>
-                              <Switch
-                                checked={tempDeliverable.vipAutoRemove !== false}
-                                onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoRemove: checked })}
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Botao Testar */}
-                          <Button variant="outline" className="w-full" type="button">
-                            <Zap className="h-4 w-4 mr-2" />
-                            Testar Grupo VIP
-                          </Button>
-                          
-                          {/* Aviso */}
-                          <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
-                            <p className="text-sm text-destructive text-center">
-                              O bot precisa ser ADMIN do grupo com permissao de convidar membros
-                            </p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                            </>
+                          )}
 
-                  <DialogFooter>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setDeliverableModalOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                      onClick={() => {
-                        if (editingDeliverable) {
-                          setDeliverables(deliverables.map(d => d.id === tempDeliverable.id ? tempDeliverable : d))
-                        } else {
-                          setDeliverables([...deliverables, tempDeliverable])
-                        }
-                        setDeliverableModalOpen(false)
-                        setHasChanges(true)
-                      }}
-                    >
-                      Salvar Entregavel
-                    </Button>
-                  </DialogFooter>
+                          {tempDeliverable.type === "vip_group" && (
+                            <>
+                              <div className="space-y-2">
+                                <Label>ID do Grupo (chat_id)</Label>
+                                <Input
+                                  value={tempDeliverable.vipGroupChatId || ""}
+                                  onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
+                                  placeholder="-1001234567890"
+                                  className="h-12 font-mono"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                  Use @userinfobot ou @RawDataBot para obter o chat_id
+                                </p>
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Nome do Grupo (opcional)</Label>
+                                <Input
+                                  value={tempDeliverable.vipGroupName || ""}
+                                  onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
+                                  placeholder="Grupo VIP Premium"
+                                  className="h-12"
+                                />
+                              </div>
+                              
+                              {/* Toggles de VIP */}
+                              <div className="space-y-3 pt-2">
+                                <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
+                                  <div>
+                                    <p className="text-sm font-medium">Adicionar automaticamente</p>
+                                    <p className="text-xs text-muted-foreground">Gerar link de convite unico</p>
+                                  </div>
+                                  <Switch
+                                    checked={tempDeliverable.vipAutoAdd !== false}
+                                    onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoAdd: checked })}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
+                                  <div>
+                                    <p className="text-sm font-medium">Remover ao expirar</p>
+                                    <p className="text-xs text-muted-foreground">Remover quando acesso expirar</p>
+                                  </div>
+                                  <Switch
+                                    checked={tempDeliverable.vipAutoRemove !== false}
+                                    onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoRemove: checked })}
+                                  />
+                                </div>
+                              </div>
+                              
+                              {/* Botao Testar */}
+                              <Button variant="outline" className="w-full" type="button">
+                                <Zap className="h-4 w-4 mr-2" />
+                                Testar Grupo VIP
+                              </Button>
+                              
+                              {/* Aviso */}
+                              <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3">
+                                <p className="text-sm text-destructive text-center">
+                                  O bot precisa ser ADMIN do grupo com permissao de convidar membros
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            if (editingDeliverable) {
+                              setDeliverableModalOpen(false)
+                            } else {
+                              setDeliverableModalStep("select")
+                            }
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button 
+                          className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                          onClick={() => {
+                            if (editingDeliverable) {
+                              setDeliverables(deliverables.map(d => d.id === tempDeliverable.id ? tempDeliverable : d))
+                            } else {
+                              setDeliverables([...deliverables, tempDeliverable])
+                            }
+                            setDeliverableModalOpen(false)
+                            setHasChanges(true)
+                          }}
+                        >
+                          Salvar Entregavel
+                        </Button>
+                      </DialogFooter>
+                    </>
+                  )}
                 </DialogContent>
               </Dialog>
             </div>
