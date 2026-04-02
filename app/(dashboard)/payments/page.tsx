@@ -13,7 +13,9 @@ import {
   Copy,
   Check,
   CreditCard,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react"
 
 interface Payment {
@@ -43,18 +45,33 @@ export default function VendasPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [copied, setCopied] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const [apiStats, setApiStats] = useState<{
+    total: number
+    approved: number
+    pending: number
+    rejected: number
+    totalApproved: number
+    totalPending: number
+  } | null>(null)
+  const ITEMS_PER_PAGE = 50
 
   useEffect(() => {
     fetchPayments()
-  }, [])
+  }, [currentPage, activeTab])
 
   const fetchPayments = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/payments/list", { credentials: "include" })
+      const offset = (currentPage - 1) * ITEMS_PER_PAGE
+      const statusParam = activeTab !== "all" ? `&status=${activeTab}` : ""
+      const res = await fetch(`/api/payments/list?limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`, { credentials: "include" })
       const data = await res.json()
       if (data.payments) {
         setPayments(data.payments)
+        setTotalCount(data.total || 0)
+        if (data.stats) setApiStats(data.stats)
       }
     } catch (err) {
       console.error("Error:", err)
@@ -95,30 +112,27 @@ export default function VendasPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // Filter only by search (status is filtered by API)
   const filteredPayments = payments.filter((p) => {
-    const matchesTab = activeTab === "all" || p.status === activeTab
-    const matchesSearch = searchQuery === "" || 
-      getUserName(p).toLowerCase().includes(searchQuery.toLowerCase()) ||
+    if (searchQuery === "") return true
+    return getUserName(p).toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.telegram_username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.external_payment_id?.includes(searchQuery)
-    return matchesTab && matchesSearch
   })
 
-  const approvedPayments = payments.filter((p) => p.status === "approved")
-  const pendingPayments = payments.filter((p) => p.status === "pending")
-  
+  // Use API stats (total across all pages) instead of just current page
   const stats = {
-    faturamento: approvedPayments.reduce((acc, p) => acc + Number(p.amount), 0),
-    total: approvedPayments.length,
-    pendentes: pendingPayments.reduce((acc, p) => acc + Number(p.amount), 0),
-    pendentesCount: pendingPayments.length,
+    faturamento: apiStats?.totalApproved || 0,
+    total: apiStats?.approved || 0,
+    pendentes: apiStats?.totalPending || 0,
+    pendentesCount: apiStats?.pending || 0,
   }
 
   const tabs = [
-    { id: "all", label: "Todas", count: payments.length },
-    { id: "approved", label: "Aprovadas", count: payments.filter(p => p.status === "approved").length },
-    { id: "pending", label: "Pendentes", count: stats.pendentesCount },
-    { id: "rejected", label: "Rejeitadas", count: payments.filter(p => p.status === "rejected").length },
+    { id: "all", label: "Todas", count: apiStats?.total || 0 },
+    { id: "approved", label: "Aprovadas", count: apiStats?.approved || 0 },
+    { id: "pending", label: "Pendentes", count: apiStats?.pending || 0 },
+    { id: "rejected", label: "Rejeitadas", count: apiStats?.rejected || 0 },
   ]
 
   return (
@@ -217,7 +231,7 @@ export default function VendasPage() {
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => { setActiveTab(tab.id); setCurrentPage(1); }}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                       activeTab === tab.id
                         ? "bg-white text-gray-900 shadow-sm"
@@ -312,6 +326,73 @@ export default function VendasPage() {
                 </div>
               )}
             </div>
+
+            {/* Pagination */}
+            {totalCount > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE)
+                    const pages: (number | string)[] = []
+                    
+                    if (totalPages <= 7) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i)
+                    } else {
+                      pages.push(1)
+                      if (currentPage > 3) pages.push("...")
+                      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+                        if (!pages.includes(i)) pages.push(i)
+                      }
+                      if (currentPage < totalPages - 2) pages.push("...")
+                      if (!pages.includes(totalPages)) pages.push(totalPages)
+                    }
+
+                    return pages.map((page, idx) => (
+                      typeof page === "number" ? (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? "bg-[#1c1c1e] text-white"
+                              : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ) : (
+                        <span key={idx} className="px-2 text-gray-400">...</span>
+                      )
+                    ))
+                  })()}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(totalCount / ITEMS_PER_PAGE), p + 1))}
+                  disabled={currentPage >= Math.ceil(totalCount / ITEMS_PER_PAGE)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Proximo
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Total info */}
+            {totalCount > 0 && (
+              <p className="text-center text-xs text-gray-500 mt-3">
+                Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, totalCount)} de {totalCount} pagamentos
+              </p>
+            )}
           </div>
         </div>
       </ScrollArea>

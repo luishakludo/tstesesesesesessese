@@ -54,6 +54,22 @@ interface DeliveryConfig {
   vipAutoRemoveOnExpire?: boolean
 }
 
+interface Deliverable {
+  id: string
+  name: string
+  type: "media" | "vip_group" | "link"
+  // Media
+  medias?: string[]
+  // Link
+  link?: string
+  linkText?: string
+  // VIP Group
+  vipGroupChatId?: string
+  vipGroupName?: string
+  vipAutoAdd?: boolean
+  vipAutoRemove?: boolean
+}
+
 interface FlowConfig {
   welcomeMessage?: string
   welcomeMedias?: string[]
@@ -75,6 +91,9 @@ interface FlowConfig {
   payments?: PaymentConfig
   subscription?: SubscriptionConfig
   delivery?: DeliveryConfig
+  // Entregaveis reutilizaveis
+  deliverables?: Deliverable[]
+  mainDeliverableId?: string
 }
 
 interface FlowPlan {
@@ -86,6 +105,7 @@ interface FlowPlan {
   description?: string
   active: boolean
   delivery_type: "default" | "custom"
+  deliverableId?: string // ID do entregavel especifico para este plano
   custom_delivery?: string
   order_bump_custom: boolean
   order_bump_name?: string
@@ -117,6 +137,7 @@ interface UpsellSequence {
   rejectButtonText: string
   hideRejectButton: boolean
   deliveryType: "global" | "custom"
+  deliverableId?: string // ID do entregavel selecionado (se custom)
   customDeliveryMedias?: string[]
   customDeliveryLink?: string
   customDeliveryLinkText?: string
@@ -147,6 +168,7 @@ interface DownsellSequence {
   sendDelayUnit?: "minutes" | "hours" | "days"
   plans: DownsellPlan[]
   deliveryType: "global" | "custom"
+  deliverableId?: string // ID do entregavel selecionado (se custom)
   customDelivery?: string
   targetType: "geral" | "pix" // geral = todos, pix = apenas quem gerou pix mas nao pagou
 }
@@ -168,8 +190,9 @@ interface Pack {
   previewMedias: string[] // Array de midias de preview (ate 10)
   buttonText: string // Texto do botao personalizado
   deliveryDestination: string
+  deliverableId?: string // ID do entregavel associado
   active: boolean
-}
+  }
 
 interface OrderBumpItem {
   enabled: boolean
@@ -204,7 +227,8 @@ interface PackConfig {
   items: string[]
   price: number
   discount_percent?: number
-}
+  deliverableId?: string // ID do entregavel especifico para este pack
+  }
 
 interface PaymentConfig {
   gateway?: string
@@ -312,6 +336,27 @@ export default function FlowEditorPage() {
   const [downsellSubTab, setDownsellSubTab] = useState<"geral" | "pix">("geral")
   const [expandedDownsellSequence, setExpandedDownsellSequence] = useState<string | null>(null)
   const [uploadingDownsellMedia, setUploadingDownsellMedia] = useState<string | null>(null)
+
+  // Entregaveis
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([])
+  const [mainDeliverableId, setMainDeliverableId] = useState<string>("")
+  const [expandedDeliverable, setExpandedDeliverable] = useState<string | null>(null)
+  const [uploadingDeliverableMedia, setUploadingDeliverableMedia] = useState<string | null>(null)
+  const [deliverableModalOpen, setDeliverableModalOpen] = useState(false)
+  const [deliverableModalStep, setDeliverableModalStep] = useState<"select" | "form">("select")
+  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null)
+  const [tempDeliverable, setTempDeliverable] = useState<Deliverable>({
+    id: "",
+    name: "",
+    type: "media",
+    medias: [],
+    link: "",
+    linkText: "",
+    vipGroupChatId: "",
+    vipGroupName: "",
+    vipAutoAdd: true,
+    vipAutoRemove: true,
+  })
 
   // Order Bump
   const [orderBumpEnabled, setOrderBumpEnabled] = useState(false)
@@ -476,7 +521,10 @@ Clique no botao abaixo para renovar com desconto especial!`)
   setDownsellMessage(config.downsell?.message || "")
   setDownsellSequences(config.downsell?.sequences || [])
   setDownsellDeliveryType(config.downsell?.deliveryType || "same")
-        setOrderBumpEnabled(config.orderBump?.enabled || false)
+  // Entregaveis
+  setDeliverables(config.deliverables || [])
+  setMainDeliverableId(config.mainDeliverableId || "")
+  setOrderBumpEnabled(config.orderBump?.enabled || false)
         setOrderBumpName(config.orderBump?.name || "")
         setOrderBumpPrice(config.orderBump?.price?.toString() || "")
         if (config.orderBump?.inicial) setOrderBumpInicial(config.orderBump.inicial)
@@ -677,6 +725,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
         vipAutoAdd: vipAutoAdd,
         vipAutoRemoveOnExpire: vipAutoRemoveOnExpire,
       },
+      // Entregaveis
+      deliverables,
+      mainDeliverableId,
     }
 
     const updatePayload = {
@@ -1356,6 +1407,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
     { id: "packs", label: "Packs", icon: Package, locked: false },
     { id: "payments", label: "Pagamentos", icon: Wallet, locked: false },
     { id: "subscription", label: "Assinatura", icon: Crown, locked: false },
+    { id: "deliverables", label: "Entregaveis", icon: Gift, locked: false },
     { id: "conversions", label: "Conversoes", icon: BarChart3, locked: false },
   ]
 
@@ -2019,25 +2071,71 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 <div className="space-y-3">
                                   <div className="flex items-center gap-2">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                                      <Package className="h-4 w-4 text-emerald-500" />
+                                      <Gift className="h-4 w-4 text-emerald-500" />
                                     </div>
-                                    <span className="font-medium">Entrega deste Plano</span>
+                                    <span className="font-medium">Entregavel</span>
                                   </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Selecione qual entregavel sera enviado ao comprar este plano
+                                  </p>
                                   <Select
                                     value={plan.delivery_type}
-                                    onValueChange={(value) => handleUpdatePlan(plan.id, "delivery_type", value)}
+                                    onValueChange={(value) => {
+                                      handleUpdatePlan(plan.id, "delivery_type", value)
+                                      if (value === "default") {
+                                        handleUpdatePlan(plan.id, "deliverableId", "")
+                                      }
+                                    }}
                                   >
                                     <SelectTrigger className="bg-secondary/50 border-border/50">
                                       <div className="flex items-center gap-2">
-                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                        <Gift className="h-4 w-4 text-muted-foreground" />
                                         <SelectValue />
                                       </div>
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="default">Usar entrega padrao do fluxo</SelectItem>
-                                      <SelectItem value="custom">Entrega personalizada</SelectItem>
+                                      <SelectItem value="default">Usar entregavel principal</SelectItem>
+                                      <SelectItem value="custom">Selecionar entregavel</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  
+                                  {plan.delivery_type === "custom" && (
+                                    <div className="pt-2">
+                                      {deliverables.length === 0 ? (
+                                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                          <div className="flex items-start gap-2">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                            <div className="text-xs">
+                                              <p className="font-medium text-amber-500">Nenhum entregavel</p>
+                                              <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot;</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <Select
+                                          value={plan.deliverableId || "none"}
+                                          onValueChange={(value) => handleUpdatePlan(plan.id, "deliverableId", value === "none" ? "" : value)}
+                                        >
+                                          <SelectTrigger className="bg-secondary/30 border-border/50">
+                                            <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Nenhum selecionado</SelectItem>
+                                            {deliverables.map((d) => (
+                                              <SelectItem key={d.id} value={d.id}>
+                                                <div className="flex items-center gap-2">
+                                                  {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                                  {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                                  {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                                  {d.name}
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Remover Plano */}
@@ -2068,126 +2166,47 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </CardContent>
                 </Card>
 
-                {/* Entrega Padrao - Configuracao de Entregaveis */}
-                <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                        <Package className="h-5 w-5 text-accent" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">Entregaveis</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Configure o que entregar apos o pagamento ser aprovado
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {/* Tipo 1: Link */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-                            <ExternalLink className="h-4 w-4 text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Link</p>
-                            <p className="text-xs text-muted-foreground">Enviar um link apos pagamento</p>
-                          </div>
+                {/* Resumo de Entregaveis */}
+                <Card className="border-border/50 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                          <Gift className="h-5 w-5 text-emerald-500" />
                         </div>
-                        <Switch defaultChecked={false} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">URL do Link</Label>
-                        <Input 
-                          placeholder="https://exemplo.com/acesso" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Texto do botao (opcional)</Label>
-                        <Input 
-                          placeholder="Acessar conteudo" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tipo 2: Midia */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
-                            <ImageIcon className="h-4 w-4 text-purple-500" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Midia</p>
-                            <p className="text-xs text-muted-foreground">Enviar fotos ou videos do cache</p>
-                          </div>
+                        <div>
+                          <p className="font-semibold">Entregaveis</p>
+                          <p className="text-sm text-muted-foreground">
+                            {deliverables.length === 0 
+                              ? "Configure o que entregar apos o pagamento" 
+                              : `${deliverables.length} entregavel${deliverables.length > 1 ? "is" : ""} configurado${deliverables.length > 1 ? "s" : ""}`
+                            }
+                          </p>
                         </div>
-                        <Switch defaultChecked={false} />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Canal/Grupo de Cache</Label>
-                        <div className="flex gap-2">
-                          <Select>
-                            <SelectTrigger className="bg-secondary/50 border-border/50">
-                              <SelectValue placeholder="Selecione o cache de midia" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cache1">Canal de Fotos</SelectItem>
-                              <SelectItem value="cache2">Canal de Videos</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="icon" className="shrink-0">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab("deliverables")}
+                        className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                      >
+                        <Gift className="h-4 w-4 mr-2" />
+                        Gerenciar Entregaveis
+                      </Button>
+                    </div>
+                    
+                    {mainDeliverableId && deliverables.find(d => d.id === mainDeliverableId) && (
+                      <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-border/50">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Crown className="h-4 w-4 text-amber-500" />
+                          <span className="text-muted-foreground">Entregavel Principal:</span>
+                          <span className="font-medium">{deliverables.find(d => d.id === mainDeliverableId)?.name}</span>
+                          <Badge variant="outline" className="ml-auto text-xs">
+                            {deliverables.find(d => d.id === mainDeliverableId)?.type === "media" ? "Midia" : 
+                             deliverables.find(d => d.id === mainDeliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
+                          </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Configure o cache de midia nas configuracoes do bot
-                        </p>
                       </div>
-                    </div>
-
-                    {/* Tipo 3: Grupo VIP */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
-                            <Users className="h-4 w-4 text-accent" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Grupo VIP</p>
-                            <p className="text-xs text-muted-foreground">Adicionar ao grupo automaticamente</p>
-                          </div>
-                        </div>
-                        <Switch defaultChecked={false} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">ID do Grupo</Label>
-                        <Input 
-                          placeholder="-1001234567890" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                          O bot deve ser admin do grupo com permissao para adicionar membros
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Mensagem de boas-vindas (opcional)</Label>
-                        <Input 
-                          placeholder="Bem-vindo ao grupo VIP!" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-accent/10 p-3">
-                      <p className="text-sm text-accent">
-                        <span className="font-medium">Dica:</span> Voce pode ativar multiplos entregaveis. Todos serao enviados automaticamente apos a aprovacao do pagamento.
-                      </p>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -2570,18 +2589,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               )}
                             </div>
 
-                            {/* Entrega Personalizada */}
+                            {/* Entrega */}
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-medium">Entrega</h4>
                                 <span className="text-sm text-muted-foreground">Opcional</span>
                               </div>
                               <p className="text-sm text-muted-foreground">
-                                Por padrao, usa a entrega global configurada na aba Entrega. Configure aqui para usar entrega especifica.
+                                Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
                               </p>
                               <Select
                                 value={seq.deliveryType}
-                                onValueChange={(value: "global" | "custom") => handleUpdateUpsellSequence(seq.id, "deliveryType", value)}
+                                onValueChange={(value: "global" | "custom") => {
+                                  handleUpdateUpsellSequence(seq.id, "deliveryType", value)
+                                  if (value === "global") {
+                                    handleUpdateUpsellSequence(seq.id, "deliverableId", "")
+                                  }
+                                }}
                               >
                                 <SelectTrigger className="bg-secondary/50 border-border/50">
                                   <div className="flex items-center gap-2">
@@ -2590,32 +2614,57 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   </div>
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="global">Usar entrega global</SelectItem>
-                                  <SelectItem value="custom">Entrega personalizada</SelectItem>
+                                  <SelectItem value="global">Usar entregavel principal</SelectItem>
+                                  <SelectItem value="custom">Selecionar entregavel</SelectItem>
                                 </SelectContent>
                               </Select>
 
-                              {/* Campos de entrega personalizada */}
+                              {/* Seletor de entregavel */}
                               {seq.deliveryType === "custom" && (
-                                <div className="space-y-4 pt-2">
-                                  <div className="space-y-2">
-                                    <Label className="text-sm">Link de entrega</Label>
-                                    <Input
-                                      value={seq.customDeliveryLink || ""}
-                                      onChange={(e) => handleUpdateUpsellSequence(seq.id, "customDeliveryLink", e.target.value)}
-                                      placeholder="https://..."
-                                      className="bg-secondary/30 border-border/50"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-sm">Texto do botao</Label>
-                                    <Input
-                                      value={seq.customDeliveryLinkText || ""}
-                                      onChange={(e) => handleUpdateUpsellSequence(seq.id, "customDeliveryLinkText", e.target.value)}
-                                      placeholder="Acessar conteudo"
-                                      className="bg-secondary/30 border-border/50"
-                                    />
-                                  </div>
+                                <div className="space-y-2 pt-2">
+                                  {deliverables.length === 0 ? (
+                                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                      <div className="flex items-start gap-2">
+                                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                        <div className="text-sm">
+                                          <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
+                                          <p className="text-muted-foreground">
+                                            Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <Label className="text-sm">Selecione o entregavel</Label>
+                                      <Select
+                                        value={seq.deliverableId || "none"}
+                                        onValueChange={(value) => handleUpdateUpsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
+                                      >
+                                        <SelectTrigger className="bg-secondary/30 border-border/50">
+                                          <SelectValue placeholder="Selecione..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="none">Nenhum selecionado</SelectItem>
+                                          {deliverables.map((d) => (
+                                            <SelectItem key={d.id} value={d.id}>
+                                              <div className="flex items-center gap-2">
+                                                {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                                {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                                {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                                {d.name}
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      {seq.deliverableId && (
+                                        <p className="text-xs text-muted-foreground">
+                                          Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
+                                        </p>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -3036,18 +3085,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                               <div className="border-t border-border/50 pt-4" />
 
-                              {/* Entrega Personalizada */}
+                              {/* Entrega */}
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="font-medium">Entrega Personalizada</h4>
+                                  <h4 className="font-medium">Entrega</h4>
                                   <span className="text-sm text-muted-foreground">Opcional</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                  Por padrao, usa a "Entrega do Downsell" configurada. Configure aqui para usar entrega especifica nesta sequencia.
+                                  Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
                                 </p>
                                 <Select
                                   value={seq.deliveryType}
-                                  onValueChange={(value: "global" | "custom") => handleUpdateDownsellSequence(seq.id, "deliveryType", value)}
+                                  onValueChange={(value: "global" | "custom") => {
+                                    handleUpdateDownsellSequence(seq.id, "deliveryType", value)
+                                    if (value === "global") {
+                                      handleUpdateDownsellSequence(seq.id, "deliverableId", "")
+                                    }
+                                  }}
                                 >
                                   <SelectTrigger className="bg-secondary/50 border-border/50">
                                     <div className="flex items-center gap-2">
@@ -3056,10 +3110,59 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     </div>
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="global">Usar entrega do Downsell (global)</SelectItem>
-                                    <SelectItem value="custom">Entrega personalizada</SelectItem>
+                                    <SelectItem value="global">Usar entregavel principal</SelectItem>
+                                    <SelectItem value="custom">Selecionar entregavel</SelectItem>
                                   </SelectContent>
                                 </Select>
+
+                                {/* Seletor de entregavel */}
+                                {seq.deliveryType === "custom" && (
+                                  <div className="space-y-2 pt-2">
+                                    {deliverables.length === 0 ? (
+                                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                        <div className="flex items-start gap-2">
+                                          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                          <div className="text-sm">
+                                            <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
+                                            <p className="text-muted-foreground">
+                                              Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <Label className="text-sm">Selecione o entregavel</Label>
+                                        <Select
+                                          value={seq.deliverableId || "none"}
+                                          onValueChange={(value) => handleUpdateDownsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
+                                        >
+                                          <SelectTrigger className="bg-secondary/30 border-border/50">
+                                            <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Nenhum selecionado</SelectItem>
+                                            {deliverables.map((d) => (
+                                              <SelectItem key={d.id} value={d.id}>
+                                                <div className="flex items-center gap-2">
+                                                  {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                                  {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                                  {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                                  {d.name}
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                        {seq.deliverableId && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
+                                          </p>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             </CardContent>
                           )}
@@ -3753,6 +3856,68 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <p className="text-xs text-muted-foreground">Texto exibido no botao de compra deste pack</p>
                             </div>
 
+                            {/* Entregavel do Pack */}
+                            <Card className="border-border/50 bg-emerald-500/5">
+                              <CardContent className="pt-4 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                                    <Gift className="h-4 w-4 text-emerald-500" />
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-sm">Entregavel do Pack</span>
+                                    <p className="text-xs text-muted-foreground">O que sera enviado apos a compra</p>
+                                  </div>
+                                </div>
+                                
+                                {deliverables.length === 0 ? (
+                                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                      <div className="text-xs">
+                                        <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
+                                        <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot; para associar a este pack</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={pack.deliverableId || "none"}
+                                    onValueChange={(value) => handleUpdatePack(pack.id, "deliverableId", value === "none" ? "" : value)}
+                                  >
+                                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                                      <SelectValue placeholder="Selecione um entregavel..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Nenhum (usar principal)</SelectItem>
+                                      {deliverables.map((d) => (
+                                        <SelectItem key={d.id} value={d.id}>
+                                          <div className="flex items-center gap-2">
+                                            {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                            {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                            {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                            {d.name}
+                                            <span className="text-muted-foreground text-xs">
+                                              ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                                
+                                {pack.deliverableId && deliverables.find(d => d.id === pack.deliverableId) && (
+                                  <div className="rounded-lg bg-secondary/30 p-2 text-xs text-muted-foreground">
+                                    Tipo: {deliverables.find(d => d.id === pack.deliverableId)?.type === "media" 
+                                      ? "Midias serao enviadas" 
+                                      : deliverables.find(d => d.id === pack.deliverableId)?.type === "link" 
+                                        ? "Link com botao sera enviado" 
+                                        : "Convite unico para grupo VIP"}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+
                             {/* Midias de Preview */}
                             <Card className="border-border/50 bg-secondary/10">
                               <CardContent className="pt-4 space-y-3">
@@ -4430,6 +4595,172 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             </div>
           )}
 
+          {/* Deliverables Tab */}
+          {activeTab === "deliverables" && (
+            <div className="space-y-6">
+              {/* Header Card */}
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Gift className="h-5 w-5 text-accent" />
+                      <h2 className="text-lg font-semibold">Entregaveis</h2>
+                    </div>
+                    <Badge variant="secondary" className="text-muted-foreground">
+                      {deliverables.length} cadastrados
+                    </Badge>
+                  </div>
+
+                  {/* Botao Adicionar */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingDeliverable(null)
+                      setDeliverableModalStep("select")
+                      setTempDeliverable({
+                        id: `del-${Date.now()}`,
+                        name: `Entregavel ${deliverables.length + 1}`,
+                        type: "media",
+                        medias: [],
+                        link: "",
+                        linkText: "",
+                        vipGroupChatId: "",
+                        vipGroupName: "",
+                        vipAutoAdd: true,
+                        vipAutoRemove: true,
+                      })
+                      setDeliverableModalOpen(true)
+                    }}
+                    disabled={deliverables.length >= 10}
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-border/50 hover:border-accent/50 hover:bg-accent/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
+                      <Plus className="h-5 w-5 text-accent" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold">Adicionar Entregavel</p>
+                      <p className="text-sm text-muted-foreground">Midia, Grupo VIP ou Link</p>
+                    </div>
+                  </button>
+
+                  {deliverables.length === 0 && (
+                    <p className="text-center text-sm text-muted-foreground mt-4">
+                      Configure o que sera entregue apos o pagamento ser aprovado
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Entregavel Principal */}
+              {deliverables.length > 0 && (
+                <Card className="border-border/50 border-accent/30">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-accent" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Entregavel Principal</p>
+                          <p className="text-xs text-muted-foreground">Sera enviado apos a compra inicial</p>
+                        </div>
+                      </div>
+                      <Select
+                        value={mainDeliverableId || "none"}
+                        onValueChange={(v) => {
+                          setMainDeliverableId(v === "none" ? "" : v)
+                          setHasChanges(true)
+                        }}
+                      >
+                        <SelectTrigger className="w-52 bg-secondary/50 border-border/50">
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum</SelectItem>
+                          {deliverables.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name} ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Lista de Entregaveis */}
+              {deliverables.length > 0 && (
+                <div className="space-y-3">
+                  {deliverables.map((del) => (
+                    <Card 
+                      key={del.id} 
+                      className="border-border/50 hover:border-accent/30 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setEditingDeliverable(del)
+                        setDeliverableModalStep("form")
+                        setTempDeliverable({ ...del })
+                        setDeliverableModalOpen(true)
+                      }}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                              del.type === "media" ? "bg-purple-500/10" : 
+                              del.type === "link" ? "bg-blue-500/10" : "bg-amber-500/10"
+                            }`}>
+                              {del.type === "media" ? (
+                                <ImageIcon className="h-5 w-5 text-purple-500" />
+                              ) : del.type === "link" ? (
+                                <Link2 className="h-5 w-5 text-blue-500" />
+                              ) : (
+                                <Users className="h-5 w-5 text-amber-500" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium">{del.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {del.type === "media" 
+                                  ? `${(del.medias || []).length} midia(s)` 
+                                  : del.type === "link" 
+                                    ? del.link || "Sem link configurado"
+                                    : del.vipGroupName || "Grupo VIP"
+                                }
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {mainDeliverableId === del.id && (
+                              <Badge className="bg-accent/10 text-accent border-accent/30">
+                                <Crown className="h-3 w-3 mr-1" />
+                                Principal
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (mainDeliverableId === del.id) setMainDeliverableId("")
+                                setDeliverables(deliverables.filter((d) => d.id !== del.id))
+                                setHasChanges(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+            </div>
+          )}
+
           {/* Conversions Tab */}
           {activeTab === "conversions" && (
             <div className="space-y-6">
@@ -4559,277 +4890,106 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
           {/* Entregaveis - Only show in bots tab */}
           {activeTab === "bots" && (
-            <Card className="border-border/50 mb-6">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Gift className="h-4 w-4 text-accent" />
-                  Entregavel
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!showDeliveryConfig ? (
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Configure o que sera entregue apos o pagamento ser aprovado
-                    </p>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-auto py-3"
-                      onClick={() => setShowDeliveryConfig(true)}
-                    >
-                      <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                        <Settings2 className="h-4 w-4 text-accent" />
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium text-sm">Configurar Entregavel</p>
-                        <p className="text-xs text-muted-foreground">Clique para definir o tipo de entrega</p>
-                      </div>
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Tipo de Entregavel */}
-                    <div className="space-y-3">
-                      <Label className="text-xs text-muted-foreground">Tipo de Entregavel</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        {/* Midia */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("media")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "media"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "media" ? "bg-accent text-black" : "bg-secondary/50"
-                          }`}>
-                            <ImageIcon className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Entregavel de Midia</p>
-                            <p className="text-xs text-muted-foreground">Envie fotos, videos ou arquivos</p>
-                          </div>
-                        </button>
-
-                        {/* Grupo VIP */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("vip_group")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "vip_group"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "vip_group" ? "bg-accent text-black" : "bg-secondary/50"
-                          }`}>
-                            <Users className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Entregavel de Grupo VIP</p>
-                            <p className="text-xs text-muted-foreground">Adicione automaticamente ao grupo</p>
-                          </div>
-                        </button>
-
-                        {/* Link */}
-                        <button
-                          type="button"
-                          onClick={() => setDeliveryType("link")}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
-                            deliveryType === "link"
-                              ? "border-accent bg-accent/10"
-                              : "border-border/50 hover:border-accent/50 hover:bg-accent/5"
-                          }`}
-                        >
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                            deliveryType === "link" ? "bg-accent text-black" : "bg-secondary/50"
-                          }`}>
-                            <Link2 className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">Entregavel de Link</p>
-                            <p className="text-xs text-muted-foreground">Envie um link de acesso</p>
-                          </div>
-                        </button>
-                      </div>
+            <Card className="border-border/50 shadow-sm">
+              <CardContent className="p-5">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-accent" />
                     </div>
-
-                    {/* Config baseado no tipo */}
-                    {deliveryType === "media" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-medium">Midias do Entregavel</Label>
-                          <span className="text-[10px] text-muted-foreground">{deliveryMedias.length}/20</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {deliveryMedias.map((media, index) => (
-                            <div key={index} className="relative w-16 h-16 rounded-lg border border-border/50 overflow-hidden group">
-                              <img src={media} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDeliveryMedias(deliveryMedias.filter((_, i) => i !== index))
-                                  setHasChanges(true)
-                                }}
-                                className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                              >
-                                <Trash2 className="h-4 w-4 text-white" />
-                              </button>
-                            </div>
-                          ))}
-                          {deliveryMedias.length < 20 && (
-                            <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-accent/50 transition-colors">
-                              <Plus className="h-5 w-5 text-muted-foreground" />
-                              <input
-                                type="file"
-                                accept="image/*,video/*"
-                                className="hidden"
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0]
-                                  if (file && flow) {
-                                    try {
-                                      const fileExt = file.name.split('.').pop()
-                                      const fileName = `${flow.id}/delivery/${Date.now()}.${fileExt}`
-                                      const { data, error } = await supabase.storage
-                                        .from('flow-medias')
-                                        .upload(fileName, file, { cacheControl: '3600', upsert: false })
-                                      if (error) {
-                                        toast({ title: "Erro no upload", description: error.message, variant: "destructive" })
-                                        return
-                                      }
-                                      const { data: urlData } = supabase.storage.from('flow-medias').getPublicUrl(fileName)
-                                      setDeliveryMedias([...deliveryMedias, urlData.publicUrl])
-                                      setHasChanges(true)
-                                    } catch (err) {
-                                      toast({ title: "Erro", description: "Falha ao fazer upload", variant: "destructive" })
-                                    }
-                                  }
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Adicione ate 20 midias que serao enviadas apos o pagamento
-                        </p>
-                      </div>
-                    )}
-
-                    {deliveryType === "vip_group" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">ID do Grupo VIP</Label>
-                          <Input
-                            value={vipGroupId}
-                            onChange={(e) => {
-                              setVipGroupId(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="-1001234567890"
-                            className="bg-secondary/30 font-mono text-sm"
-                          />
-                          <p className="text-[10px] text-muted-foreground">
-                            ID do grupo no Telegram (use @userinfobot para obter)
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Nome do Grupo (opcional)</Label>
-                          <Input
-                            value={vipGroupName}
-                            onChange={(e) => {
-                              setVipGroupName(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="Grupo VIP Premium"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2 pt-2 border-t border-border/30">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-medium">Adicionar automaticamente</p>
-                              <p className="text-[10px] text-muted-foreground">Adicionar membro ao pagar</p>
-                            </div>
-                            <Switch
-                              checked={vipAutoAdd}
-                              onCheckedChange={(checked) => {
-                                setVipAutoAdd(checked)
-                                setHasChanges(true)
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-xs font-medium">Remover ao expirar</p>
-                              <p className="text-[10px] text-muted-foreground">Remover quando acesso expirar</p>
-                            </div>
-                            <Switch
-                              checked={vipAutoRemoveOnExpire}
-                              onCheckedChange={(checked) => {
-                                setVipAutoRemoveOnExpire(checked)
-                                setHasChanges(true)
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
-                          <p className="text-[10px] text-accent">
-                            O bot precisa ser administrador do grupo com permissao de adicionar membros
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {deliveryType === "link" && (
-                      <div className="space-y-3 p-3 rounded-xl bg-secondary/20 border border-border/50">
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Link de Acesso</Label>
-                          <Input
-                            value={deliveryLink}
-                            onChange={(e) => {
-                              setDeliveryLink(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="https://exemplo.com/acesso"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-xs font-medium">Texto do Botao</Label>
-                          <Input
-                            value={deliveryLinkText}
-                            onChange={(e) => {
-                              setDeliveryLinkText(e.target.value)
-                              setHasChanges(true)
-                            }}
-                            placeholder="Acessar Conteudo"
-                            className="bg-secondary/30 text-sm"
-                          />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          O link sera enviado como botao clicavel apos o pagamento
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Botao Voltar */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowDeliveryConfig(false)}
-                      className="w-full"
-                    >
-                      <ArrowLeft className="h-4 w-4 mr-2" />
-                      Voltar
-                    </Button>
+                    <div>
+                      <h3 className="font-semibold text-sm">Entregaveis</h3>
+                      <p className="text-xs text-muted-foreground">{deliverables.length} cadastrado{deliverables.length !== 1 ? "s" : ""}</p>
+                    </div>
                   </div>
+                </div>
+
+                {/* Lista de entregaveis ou estado vazio */}
+                <div className="space-y-2">
+                  {deliverables.map((del) => (
+                    <button
+                      key={del.id}
+                      type="button"
+                      onClick={() => {
+                        setEditingDeliverable(del)
+                        setDeliverableModalStep("form")
+                        setTempDeliverable({ ...del })
+                        setDeliverableModalOpen(true)
+                      }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all text-left group"
+                    >
+                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+                        del.type === "media" ? "bg-purple-500/15" : 
+                        del.type === "link" ? "bg-blue-500/15" : "bg-amber-500/15"
+                      }`}>
+                        {del.type === "media" ? (
+                          <ImageIcon className="h-4 w-4 text-purple-500" />
+                        ) : del.type === "link" ? (
+                          <Link2 className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <Users className="h-4 w-4 text-amber-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{del.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {del.type === "media" ? "Midia" : del.type === "link" ? "Link" : "Grupo VIP"}
+                        </p>
+                      </div>
+                      {mainDeliverableId === del.id && (
+                        <Badge className="bg-accent/10 text-accent border-0 text-[10px] px-1.5 py-0.5">
+                          Principal
+                        </Badge>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    </button>
+                  ))}
+
+                  {/* Botao Adicionar */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingDeliverable(null)
+                      setDeliverableModalStep("select")
+                      setTempDeliverable({
+                        id: `del-${Date.now()}`,
+                        name: `Entregavel ${deliverables.length + 1}`,
+                        type: "media",
+                        medias: [],
+                        link: "",
+                        linkText: "",
+                        vipGroupChatId: "",
+                        vipGroupName: "",
+                        vipAutoAdd: true,
+                        vipAutoRemove: true,
+                      })
+                      setDeliverableModalOpen(true)
+                    }}
+                    disabled={deliverables.length >= 10}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-border hover:border-accent/50 hover:bg-accent/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/15 transition-colors shrink-0">
+                      <Plus className="h-4 w-4 text-accent" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-sm">Adicionar</p>
+                      <p className="text-xs text-muted-foreground">Midia, Grupo VIP ou Link</p>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Helper text */}
+                {deliverables.length === 0 && (
+                  <p className="text-center text-xs text-muted-foreground mt-4 px-2">
+                    Configure o que sera entregue apos o pagamento
+                  </p>
                 )}
               </CardContent>
             </Card>
           )}
+
+
 
 
 
@@ -5010,6 +5170,299 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 Vincular Bot
               </button>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Novo/Editar Entregavel - Global */}
+      <Dialog open={deliverableModalOpen} onOpenChange={setDeliverableModalOpen}>
+        <DialogContent className="sm:max-w-[380px] p-0 gap-0">
+          {/* Etapa 1: Selecao de Tipo */}
+          {deliverableModalStep === "select" && (
+            <div className="p-5">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Gift className="h-4 w-4 text-accent" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Novo Entregavel</h3>
+                  <p className="text-xs text-muted-foreground">Selecione o tipo</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {[
+                  { type: "media" as const, label: "Midia", desc: "Fotos, videos ou arquivos", icon: ImageIcon, color: "purple" },
+                  { type: "vip_group" as const, label: "Grupo VIP", desc: "Adicao automatica ao grupo", icon: Users, color: "amber" },
+                  { type: "link" as const, label: "Link", desc: "Link de acesso externo", icon: Link2, color: "blue" },
+                ].map((opt) => (
+                  <button
+                    key={opt.type}
+                    type="button"
+                    onClick={() => {
+                      setTempDeliverable({ ...tempDeliverable, type: opt.type })
+                      setDeliverableModalStep("form")
+                    }}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-accent/50 hover:bg-accent/5 transition-all text-left group"
+                  >
+                    <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+                      opt.color === "purple" ? "bg-purple-500/10" :
+                      opt.color === "amber" ? "bg-amber-500/10" : "bg-blue-500/10"
+                    }`}>
+                      <opt.icon className={`h-4 w-4 ${
+                        opt.color === "purple" ? "text-purple-500" :
+                        opt.color === "amber" ? "text-amber-500" : "text-blue-500"
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{opt.label}</p>
+                      <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Etapa 2: Formulario */}
+          {deliverableModalStep === "form" && (
+            <>
+              {/* Header */}
+              <div className="p-5 pb-0">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                    tempDeliverable.type === "media" ? "bg-purple-500/10" :
+                    tempDeliverable.type === "vip_group" ? "bg-amber-500/10" : "bg-blue-500/10"
+                  }`}>
+                    {tempDeliverable.type === "media" ? (
+                      <ImageIcon className="h-4 w-4 text-purple-500" />
+                    ) : tempDeliverable.type === "vip_group" ? (
+                      <Users className="h-4 w-4 text-amber-500" />
+                    ) : (
+                      <Link2 className="h-4 w-4 text-blue-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">{editingDeliverable ? "Editar" : "Novo"} Entregavel</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {tempDeliverable.type === "media" ? "Midia" : 
+                       tempDeliverable.type === "vip_group" ? "Grupo VIP" : "Link"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="px-5 pb-5 space-y-3">
+                {/* Nome */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Nome do Entregavel</Label>
+                  <Input
+                    value={tempDeliverable.name}
+                    onChange={(e) => setTempDeliverable({ ...tempDeliverable, name: e.target.value })}
+                    placeholder="Ex: Curso Completo"
+                    className="h-9"
+                  />
+                </div>
+
+                {/* Tipo selector compacto */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Tipo</Label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { type: "media" as const, label: "Midia", icon: ImageIcon, color: "purple" },
+                      { type: "vip_group" as const, label: "Grupo VIP", icon: Users, color: "amber" },
+                      { type: "link" as const, label: "Link", icon: Link2, color: "blue" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.type}
+                        type="button"
+                        onClick={() => setTempDeliverable({ ...tempDeliverable, type: opt.type })}
+                        className={`flex flex-col items-center gap-1 py-2 px-1.5 rounded-lg border-2 transition-all ${
+                          tempDeliverable.type === opt.type
+                            ? "border-accent bg-accent/5"
+                            : "border-border hover:border-accent/30"
+                        }`}
+                      >
+                        <opt.icon className={`h-4 w-4 ${
+                          tempDeliverable.type === opt.type ? "text-accent" :
+                          opt.color === "purple" ? "text-purple-500" :
+                          opt.color === "amber" ? "text-amber-500" : "text-blue-500"
+                        }`} />
+                        <span className={`text-[10px] font-medium ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`}>{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Campos especificos por tipo */}
+                {tempDeliverable.type === "media" && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-medium">Midias</Label>
+                      <span className="text-[10px] text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(tempDeliverable.medias || []).map((media, mediaIndex) => (
+                        <div key={mediaIndex} className="relative group">
+                          <img
+                            src={media}
+                            alt={`Media ${mediaIndex + 1}`}
+                            className="h-12 w-12 rounded-lg object-cover border border-border"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTempDeliverable({
+                                ...tempDeliverable,
+                                medias: (tempDeliverable.medias || []).filter((_, i) => i !== mediaIndex)
+                              })
+                            }}
+                            className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                          >
+                            <X className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      ))}
+                      {(tempDeliverable.medias || []).length < 20 && (
+                        <label className="h-12 w-12 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
+                          <Plus className="h-4 w-4 text-muted-foreground" />
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file) return
+                              const url = URL.createObjectURL(file)
+                              setTempDeliverable({
+                                ...tempDeliverable,
+                                medias: [...(tempDeliverable.medias || []), url]
+                              })
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {tempDeliverable.type === "link" && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Link de Acesso</Label>
+                      <Input
+                        value={tempDeliverable.link || ""}
+                        onChange={(e) => setTempDeliverable({ ...tempDeliverable, link: e.target.value })}
+                        placeholder="https://exemplo.com/acesso"
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Texto do Botao</Label>
+                      <Input
+                        value={tempDeliverable.linkText || ""}
+                        onChange={(e) => setTempDeliverable({ ...tempDeliverable, linkText: e.target.value })}
+                        placeholder="Acessar Conteudo"
+                        className="h-9"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {tempDeliverable.type === "vip_group" && (
+                  <div className="space-y-2">
+                    {/* Inputs em grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-medium">Chat ID</Label>
+                        <Input
+                          value={tempDeliverable.vipGroupChatId || ""}
+                          onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupChatId: e.target.value })}
+                          placeholder="-100123..."
+                          className="h-8 font-mono text-xs"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-medium">Nome (opcional)</Label>
+                        <Input
+                          value={tempDeliverable.vipGroupName || ""}
+                          onChange={(e) => setTempDeliverable({ ...tempDeliverable, vipGroupName: e.target.value })}
+                          placeholder="Grupo VIP"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Toggles inline */}
+                    <div className="flex items-center gap-4 py-1">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          checked={tempDeliverable.vipAutoAdd !== false}
+                          onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoAdd: checked })}
+                          className="scale-75"
+                        />
+                        <span className="text-[10px]">Add auto</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Switch
+                          checked={tempDeliverable.vipAutoRemove !== false}
+                          onCheckedChange={(checked) => setTempDeliverable({ ...tempDeliverable, vipAutoRemove: checked })}
+                          className="scale-75"
+                        />
+                        <span className="text-[10px]">Remover expirado</span>
+                      </label>
+                    </div>
+                    
+                    {/* Aviso + Testar inline */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-1.5 px-2 py-1.5 rounded bg-amber-500/10 text-amber-600">
+                        <AlertTriangle className="h-3 w-3 shrink-0" />
+                        <p className="text-[9px]">Bot precisa ser ADMIN</p>
+                      </div>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] px-2" type="button">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Testar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-end gap-2 px-5 py-3 border-t bg-secondary/30">
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
+                  onClick={() => {
+                    if (editingDeliverable) {
+                      setDeliverableModalOpen(false)
+                    } else {
+                      setDeliverableModalStep("select")
+                    }
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  size="sm"
+                  className="h-8 bg-accent hover:bg-accent/90 text-accent-foreground"
+                  onClick={() => {
+                    if (editingDeliverable) {
+                      setDeliverables(deliverables.map(d => d.id === tempDeliverable.id ? tempDeliverable : d))
+                    } else {
+                      setDeliverables([...deliverables, tempDeliverable])
+                    }
+                    setDeliverableModalOpen(false)
+                    setHasChanges(true)
+                  }}
+                >
+                  Salvar
+                </Button>
+              </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

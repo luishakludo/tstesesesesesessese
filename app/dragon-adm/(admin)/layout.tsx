@@ -15,6 +15,13 @@ import {
   Menu,
   X,
   ChevronRight,
+  DollarSign,
+  Gift,
+  Ticket,
+  LayoutTemplate,
+  MessageSquare,
+  FileText,
+  TrendingUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -25,12 +32,45 @@ interface AdminSession {
   expiresAt: string
 }
 
-const menuItems = [
-  { icon: BarChart3, label: "Dashboard", href: "/dragon-adm" },
-  { icon: Users, label: "Usuarios", href: "/dragon-adm/users" },
-  { icon: Bot, label: "Bots", href: "/dragon-adm/bots" },
-  { icon: CreditCard, label: "Pagamentos", href: "/dragon-adm/payments" },
-  { icon: Settings, label: "Configuracoes", href: "/dragon-adm/settings" },
+const menuSections = [
+  {
+    title: "Principal",
+    items: [
+      { icon: BarChart3, label: "Dashboard", href: "/dragon-adm" },
+      { icon: TrendingUp, label: "Analytics", href: "/dragon-adm/analytics" },
+    ]
+  },
+  {
+    title: "Usuarios",
+    items: [
+      { icon: Users, label: "Usuarios", href: "/dragon-adm/users" },
+      { icon: Bot, label: "Bots", href: "/dragon-adm/bots" },
+    ]
+  },
+  {
+    title: "Financeiro",
+    items: [
+      { icon: CreditCard, label: "Pagamentos", href: "/dragon-adm/payments" },
+      { icon: DollarSign, label: "Saques", href: "/dragon-adm/saques" },
+      { icon: DollarSign, label: "Saques Afiliados", href: "/dragon-adm/saques-afiliados" },
+      { icon: Gift, label: "Premiacoes", href: "/dragon-adm/premiacoes" },
+    ]
+  },
+  {
+    title: "Conteudo",
+    items: [
+      { icon: LayoutTemplate, label: "Templates", href: "/dragon-adm/templates" },
+      { icon: Ticket, label: "Cupons", href: "/dragon-adm/cupons" },
+    ]
+  },
+  {
+    title: "Sistema",
+    items: [
+      { icon: MessageSquare, label: "Suporte", href: "/dragon-adm/suporte" },
+      { icon: FileText, label: "Termos", href: "/dragon-adm/termos" },
+      { icon: Settings, label: "Configuracoes", href: "/dragon-adm/settings" },
+    ]
+  },
 ]
 
 export default function DragonAdmLayout({
@@ -123,32 +163,41 @@ export default function DragonAdmLayout({
           </div>
 
           {/* Menu */}
-          <ScrollArea className="flex-1 py-4">
-            <nav className="px-3 space-y-1">
-              {menuItems.map((item) => {
-                const isActive = pathname === item.href || 
-                  (item.href !== "/dragon-adm" && pathname.startsWith(item.href))
-                
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      isActive
-                        ? "bg-accent/10 text-accent"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
-                    {isActive && (
-                      <ChevronRight className="h-4 w-4 ml-auto" />
-                    )}
-                  </Link>
-                )
-              })}
+          <ScrollArea className="flex-1 py-2">
+            <nav className="px-3 space-y-4">
+              {menuSections.map((section) => (
+                <div key={section.title}>
+                  <p className="px-3 mb-1 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                    {section.title}
+                  </p>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const isActive = pathname === item.href || 
+                        (item.href !== "/dragon-adm" && pathname.startsWith(item.href))
+                      
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            isActive
+                              ? "bg-accent/10 text-accent"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {item.label}
+                          {isActive && (
+                            <ChevronRight className="h-4 w-4 ml-auto" />
+                          )}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
           </ScrollArea>
 

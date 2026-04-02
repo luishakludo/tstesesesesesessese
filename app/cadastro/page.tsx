@@ -4,8 +4,10 @@ import { useState, useEffect, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
-import { Loader2, Eye, EyeOff, Gift, Zap, Shield, Clock } from "lucide-react"
+import { Loader2, Eye, EyeOff, Gift, Zap, Shield, Clock, FileText, X } from "lucide-react"
 import { DragonIcon } from "@/components/dragon-icon"
+import { Switch } from "@/components/ui/switch"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 
 export default function CadastroPage() {
   return (
@@ -34,6 +36,10 @@ function CadastroContent() {
   const [error, setError] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [referralCoupon, setReferralCoupon] = useState<string | null>(null)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
+  const [termsData, setTermsData] = useState<{ sections: { title: string; content: string }[] }>({ sections: [] })
+  const [termsLoading, setTermsLoading] = useState(false)
   const { register, session, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -56,6 +62,23 @@ function CadastroContent() {
       }
     }
   }, [searchParams])
+
+  // Fetch terms from API when modal opens
+  const loadTerms = async () => {
+    if (termsData.sections.length > 0) return // Already loaded
+    setTermsLoading(true)
+    try {
+      const res = await fetch("/api/terms?type=terms_of_use")
+      const data = await res.json()
+      if (data.sections) {
+        setTermsData(data)
+      }
+    } catch (err) {
+      console.error("Error loading terms:", err)
+    } finally {
+      setTermsLoading(false)
+    }
+  }
 
   function formatPhone(value: string) {
     const digits = value.replace(/\D/g, "").slice(0, 11)
@@ -91,6 +114,11 @@ function CadastroContent() {
 
     if (password !== confirmPassword) {
       setError("As senhas nao coincidem")
+      return
+    }
+
+    if (!acceptedTerms) {
+      setError("Voce precisa aceitar os termos de uso")
       return
     }
 
@@ -247,13 +275,42 @@ function CadastroContent() {
               </div>
             </div>
 
+            {/* Aceite de Termos */}
+            <div className="flex items-start gap-3 p-3 rounded-xl bg-[#111] border border-[#222]">
+              <Switch
+                checked={acceptedTerms}
+                onCheckedChange={setAcceptedTerms}
+                className="mt-0.5 data-[state=checked]:bg-[#b8ff29]"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-[#ccc]">
+                  Eu li e aceito os{" "}
+                  <button
+                    type="button"
+                    onClick={() => { loadTerms(); setShowTermsModal(true); }}
+                    className="text-[#b8ff29] hover:underline font-medium"
+                  >
+                    Termos de Uso
+                  </button>
+                  {" "}e{" "}
+                  <button
+                    type="button"
+                    onClick={() => { loadTerms(); setShowTermsModal(true); }}
+                    className="text-[#b8ff29] hover:underline font-medium"
+                  >
+                    Politica de Privacidade
+                  </button>
+                </p>
+              </div>
+            </div>
+
             {error && (
               <p className="text-sm text-red-400">{error}</p>
             )}
 
             <button 
               type="submit" 
-              disabled={isSubmitting}
+              disabled={isSubmitting || !acceptedTerms}
               className="w-full h-12 bg-[#b8ff29] text-[#0a0a0a] text-base font-semibold rounded-xl hover:bg-[#a8ef19] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mt-2"
             >
               {isSubmitting ? (
@@ -364,6 +421,73 @@ function CadastroContent() {
           100% { transform: rotate(-15deg) translateX(10%); }
         }
       `}</style>
+
+      {/* Modal de Termos */}
+      <Dialog open={showTermsModal} onOpenChange={setShowTermsModal}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] p-0 gap-0 bg-[#0f0f0f] border-[#222] overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-5 border-b border-[#222]">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-[#b8ff29]/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-[#b8ff29]" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-white">Termos e Politicas</h3>
+                <p className="text-xs text-[#888]">Dragon Automacao</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowTermsModal(false)}
+              className="h-8 w-8 rounded-lg bg-[#1a1a1a] hover:bg-[#222] flex items-center justify-center transition-colors"
+            >
+              <X className="h-4 w-4 text-[#888]" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[60vh] p-5">
+            {termsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-[#b8ff29]" />
+              </div>
+            ) : (
+              <div className="space-y-6 text-sm text-[#ccc]">
+                {termsData.sections.map((section, index) => (
+                  <section key={index}>
+                    <h4 className="text-[#b8ff29] font-semibold text-base mb-3 flex items-center gap-2">
+                      <span className="h-6 w-6 rounded-md bg-[#b8ff29]/10 flex items-center justify-center text-xs">{index + 1}</span>
+                      {section.title}
+                    </h4>
+                    <div className="pl-8">
+                      <p className="text-[#888]">{section.content}</p>
+                    </div>
+                  </section>
+                ))}
+
+                {/* Aceite Final */}
+                <section className="rounded-xl bg-[#b8ff29]/5 border border-[#b8ff29]/20 p-4">
+                  <p className="text-[#b8ff29] font-medium text-center">
+                    Ao usar a plataforma, o usuario concorda com todos os termos acima.
+                  </p>
+                </section>
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="p-5 border-t border-[#222] bg-[#0a0a0a]">
+            <button
+              onClick={() => {
+                setAcceptedTerms(true)
+                setShowTermsModal(false)
+              }}
+              className="w-full h-11 bg-[#b8ff29] text-[#0a0a0a] font-semibold rounded-xl hover:bg-[#a8ef19] transition-colors"
+            >
+              Li e Aceito os Termos
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

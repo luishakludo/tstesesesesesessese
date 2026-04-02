@@ -47,19 +47,19 @@ type CheckoutNormalData = {
   securityText?: string
 }
 
-export function PixCheckout({ data }: { data: Partial<CheckoutDiretoData & CheckoutNormalData> }) {
+export function PixCheckout({ data, siteId }: { data: Partial<CheckoutDiretoData & CheckoutNormalData>, siteId?: string }) {
   // Detectar tipo baseado nos campos presentes
   const isCheckoutDireto = !data.productName && !data.fields
   
   if (isCheckoutDireto) {
-    return <CheckoutDiretoPage data={data} />
+    return <CheckoutDiretoPage data={data} siteId={siteId} />
   }
   
-  return <CheckoutNormalPage data={data} />
+  return <CheckoutNormalPage data={data} siteId={siteId} />
 }
 
 // ========== CHECKOUT DIRETO ==========
-function CheckoutDiretoPage({ data }: { data: Partial<CheckoutDiretoData> }) {
+function CheckoutDiretoPage({ data, siteId }: { data: Partial<CheckoutDiretoData>, siteId?: string }) {
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
   const [loading, setLoading] = useState(true)
@@ -93,6 +93,7 @@ function CheckoutDiretoPage({ data }: { data: Partial<CheckoutDiretoData> }) {
             accessToken: data.accessToken,
             amount: priceNumber,
             description: headline,
+            siteId: siteId,
           }),
         })
 
@@ -228,7 +229,7 @@ function CheckoutDiretoPage({ data }: { data: Partial<CheckoutDiretoData> }) {
 }
 
 // ========== CHECKOUT NORMAL (COM FORMULARIO) ==========
-function CheckoutNormalPage({ data }: { data: Partial<CheckoutNormalData> }) {
+function CheckoutNormalPage({ data, siteId }: { data: Partial<CheckoutNormalData>, siteId?: string }) {
   const [step, setStep] = useState<"form" | "pix">("form")
   const [pixCode, setPixCode] = useState("")
   const [qrCodeBase64, setQrCodeBase64] = useState("")
@@ -273,6 +274,7 @@ function CheckoutNormalPage({ data }: { data: Partial<CheckoutNormalData> }) {
             amount: priceNumber,
             description: productName,
             payer: formData,
+            siteId: siteId,
           }),
         })
 
