@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6dnVsb2puZnZnc2JtaHl2cXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTk0NTMsImV4cCI6MjA4ODgzNTQ1M30.Djnn3tsrxSGLBR-Bm1dWOpQe0NHCSOWJFZkbbTOk2oM"
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     if (payer && (payer.email || payer.name || payer.cpf)) {
       try {
         // Usar service role para bypass RLS
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
         const { data: leadData, error: leadError } = await supabase.from("checkout_leads").insert({
           site_id: siteId || null,
           user_id: userId || null,
@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Salvar pagamento na tabela payments se tiver userId (para aparecer em Vendas)
     if (userId) {
       try {
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
         await supabase.from("payments").insert({
           user_id: userId,
           amount: amount,

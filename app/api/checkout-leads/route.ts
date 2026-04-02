@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6dnVsb2puZnZnc2JtaHl2cXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTk0NTMsImV4cCI6MjA4ODgzNTQ1M30.Djnn3tsrxSGLBR-Bm1dWOpQe0NHCSOWJFZkbbTOk2oM"
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get("siteId")
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Build query - filtrar por user_id diretamente
     let query = supabase
