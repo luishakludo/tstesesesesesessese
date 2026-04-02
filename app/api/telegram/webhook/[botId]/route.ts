@@ -344,25 +344,43 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.log("[v0] packsList.length:", packsList.length)
           
           if (packsList.length > 0) {
-            // Enviar mensagem com botoes para cada pack
-            const packButtons = packsList.map(pack => [{
-              text: `${pack.emoji || "📦"} ${pack.name} - R$ ${pack.price.toFixed(2).replace(".", ",")}`,
-              callback_data: `pack_${pack.id}`
-            }])
+            // Enviar cada pack diretamente com foto, descricao e botao de compra
+            for (const pack of packsList) {
+              const packMessage = `${pack.emoji || "📦"} *${pack.name}*\n\n${pack.description || ""}\n\n💰 *R$ ${pack.price.toFixed(2).replace(".", ",")}*`
+              const packButton = [[{
+                text: pack.buttonText || `Comprar ${pack.name}`,
+                callback_data: `buy_pack_${pack.id}_${pack.price}`
+              }]]
+              
+              // Se tiver imagem de preview, enviar com foto
+              if (pack.previewMedias && pack.previewMedias.length > 0) {
+                try {
+                  await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      chat_id: chatId,
+                      photo: pack.previewMedias[0],
+                      caption: packMessage,
+                      parse_mode: "Markdown",
+                      reply_markup: { inline_keyboard: packButton }
+                    })
+                  })
+                } catch {
+                  // Se falhar enviar foto, envia so texto
+                  await sendTelegramMessage(botToken, chatId, packMessage, { inline_keyboard: packButton })
+                }
+              } else {
+                await sendTelegramMessage(botToken, chatId, packMessage, { inline_keyboard: packButton })
+              }
+            }
             
-            // Adicionar botao de voltar
-            packButtons.push([{
-              text: "Voltar aos Planos",
-              callback_data: "back_to_plans"
-            }])
-            
-            console.log("[v0] Enviando botoes de packs:", packButtons.length)
-            
+            // Botao de voltar aos planos
             await sendTelegramMessage(
               botToken,
               chatId,
-              "Escolha um pack:",
-              { inline_keyboard: packButtons }
+              "👆 Escolha um pack acima ou volte aos planos:",
+              { inline_keyboard: [[{ text: "⬅️ Voltar aos Planos", callback_data: "back_to_plans" }]] }
             )
           } else {
             console.log("[v0] Nenhum pack ativo encontrado")
