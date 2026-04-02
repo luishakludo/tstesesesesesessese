@@ -5,7 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const { accessToken, amount, description, payer, siteId, userId } = await request.json()
 
+    console.log("[v0] PIX API called - amount:", amount, "hasToken:", !!accessToken, "tokenLength:", accessToken?.length)
+
     if (!accessToken || !amount) {
+      console.log("[v0] Missing required fields")
       return NextResponse.json(
         { error: "accessToken e amount sao obrigatorios" },
         { status: 400 }
@@ -61,16 +64,19 @@ export async function POST(request: NextRequest) {
       }),
     })
 
+    console.log("[v0] Mercado Pago response status:", response.status)
+
     if (!response.ok) {
       const errorData = await response.json()
-      console.error("Mercado Pago error:", errorData)
+      console.error("[v0] Mercado Pago error:", JSON.stringify(errorData))
       return NextResponse.json(
-        { error: errorData.message || "Erro ao criar pagamento" },
+        { error: errorData.message || errorData.cause?.[0]?.description || "Erro ao criar pagamento" },
         { status: response.status }
       )
     }
 
     const paymentData = await response.json()
+    console.log("[v0] Payment created:", paymentData.id, paymentData.status)
 
     // Extrair dados do PIX
     const pixData = paymentData.point_of_interaction?.transaction_data

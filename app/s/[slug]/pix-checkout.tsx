@@ -264,9 +264,12 @@ function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNo
   const generatePix = async () => {
     try {
       setLoading(true)
+      setError("")
+      console.log("[v0] generatePix called, accessToken:", !!data.accessToken, "pixKey:", data.pixKey)
       
       if (data.accessToken) {
         const priceNumber = parseFloat(price.replace(",", "."))
+        console.log("[v0] Calling PIX API with amount:", priceNumber)
         const res = await fetch("/api/mercadopago/pix", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -280,15 +283,20 @@ function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNo
           }),
         })
 
-        if (res.ok) {
-          const result = await res.json()
-          if (result.qrCode && result.qrCodeBase64) {
-            setPixCode(result.qrCode)
-            setQrCodeBase64(result.qrCodeBase64)
-            setStep("pix")
-            setLoading(false)
-            return
-          }
+        const result = await res.json()
+        console.log("[v0] PIX API response:", res.status, result)
+
+        if (res.ok && result.qrCode && result.qrCodeBase64) {
+          setPixCode(result.qrCode)
+          setQrCodeBase64(result.qrCodeBase64)
+          setStep("pix")
+          setLoading(false)
+          return
+        } else {
+          // Mostrar erro da API
+          setError(result.error || "Erro ao gerar PIX")
+          setLoading(false)
+          return
         }
       }
 
@@ -302,6 +310,7 @@ function CheckoutNormalPage({ data, siteId, userId }: { data: Partial<CheckoutNo
       setError("PIX nao configurado")
       setLoading(false)
     } catch (err) {
+      console.error("[v0] PIX generation error:", err)
       setError("Erro ao gerar PIX")
       setLoading(false)
     }
