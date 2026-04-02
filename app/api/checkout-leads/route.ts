@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,15 +24,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get("siteId")
 
-    const supabase = getSupabase()
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    // Build query
+    // Build query - filtrar por user_id diretamente
     let query = supabase
       .from("checkout_leads")
-      .select(`
-        *,
-        dragon_bio_sites!left(id, nome, slug, user_id)
-      `)
+      .select("*")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
     // Filter by site if provided
@@ -44,21 +45,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Erro ao buscar leads" }, { status: 500 })
     }
 
-    // Filter to only show leads from sites owned by this user
-    const userLeads = leads?.filter(lead => {
-      if (!lead.dragon_bio_sites) return false
-      return lead.dragon_bio_sites.user_id === userId
-    }) || []
-
     // Stats
     const stats = {
-      total: userLeads.length,
-      pending: userLeads.filter(l => l.status === "pending").length,
-      paid: userLeads.filter(l => l.status === "paid").length,
-      totalAmount: userLeads.reduce((acc, l) => acc + (Number(l.amount) || 0), 0),
+      total: leads?.length || 0,
+      pending: leads?.filter(l => l.status === "pending" || l.status === "payment_generated").length || 0,
+      paid: leads?.filter(l => l.status === "paid" || l.status === "approved").length || 0,
+      totalAmount: leads?.reduce((acc, l) => acc + (Number(l.amount) || 0), 0) || 0,
     }
 
-    return NextResponse.json({ leads: userLeads, stats })
+    return NextResponse.json({ leads: leads || [], stats })
   } catch (error) {
     console.error("Error:", error)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })

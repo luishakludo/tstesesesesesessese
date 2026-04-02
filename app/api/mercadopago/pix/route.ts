@@ -1,36 +1,50 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {
     const { accessToken, amount, description, payer, siteId, userId } = await request.json()
 
-    console.log("[v0] PIX API called - amount:", amount, "hasToken:", !!accessToken, "tokenLength:", accessToken?.length)
+    console.log("[v0] PIX API called - amount:", amount, "siteId:", siteId, "hasPayer:", !!payer)
 
     if (!accessToken || !amount) {
-      console.log("[v0] Missing required fields")
       return NextResponse.json(
         { error: "accessToken e amount sao obrigatorios" },
         { status: 400 }
       )
     }
 
-    // Salvar lead no banco se tiver dados do formulario (apenas para coleta)
+    // Salvar lead no banco se tiver dados do formulario
     const payerName = payer?.name || "Cliente"
+    let leadId: string | null = null
+    
     if (payer && (payer.email || payer.name || payer.cpf)) {
       try {
-        const supabase = getSupabase()
-        await supabase.from("checkout_leads").insert({
+        // Usar service role para bypass RLS
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        const { data: leadData, error: leadError } = await supabase.from("checkout_leads").insert({
           site_id: siteId || null,
+          user_id: userId || null,
           email: payer.email || null,
           name: payer.name || null,
           cpf: payer.cpf || null,
           phone: payer.phone || null,
           amount: amount,
           status: "pending",
-        })
+          created_at: new Date().toISOString(),
+        }).select("id").single()
+        
+        if (leadError) {
+          console.error("[v0] Error saving lead:", leadError)
+        } else {
+          leadId = leadData?.id
+          console.log("[v0] Lead saved:", leadId)
+        }
       } catch (err) {
-        console.error("Error saving lead:", err)
+        console.error("[v0] Error saving lead:", err)
       }
     }
 
@@ -79,7 +93,7 @@ export async function POST(request: NextRequest) {
     // Salvar pagamento na tabela payments se tiver userId (para aparecer em Vendas)
     if (userId) {
       try {
-        const supabase = getSupabase()
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
         await supabase.from("payments").insert({
           user_id: userId,
           amount: amount,
@@ -96,8 +110,16 @@ export async function POST(request: NextRequest) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
+        
+        // Atualizar lead com payment_id
+        if (leadId) {
+          await supabase.from("checkout_leads").update({
+            payment_id: String(paymentData.id),
+            status: "payment_generated"
+          }).eq("id", leadId)
+        }
       } catch (err) {
-        console.error("Error saving payment:", err)
+        console.error("[v0] Error saving payment:", err)
       }
     }
 
@@ -107,6 +129,7 @@ export async function POST(request: NextRequest) {
       qrCode: pixData.qr_code,
       qrCodeBase64: pixData.qr_code_base64,
       ticketUrl: pixData.ticket_url,
+      leadId: leadId,
     })
   } catch (error) {
     console.error("Erro ao processar PIX:", error)
