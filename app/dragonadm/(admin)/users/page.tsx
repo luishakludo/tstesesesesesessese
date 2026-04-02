@@ -94,7 +94,7 @@ export default function UsersManagementPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
     try {
-      const res = await fetch("/api/dragon-adm/users")
+      const res = await fetch("/api/dragonadm/users")
       if (res.ok) {
         const data = await res.json()
         setUsers(data.users || [])
@@ -113,7 +113,7 @@ export default function UsersManagementPage() {
   const handleToggleBan = async (userId: string, currentBanned: boolean) => {
     setActionLoading(userId)
     try {
-      const res = await fetch("/api/dragon-adm/users/toggle-ban", {
+      const res = await fetch("/api/dragonadm/users/toggle-ban", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, banned: !currentBanned }),

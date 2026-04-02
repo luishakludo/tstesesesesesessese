@@ -64,14 +64,14 @@ export default function TermosPage() {
     setSaving(true)
     try {
       // Save terms
-      await fetch("/api/dragon-adm/settings", {
+      await fetch("/api/dragonadm/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "terms_of_use", value: terms }),
       })
 
       // Save privacy
-      await fetch("/api/dragon-adm/settings", {
+      await fetch("/api/dragonadm/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: "privacy_policy", value: privacy }),

@@ -34,7 +34,7 @@ export default function DragonAdmLoginPage() {
         loggedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
       }))
-      router.push("/dragon-adm")
+      router.push("/dragonadm")
     } else {
       setError("Email ou senha incorretos")
     }

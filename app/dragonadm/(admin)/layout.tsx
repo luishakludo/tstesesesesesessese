@@ -36,39 +36,39 @@ const menuSections = [
   {
     title: "Principal",
     items: [
-      { icon: BarChart3, label: "Dashboard", href: "/dragon-adm" },
-      { icon: TrendingUp, label: "Analytics", href: "/dragon-adm/analytics" },
+      { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
+      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
     ]
   },
   {
     title: "Usuarios",
     items: [
-      { icon: Users, label: "Usuarios", href: "/dragon-adm/users" },
-      { icon: Bot, label: "Bots", href: "/dragon-adm/bots" },
+      { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
+      { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
     ]
   },
   {
     title: "Financeiro",
     items: [
-      { icon: CreditCard, label: "Pagamentos", href: "/dragon-adm/payments" },
-      { icon: DollarSign, label: "Saques", href: "/dragon-adm/saques" },
-      { icon: DollarSign, label: "Saques Afiliados", href: "/dragon-adm/saques-afiliados" },
-      { icon: Gift, label: "Premiacoes", href: "/dragon-adm/premiacoes" },
+      { icon: CreditCard, label: "Pagamentos", href: "/dragonadm/payments" },
+      { icon: DollarSign, label: "Saques", href: "/dragonadm/saques" },
+      { icon: DollarSign, label: "Saques Afiliados", href: "/dragonadm/saques-afiliados" },
+      { icon: Gift, label: "Premiacoes", href: "/dragonadm/premiacoes" },
     ]
   },
   {
     title: "Conteudo",
     items: [
-      { icon: LayoutTemplate, label: "Templates", href: "/dragon-adm/templates" },
-      { icon: Ticket, label: "Cupons", href: "/dragon-adm/cupons" },
+      { icon: LayoutTemplate, label: "Templates", href: "/dragonadm/templates" },
+      { icon: Ticket, label: "Cupons", href: "/dragonadm/cupons" },
     ]
   },
   {
     title: "Sistema",
     items: [
-      { icon: MessageSquare, label: "Suporte", href: "/dragon-adm/suporte" },
-      { icon: FileText, label: "Termos", href: "/dragon-adm/termos" },
-      { icon: Settings, label: "Configuracoes", href: "/dragon-adm/settings" },
+      { icon: MessageSquare, label: "Suporte", href: "/dragonadm/suporte" },
+      { icon: FileText, label: "Termos", href: "/dragonadm/termos" },
+      { icon: Settings, label: "Configuracoes", href: "/dragonadm/settings" },
     ]
   },
 ]
@@ -89,7 +89,7 @@ export default function DragonAdmLayout({
     const storedSession = localStorage.getItem("dragon_adm_session")
     
     if (!storedSession) {
-      router.push("/dragon-adm/login")
+      router.push("/dragonadm/login")
       return
     }
 
@@ -99,14 +99,14 @@ export default function DragonAdmLayout({
       
       if (expiresAt < new Date()) {
         localStorage.removeItem("dragon_adm_session")
-        router.push("/dragon-adm/login")
+        router.push("/dragonadm/login")
         return
       }
 
       setSession(parsed)
     } catch {
       localStorage.removeItem("dragon_adm_session")
-      router.push("/dragon-adm/login")
+      router.push("/dragonadm/login")
       return
     }
 
@@ -115,7 +115,7 @@ export default function DragonAdmLayout({
 
   const handleLogout = () => {
     localStorage.removeItem("dragon_adm_session")
-    router.push("/dragon-adm/login")
+    router.push("/dragonadm/login")
   }
 
   if (isLoading) {
@@ -173,7 +173,7 @@ export default function DragonAdmLayout({
                   <div className="space-y-0.5">
                     {section.items.map((item) => {
                       const isActive = pathname === item.href || 
-                        (item.href !== "/dragon-adm" && pathname.startsWith(item.href))
+                        (item.href !== "/dragonadm" && pathname.startsWith(item.href))
                       
                       return (
                         <Link
