@@ -103,6 +103,7 @@ interface FlowPlan {
   description?: string
   active: boolean
   delivery_type: "default" | "custom"
+  deliverableId?: string // ID do entregavel especifico para este plano
   custom_delivery?: string
   order_bump_custom: boolean
   order_bump_name?: string
@@ -187,8 +188,9 @@ interface Pack {
   previewMedias: string[] // Array de midias de preview (ate 10)
   buttonText: string // Texto do botao personalizado
   deliveryDestination: string
+  deliverableId?: string // ID do entregavel associado
   active: boolean
-}
+  }
 
 interface OrderBumpItem {
   enabled: boolean
@@ -223,7 +225,8 @@ interface PackConfig {
   items: string[]
   price: number
   discount_percent?: number
-}
+  deliverableId?: string // ID do entregavel especifico para este pack
+  }
 
 interface PaymentConfig {
   gateway?: string
@@ -2051,25 +2054,71 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 <div className="space-y-3">
                                   <div className="flex items-center gap-2">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                                      <Package className="h-4 w-4 text-emerald-500" />
+                                      <Gift className="h-4 w-4 text-emerald-500" />
                                     </div>
-                                    <span className="font-medium">Entrega deste Plano</span>
+                                    <span className="font-medium">Entregavel</span>
                                   </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Selecione qual entregavel sera enviado ao comprar este plano
+                                  </p>
                                   <Select
                                     value={plan.delivery_type}
-                                    onValueChange={(value) => handleUpdatePlan(plan.id, "delivery_type", value)}
+                                    onValueChange={(value) => {
+                                      handleUpdatePlan(plan.id, "delivery_type", value)
+                                      if (value === "default") {
+                                        handleUpdatePlan(plan.id, "deliverableId", "")
+                                      }
+                                    }}
                                   >
                                     <SelectTrigger className="bg-secondary/50 border-border/50">
                                       <div className="flex items-center gap-2">
-                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                        <Gift className="h-4 w-4 text-muted-foreground" />
                                         <SelectValue />
                                       </div>
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="default">Usar entrega padrao do fluxo</SelectItem>
-                                      <SelectItem value="custom">Entrega personalizada</SelectItem>
+                                      <SelectItem value="default">Usar entregavel principal</SelectItem>
+                                      <SelectItem value="custom">Selecionar entregavel</SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  
+                                  {plan.delivery_type === "custom" && (
+                                    <div className="pt-2">
+                                      {deliverables.length === 0 ? (
+                                        <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                          <div className="flex items-start gap-2">
+                                            <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                            <div className="text-xs">
+                                              <p className="font-medium text-amber-500">Nenhum entregavel</p>
+                                              <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot;</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <Select
+                                          value={plan.deliverableId || "none"}
+                                          onValueChange={(value) => handleUpdatePlan(plan.id, "deliverableId", value === "none" ? "" : value)}
+                                        >
+                                          <SelectTrigger className="bg-secondary/30 border-border/50">
+                                            <SelectValue placeholder="Selecione..." />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            <SelectItem value="none">Nenhum selecionado</SelectItem>
+                                            {deliverables.map((d) => (
+                                              <SelectItem key={d.id} value={d.id}>
+                                                <div className="flex items-center gap-2">
+                                                  {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                                  {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                                  {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                                  {d.name}
+                                                </div>
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Remover Plano */}
@@ -2100,126 +2149,47 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </CardContent>
                 </Card>
 
-                {/* Entrega Padrao - Configuracao de Entregaveis */}
-                <Card className="border-border/50">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                        <Package className="h-5 w-5 text-accent" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">Entregaveis</CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Configure o que entregar apos o pagamento ser aprovado
-                        </p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    {/* Tipo 1: Link */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
-                            <ExternalLink className="h-4 w-4 text-blue-500" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Link</p>
-                            <p className="text-xs text-muted-foreground">Enviar um link apos pagamento</p>
-                          </div>
+                {/* Resumo de Entregaveis */}
+                <Card className="border-border/50 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                          <Gift className="h-5 w-5 text-emerald-500" />
                         </div>
-                        <Switch defaultChecked={false} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">URL do Link</Label>
-                        <Input 
-                          placeholder="https://exemplo.com/acesso" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Texto do botao (opcional)</Label>
-                        <Input 
-                          placeholder="Acessar conteudo" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tipo 2: Midia */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10">
-                            <ImageIcon className="h-4 w-4 text-purple-500" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Midia</p>
-                            <p className="text-xs text-muted-foreground">Enviar fotos ou videos do cache</p>
-                          </div>
+                        <div>
+                          <p className="font-semibold">Entregaveis</p>
+                          <p className="text-sm text-muted-foreground">
+                            {deliverables.length === 0 
+                              ? "Configure o que entregar apos o pagamento" 
+                              : `${deliverables.length} entregavel${deliverables.length > 1 ? "is" : ""} configurado${deliverables.length > 1 ? "s" : ""}`
+                            }
+                          </p>
                         </div>
-                        <Switch defaultChecked={false} />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Canal/Grupo de Cache</Label>
-                        <div className="flex gap-2">
-                          <Select>
-                            <SelectTrigger className="bg-secondary/50 border-border/50">
-                              <SelectValue placeholder="Selecione o cache de midia" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cache1">Canal de Fotos</SelectItem>
-                              <SelectItem value="cache2">Canal de Videos</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button variant="outline" size="icon" className="shrink-0">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab("deliverables")}
+                        className="border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                      >
+                        <Gift className="h-4 w-4 mr-2" />
+                        Gerenciar Entregaveis
+                      </Button>
+                    </div>
+                    
+                    {mainDeliverableId && deliverables.find(d => d.id === mainDeliverableId) && (
+                      <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-border/50">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Crown className="h-4 w-4 text-amber-500" />
+                          <span className="text-muted-foreground">Entregavel Principal:</span>
+                          <span className="font-medium">{deliverables.find(d => d.id === mainDeliverableId)?.name}</span>
+                          <Badge variant="outline" className="ml-auto text-xs">
+                            {deliverables.find(d => d.id === mainDeliverableId)?.type === "media" ? "Midia" : 
+                             deliverables.find(d => d.id === mainDeliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
+                          </Badge>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">
-                          Configure o cache de midia nas configuracoes do bot
-                        </p>
                       </div>
-                    </div>
-
-                    {/* Tipo 3: Grupo VIP */}
-                    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
-                            <Users className="h-4 w-4 text-accent" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm">Grupo VIP</p>
-                            <p className="text-xs text-muted-foreground">Adicionar ao grupo automaticamente</p>
-                          </div>
-                        </div>
-                        <Switch defaultChecked={false} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">ID do Grupo</Label>
-                        <Input 
-                          placeholder="-1001234567890" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                          O bot deve ser admin do grupo com permissao para adicionar membros
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground">Mensagem de boas-vindas (opcional)</Label>
-                        <Input 
-                          placeholder="Bem-vindo ao grupo VIP!" 
-                          className="bg-secondary/50 border-border/50"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-accent/10 p-3">
-                      <p className="text-sm text-accent">
-                        <span className="font-medium">Dica:</span> Voce pode ativar multiplos entregaveis. Todos serao enviados automaticamente apos a aprovacao do pagamento.
-                      </p>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -3868,6 +3838,68 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               />
                               <p className="text-xs text-muted-foreground">Texto exibido no botao de compra deste pack</p>
                             </div>
+
+                            {/* Entregavel do Pack */}
+                            <Card className="border-border/50 bg-emerald-500/5">
+                              <CardContent className="pt-4 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+                                    <Gift className="h-4 w-4 text-emerald-500" />
+                                  </div>
+                                  <div>
+                                    <span className="font-medium text-sm">Entregavel do Pack</span>
+                                    <p className="text-xs text-muted-foreground">O que sera enviado apos a compra</p>
+                                  </div>
+                                </div>
+                                
+                                {deliverables.length === 0 ? (
+                                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                                    <div className="flex items-start gap-2">
+                                      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
+                                      <div className="text-xs">
+                                        <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
+                                        <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot; para associar a este pack</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <Select
+                                    value={pack.deliverableId || "none"}
+                                    onValueChange={(value) => handleUpdatePack(pack.id, "deliverableId", value === "none" ? "" : value)}
+                                  >
+                                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                                      <SelectValue placeholder="Selecione um entregavel..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Nenhum (usar principal)</SelectItem>
+                                      {deliverables.map((d) => (
+                                        <SelectItem key={d.id} value={d.id}>
+                                          <div className="flex items-center gap-2">
+                                            {d.type === "media" && <ImageIcon className="h-3 w-3" />}
+                                            {d.type === "link" && <Link2 className="h-3 w-3" />}
+                                            {d.type === "vip_group" && <Users className="h-3 w-3" />}
+                                            {d.name}
+                                            <span className="text-muted-foreground text-xs">
+                                              ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
+                                            </span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                                
+                                {pack.deliverableId && deliverables.find(d => d.id === pack.deliverableId) && (
+                                  <div className="rounded-lg bg-secondary/30 p-2 text-xs text-muted-foreground">
+                                    Tipo: {deliverables.find(d => d.id === pack.deliverableId)?.type === "media" 
+                                      ? "Midias serao enviadas" 
+                                      : deliverables.find(d => d.id === pack.deliverableId)?.type === "link" 
+                                        ? "Link com botao sera enviado" 
+                                        : "Convite unico para grupo VIP"}
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
 
                             {/* Midias de Preview */}
                             <Card className="border-border/50 bg-secondary/10">
