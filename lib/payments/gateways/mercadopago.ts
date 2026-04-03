@@ -5,6 +5,7 @@ export interface CreatePixPaymentInput {
   amount: number
   description: string
   payerEmail?: string
+  notificationUrl?: string
 }
 
 export interface PixPaymentResult {
@@ -18,7 +19,10 @@ export interface PixPaymentResult {
 }
 
 export async function createPixPayment(input: CreatePixPaymentInput): Promise<PixPaymentResult> {
-  const { accessToken, amount, description, payerEmail = "cliente@email.com" } = input
+  const { accessToken, amount, description, payerEmail = "cliente@email.com", notificationUrl } = input
+
+  // URL de notificacao padrao
+  const webhookUrl = notificationUrl || `${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/payments/webhook/mercadopago`
 
   try {
     const response = await fetch("https://api.mercadopago.com/v1/payments", {
@@ -35,6 +39,7 @@ export async function createPixPayment(input: CreatePixPaymentInput): Promise<Pi
         payer: {
           email: payerEmail,
         },
+        notification_url: webhookUrl,
       }),
     })
 

@@ -337,10 +337,11 @@ async function sendDelivery(
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  console.log("[v0] MP WEBHOOK CHAMADO!")
   try {
     const body = await request.json()
     
-    console.log("Mercado Pago webhook received:", JSON.stringify(body))
+    console.log("[v0] MP webhook body:", JSON.stringify(body))
 
     // O Mercado Pago envia diferentes tipos de notificacao
     if (body.type === "payment" || body.action === "payment.updated") {
