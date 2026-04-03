@@ -530,8 +530,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           await sendTelegramMessage(botToken, chatId, obMessage, {
             inline_keyboard: [
-              [{ text: orderBumpPacks.acceptText || "ADICIONAR", callback_data: `ob_accept_${packPrice}_${orderBumpPacks.price}` }],
-              [{ text: orderBumpPacks.rejectText || "NAO QUERO", callback_data: `ob_decline_${packPrice}_0` }]
+[{ text: orderBumpPacks.acceptText || "ADICIONAR", callback_data: `ob_accept_${Math.round(packPrice * 100)}_${Math.round(orderBumpPacks.price * 100)}` }],
+                [{ text: orderBumpPacks.rejectText || "NAO QUERO", callback_data: `ob_decline_${Math.round(packPrice * 100)}_0` }]
             ]
           })
           
@@ -1996,6 +1996,10 @@ export async function POST(
   } catch {
     return new Response("ok")
   }
+
+  // Log para debug - ver todas as requisicoes
+  const callbackData = (update.callback_query as Record<string, unknown>)?.data as string | null
+  console.log("[v0] WEBHOOK RECEBIDO - botId:", botId, "callback:", callbackData || "nenhum", "hasMessage:", !!update.message)
 
   // Processar em background (NAO bloqueia resposta)
   processUpdate(botId, update).catch(console.error)
