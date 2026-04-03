@@ -272,11 +272,19 @@ async function sendDelivery(
 
   // Se tiver mainDeliverableId configurado, usar o entregavel principal
   if (flowConfig?.mainDeliverableId && flowConfig?.deliverables) {
+    console.log(`[v0] DELIVERY: Buscando mainDeliverable com id:`, flowConfig.mainDeliverableId)
     const mainDeliverable = flowConfig.deliverables.find((d: Deliverable) => d.id === flowConfig.mainDeliverableId)
+    console.log(`[v0] DELIVERY: mainDeliverable encontrado:`, mainDeliverable ? mainDeliverable.name : "NAO ENCONTRADO")
     if (mainDeliverable) {
+      console.log(`[v0] DELIVERY: Enviando mainDeliverable:`, mainDeliverable.name, "tipo:", mainDeliverable.type)
       await sendDeliverable(botToken, chatId, mainDeliverable)
+      console.log(`[v0] DELIVERY: mainDeliverable enviado com sucesso!`)
       return
     }
+  } else {
+    console.log(`[v0] DELIVERY: mainDeliverableId nao configurado ou deliverables vazio`)
+    console.log(`[v0] DELIVERY: mainDeliverableId =`, flowConfig?.mainDeliverableId)
+    console.log(`[v0] DELIVERY: deliverables =`, flowConfig?.deliverables?.length || 0, "itens")
   }
 
   // Fallback: usar o sistema antigo de delivery (para compatibilidade)
@@ -494,13 +502,16 @@ export async function POST(request: NextRequest) {
                   }
                 }
 
+                console.log(`[v0] ========== BUSCANDO FLOW ${flowId} PARA ENTREGA ==========`)
                 if (flowId) {
                   // Buscar config do fluxo
-                  const { data: flowData } = await supabase
+                  const { data: flowData, error: flowError } = await supabase
                     .from("flows")
-                    .select("config")
+                    .select("id, name, config")
                     .eq("id", flowId)
                     .single()
+
+                  console.log(`[v0] Flow encontrado:`, flowData?.id, flowData?.name, "erro:", flowError?.message)
 
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const flowConfig = flowData?.config as Record<string, any> | null
@@ -508,8 +519,9 @@ export async function POST(request: NextRequest) {
                   const upsellSequences = upsellConfig?.sequences || []
 
                   console.log(`[v0] Flow ${flowId} config keys:`, Object.keys(flowConfig || {}))
-                  console.log(`[v0] mainDeliverableId:`, flowConfig?.mainDeliverableId)
-                  console.log(`[v0] deliverables count:`, flowConfig?.deliverables?.length || 0)
+                  console.log(`[v0] mainDeliverableId:`, flowConfig?.mainDeliverableId || "NAO DEFINIDO")
+                  console.log(`[v0] deliverables:`, JSON.stringify(flowConfig?.deliverables || []))
+                  console.log(`[v0] delivery (sistema antigo):`, JSON.stringify(flowConfig?.delivery || null))
                   console.log(`[v0] UPSELL: Flow ${flowId} has ${upsellSequences.length} upsell sequences, enabled: ${upsellConfig?.enabled}`)
 
                   // SEMPRE enviar entregavel inicial primeiro (produto principal)
