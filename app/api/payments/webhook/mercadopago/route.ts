@@ -369,11 +369,25 @@ export async function POST(request: NextRequest) {
       }
 
       // Busca o gateway para pegar o access_token
-      console.log("[v0] Buscando gateway para bot_id:", payment.bot_id)
+      // Gateway e global por usuario, nao por bot - precisa buscar pelo user_id do pagamento
+      // Se o pagamento tem user_id, usa ele. Senao, busca o user_id do bot
+      let gatewayUserId = payment.user_id
+      
+      if (!gatewayUserId && payment.bot_id) {
+        // Busca o user_id do bot
+        const { data: bot } = await supabase
+          .from("bots")
+          .select("user_id")
+          .eq("id", payment.bot_id)
+          .single()
+        gatewayUserId = bot?.user_id
+      }
+      
+      console.log("[v0] Buscando gateway para user_id:", gatewayUserId)
       const { data: gateway, error: gatewayError } = await supabase
         .from("user_gateways")
         .select("access_token")
-        .eq("bot_id", payment.bot_id)
+        .eq("user_id", gatewayUserId)
         .eq("is_active", true)
         .single()
       

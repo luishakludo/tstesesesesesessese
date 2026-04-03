@@ -37,16 +37,32 @@ export async function GET() {
     for (const payment of pendingPayments) {
       results.push(`\n--- Verificando pagamento ${payment.external_payment_id} (R$ ${payment.amount}) ---`)
       
-      // Buscar gateway
+      // Buscar user_id do bot (gateway e global por usuario)
+      let gatewayUserId = null
+      if (payment.bot_id) {
+        const { data: bot } = await supabase
+          .from("bots")
+          .select("user_id")
+          .eq("id", payment.bot_id)
+          .single()
+        gatewayUserId = bot?.user_id
+      }
+      
+      if (!gatewayUserId) {
+        results.push(`ERRO: Nao foi possivel encontrar user_id do bot ${payment.bot_id}`)
+        continue
+      }
+      
+      // Buscar gateway pelo user_id (gateway e global, nao por bot)
       const { data: gateway, error: gatewayError } = await supabase
         .from("user_gateways")
         .select("access_token, gateway_name")
-        .eq("bot_id", payment.bot_id)
+        .eq("user_id", gatewayUserId)
         .eq("is_active", true)
         .single()
       
       if (gatewayError || !gateway?.access_token) {
-        results.push(`ERRO: Gateway nao encontrado para bot_id ${payment.bot_id}`)
+        results.push(`ERRO: Gateway nao encontrado para user_id ${gatewayUserId}`)
         continue
       }
       
