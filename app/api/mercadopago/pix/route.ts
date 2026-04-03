@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // URL de notificacao para webhook
-    const notificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/payments/webhook/mercadopago`
+    const notificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dragonteste.onrender.com"}/api/payments/webhook/mercadopago`
     console.log("[v0] Notification URL:", notificationUrl)
 
     // Criar pagamento PIX via Mercado Pago (sem enviar dados do payer - igual ao bot)
