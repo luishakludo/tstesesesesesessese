@@ -254,7 +254,12 @@ async function sendDelivery(
   flowConfig: Record<string, any> | null,
   deliverableId?: string // ID do entregavel especifico (para upsell/downsell)
 ) {
-  console.log(`[DELIVERY] Sending delivery to user ${chatId}, deliverableId: ${deliverableId || "main"}`)
+  console.log(`[v0] DELIVERY: ========== INICIO sendDelivery ==========`)
+  console.log(`[v0] DELIVERY: chatId=${chatId}, deliverableId=${deliverableId || "main"}`)
+  console.log(`[v0] DELIVERY: flowConfig existe?`, !!flowConfig)
+  console.log(`[v0] DELIVERY: flowConfig.deliverables?`, flowConfig?.deliverables?.length || 0)
+  console.log(`[v0] DELIVERY: flowConfig.mainDeliverableId?`, flowConfig?.mainDeliverableId || "NAO DEFINIDO")
+  console.log(`[v0] DELIVERY: flowConfig.delivery?`, !!flowConfig?.delivery)
 
   // Se tiver um deliverableId especifico, buscar e usar esse entregavel
   if (deliverableId && flowConfig?.deliverables) {
@@ -502,11 +507,21 @@ export async function POST(request: NextRequest) {
                   const upsellConfig = flowConfig?.upsell
                   const upsellSequences = upsellConfig?.sequences || []
 
-                  console.log(`[UPSELL] Flow ${flowId} has ${upsellSequences.length} upsell sequences, enabled: ${upsellConfig?.enabled}`)
+                  console.log(`[v0] Flow ${flowId} config keys:`, Object.keys(flowConfig || {}))
+                  console.log(`[v0] mainDeliverableId:`, flowConfig?.mainDeliverableId)
+                  console.log(`[v0] deliverables count:`, flowConfig?.deliverables?.length || 0)
+                  console.log(`[v0] UPSELL: Flow ${flowId} has ${upsellSequences.length} upsell sequences, enabled: ${upsellConfig?.enabled}`)
 
+                  // SEMPRE enviar entregavel inicial primeiro (produto principal)
+                  console.log(`[v0] DELIVERY: Enviando entregavel inicial para usuario ${chatId}`)
+                  await sendDelivery(supabase, bot.token, chatId, flowConfig)
+
+                  // Depois verificar se tem upsell para enviar
                   if (upsellConfig?.enabled && upsellSequences.length > 0) {
                     // Pegar a primeira sequencia (indice 0)
                     const firstUpsell = upsellSequences[0]
+                    
+                    console.log(`[v0] UPSELL: Enviando upsell 0 apos entrega`)
                     
                     // Verificar timing
                     if (firstUpsell.sendTiming === "immediate") {
@@ -532,7 +547,7 @@ export async function POST(request: NextRequest) {
                           updated_at: new Date().toISOString()
                         }, { onConflict: "bot_id,telegram_user_id" })
                       
-                      console.log(`[UPSELL] Scheduled upsell 0 for user ${chatId} in ${delayMs}ms`)
+                      console.log(`[v0] UPSELL: Scheduled upsell 0 for user ${chatId} in ${delayMs}ms`)
                       
                       // Por agora, envia com delay simples (em producao usar job queue)
                       if (delayMs <= 60000) { // Max 1 minuto de delay inline
@@ -541,10 +556,10 @@ export async function POST(request: NextRequest) {
                       }
                     }
                   } else {
-                    // Sem upsell - enviar entrega diretamente
-                    console.log(`[UPSELL] No upsell configured, sending delivery directly`)
-                    await sendDelivery(supabase, bot.token, chatId, flowConfig)
+                    console.log(`[v0] UPSELL: No upsell configured for this flow`)
                   }
+                } else {
+                  console.log(`[v0] DELIVERY: No flow found for bot ${bot.id}`)
                 }
               } else if (payment.product_type === "upsell") {
                 // Pagamento de upsell aprovado - verificar se tem proximo upsell
