@@ -78,6 +78,42 @@ export default function BotsPage() {
   // Cache de fluxos vinculados aos bots
   const [botFlowsCache, setBotFlowsCache] = useState<Record<string, { id: string; name: string } | null>>({})
   
+  // Cache de stats (leads e vendas) por bot
+  const [botStatsCache, setBotStatsCache] = useState<Record<string, { leads: number; vendas: number }>>({})
+  
+  // Carregar stats (leads e vendas) para cada bot
+  const loadBotStats = useCallback(async (botsToLoad: Bot[]) => {
+    const newCache: Record<string, { leads: number; vendas: number }> = { ...botStatsCache }
+    
+    await Promise.all(botsToLoad.map(async (bot) => {
+      try {
+        // Buscar leads (conversations/starts)
+        const conversationsRes = await fetch(`/api/conversations?bot_id=${bot.id}&period=year`)
+        const conversationsData = await conversationsRes.json()
+        const leads = conversationsData?.total || 0
+        
+        // Buscar vendas (pagamentos aprovados)
+        const paymentsRes = await fetch(`/api/payments/list?botId=${bot.id}&limit=1`)
+        const paymentsData = await paymentsRes.json()
+        const vendas = paymentsData?.stats?.approved || 0
+        
+        newCache[bot.id] = { leads, vendas }
+      } catch {
+        newCache[bot.id] = { leads: 0, vendas: 0 }
+      }
+    }))
+    
+    setBotStatsCache(newCache)
+  }, [botStatsCache])
+  
+  // Carregar stats quando bots mudam
+  useEffect(() => {
+    if (bots.length > 0) {
+      loadBotStats(bots)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bots])
+  
   // Carregar fluxos vinculados aos bots (busca em flows.bot_id E flow_bots)
   const loadBotFlows = useCallback(async (botsToLoad: Bot[]) => {
     const newCache: Record<string, { id: string; name: string } | null> = { ...botFlowsCache }
@@ -1090,11 +1126,11 @@ export default function BotsPage() {
                     <div className="grid grid-cols-2">
                       <div className="text-center">
                         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Leads</p>
-                        <p className="text-lg font-bold text-white">0</p>
+                        <p className="text-lg font-bold text-white">{botStatsCache[bot.id]?.leads ?? 0}</p>
                       </div>
                       <div className="text-center border-l border-[#2a2a2e]">
                         <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Vendas</p>
-                        <p className="text-lg font-bold text-white">0</p>
+                        <p className="text-lg font-bold text-white">{botStatsCache[bot.id]?.vendas ?? 0}</p>
                       </div>
                     </div>
                   </div>
@@ -1216,11 +1252,11 @@ export default function BotsPage() {
                   <div className="hidden md:flex items-center gap-6 flex-shrink-0">
                     <div className="text-center">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase">Leads</p>
-                      <p className="text-lg font-bold text-[#1a1a1a]">0</p>
+                      <p className="text-lg font-bold text-[#1a1a1a]">{botStatsCache[bot.id]?.leads ?? 0}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase">Vendas</p>
-                      <p className="text-lg font-bold text-[#1a1a1a]">0</p>
+                      <p className="text-lg font-bold text-[#1a1a1a]">{botStatsCache[bot.id]?.vendas ?? 0}</p>
                     </div>
                   </div>
 
