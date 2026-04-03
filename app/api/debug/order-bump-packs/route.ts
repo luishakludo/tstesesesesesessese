@@ -27,49 +27,52 @@ export async function GET() {
       }, { status: 404 })
     }
 
-    // 2. Buscar TODOS os fluxos do sistema para debug
-    const { data: allSystemFlows } = await supabase
-      .from("flows")
-      .select("id, name, config, is_active, status, bot_id, user_id")
-
-    // 3. Buscar todos os registros de flow_bots
-    const { data: allFlowBots } = await supabase
+    // 2. Buscar todos os registros de flow_bots COM os dados do flow via join
+    const { data: allFlowBots, error: flowBotsError } = await supabase
       .from("flow_bots")
-      .select("*")
+      .select(`
+        *,
+        flows:flow_id (
+          id,
+          name,
+          config,
+          is_active,
+          status,
+          bot_id,
+          user_id
+        )
+      `)
+    
+    // 3. Extrair os flows dos flow_bots (contorna RLS)
+    const allSystemFlows = (allFlowBots || [])
+      .map(fb => fb.flows)
+      .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string; bot_id: string; user_id: string }[]
+    
+    console.log("[v0] flowBotsError:", flowBotsError?.message)
+    console.log("[v0] allFlowBots count:", allFlowBots?.length)
+    console.log("[v0] allSystemFlows extracted:", allSystemFlows?.length)
 
     // Analisar cada bot
     const botsAnalysis = await Promise.all(bots.map(async (bot) => {
-      // 2. Buscar flow_bots para encontrar fluxos conectados
-      const { data: flowBots } = await supabase
+      // Buscar flows via flow_bots COM join (contorna RLS)
+      const { data: flowBotsWithFlows } = await supabase
         .from("flow_bots")
-        .select("flow_id")
+        .select(`
+          flow_id,
+          flows:flow_id (
+            id,
+            name,
+            config,
+            is_active,
+            status
+          )
+        `)
         .eq("bot_id", bot.id)
-
-      // 3. Buscar flows diretamente conectados ao bot
-      const { data: directFlows } = await supabase
-        .from("flows")
-        .select("id, name, config, is_active, status")
-        .eq("bot_id", bot.id)
-
-      // 4. Buscar flows via flow_bots
-      let flowBotsFlows: { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string }[] = []
-      if (flowBots && flowBots.length > 0) {
-        const flowIds = flowBots.map(fb => fb.flow_id)
-        const { data } = await supabase
-          .from("flows")
-          .select("id, name, config, is_active, status")
-          .in("id", flowIds)
-        flowBotsFlows = (data || []) as typeof flowBotsFlows
-      }
-
-      // Combinar todos os fluxos (remover duplicados)
-      const allFlowsMap = new Map<string, typeof directFlows[0]>()
-      for (const f of [...(directFlows || []), ...flowBotsFlows]) {
-        if (!allFlowsMap.has(f.id)) {
-          allFlowsMap.set(f.id, f)
-        }
-      }
-      const allFlows = Array.from(allFlowsMap.values())
+      
+      // Extrair os flows do join
+      const allFlows = (flowBotsWithFlows || [])
+        .map(fb => fb.flows as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string } | null)
+        .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string }[]
       
       // Filtrar apenas ativos (aceitando "ativo" ou "active")
       const activeFlows = allFlows.filter(f => f.is_active || f.status === "active" || f.status === "ativo")
