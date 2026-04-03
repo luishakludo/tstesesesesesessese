@@ -7,13 +7,21 @@ import { cn } from "@/lib/utils"
 import {
   Shield,
   Users,
+  Bot,
+  CreditCard,
   BarChart3,
+  Settings,
   LogOut,
   Menu,
   X,
   ChevronRight,
   DollarSign,
+  Gift,
+  Ticket,
+  LayoutTemplate,
   MessageSquare,
+  FileText,
+  TrendingUp,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -29,24 +37,38 @@ const menuSections = [
     title: "Principal",
     items: [
       { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
+      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
     ]
   },
   {
     title: "Usuarios",
     items: [
       { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
+      { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
     ]
   },
   {
     title: "Financeiro",
     items: [
+      { icon: CreditCard, label: "Pagamentos", href: "/dragonadm/payments" },
+      { icon: DollarSign, label: "Saques", href: "/dragonadm/saques" },
       { icon: DollarSign, label: "Saques Afiliados", href: "/dragonadm/saques-afiliados" },
+      { icon: Gift, label: "Premiacoes", href: "/dragonadm/premiacoes" },
+    ]
+  },
+  {
+    title: "Conteudo",
+    items: [
+      { icon: LayoutTemplate, label: "Templates", href: "/dragonadm/templates" },
+      { icon: Ticket, label: "Cupons", href: "/dragonadm/cupons" },
     ]
   },
   {
     title: "Sistema",
     items: [
       { icon: MessageSquare, label: "Suporte", href: "/dragonadm/suporte" },
+      { icon: FileText, label: "Termos", href: "/dragonadm/termos" },
+      { icon: Settings, label: "Configuracoes", href: "/dragonadm/settings" },
     ]
   },
 ]
@@ -125,8 +147,8 @@ export default function DragonAdmLayout({
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-neutral-800 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Shield className="h-5 w-5 text-accent" />
               </div>
               <span className="font-bold text-foreground">Dragon ADM</span>
             </div>
@@ -161,8 +183,8 @@ export default function DragonAdmLayout({
                           className={cn(
                             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                             isActive
-                              ? "bg-neutral-800 text-white"
-                              : "text-muted-foreground hover:text-foreground hover:bg-neutral-800/50"
+                              ? "bg-accent/10 text-accent"
+                              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                           )}
                         >
                           <item.icon className="h-4 w-4" />
@@ -182,8 +204,8 @@ export default function DragonAdmLayout({
           {/* User & Logout */}
           <div className="p-4 border-t border-border">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center">
-                <span className="text-sm font-bold text-white">
+              <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
+                <span className="text-sm font-bold text-accent">
                   {session?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>

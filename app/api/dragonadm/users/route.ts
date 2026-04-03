@@ -9,8 +9,6 @@ export async function GET() {
       .select("*")
       .order("created_at", { ascending: false })
 
-    console.log("[v0] Profiles encontrados:", profiles?.length || 0, "erro:", profilesError?.message)
-
     if (profilesError) {
       console.error("Erro ao buscar profiles:", profilesError)
       return NextResponse.json({ error: "Erro ao buscar usuarios" }, { status: 500 })
@@ -21,9 +19,9 @@ export async function GET() {
       .from("bots")
       .select("id, name, username, is_active, created_at, user_id")
 
-    // Buscar todas as gateways (user_gateways)
+    // Buscar todas as gateways
     const { data: allGateways } = await supabase
-      .from("user_gateways")
+      .from("payment_gateways")
       .select("id, gateway_name, is_active, created_at, user_id")
 
     // Buscar todos os referrals
