@@ -61,32 +61,8 @@ export default function VendasPage() {
     totalApproved: number
     totalPending: number
   } | null>(null)
-  const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<string | null>(null)
   const ITEMS_PER_PAGE = 50
-
-  // Funcao para sincronizar status dos pagamentos com o Mercado Pago
-  const syncPaymentStatus = async () => {
-    setSyncing(true)
-    setSyncResult(null)
-    try {
-      const res = await fetch("/api/debug/auto-test")
-      const data = await res.json()
-      if (data.pagamentosAtualizados > 0) {
-        setSyncResult(`${data.pagamentosAtualizados} pagamento(s) atualizado(s)!`)
-        // Recarrega a lista
-        fetchPayments()
-      } else {
-        setSyncResult("Todos os pagamentos ja estao atualizados")
-      }
-    } catch {
-      setSyncResult("Erro ao sincronizar")
-    } finally {
-      setSyncing(false)
-      // Limpa a mensagem apos 3 segundos
-      setTimeout(() => setSyncResult(null), 3000)
-    }
-  }
 
   useEffect(() => {
     if (authLoading) return
@@ -100,6 +76,21 @@ export default function VendasPage() {
   const fetchPayments = async () => {
     if (!userId) return
     setLoading(true)
+    setSyncResult(null)
+    
+    // Primeiro sincroniza os status com o Mercado Pago
+    try {
+      const syncRes = await fetch("/api/debug/auto-test")
+      const syncData = await syncRes.json()
+      if (syncData.pagamentosAtualizados > 0) {
+        setSyncResult(`${syncData.pagamentosAtualizados} pagamento(s) sincronizado(s)!`)
+        setTimeout(() => setSyncResult(null), 3000)
+      }
+    } catch {
+      // Ignora erro de sync, continua com fetch normal
+    }
+    
+    // Depois busca os pagamentos atualizados
     try {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE
       const statusParam = activeTab !== "all" ? `&status=${activeTab}` : ""
@@ -190,21 +181,14 @@ export default function VendasPage() {
               </div>
               <div className="flex items-center gap-2">
                 {syncResult && (
-                  <span className={`text-xs font-medium px-3 py-1.5 rounded-lg ${syncResult.includes("atualizado") ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+                  <span className="text-xs font-medium px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700">
                     {syncResult}
                   </span>
                 )}
                 <button 
-                  onClick={syncPaymentStatus}
-                  disabled={syncing}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                >
-                  <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? "Sincronizando..." : "Sincronizar Status"}
-                </button>
-                <button 
-                  onClick={fetchPayments}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c1c1e] text-white text-sm font-medium hover:bg-[#2a2a2e] transition-colors"
+                  onClick={() => fetchPayments()}
+                  disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c1c1e] text-white text-sm font-medium hover:bg-[#2a2a2e] disabled:opacity-50 transition-colors"
                 >
                   <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                   Atualizar
