@@ -89,14 +89,20 @@ export async function GET(request: NextRequest) {
 
     const { data: allPayments } = await statsQuery
 
+    // Contar usuarios unicos com pagamentos aprovados (pelo telegram_user_id ou payer_email)
+    const approvedPayments = allPayments?.filter(p => p.status === "approved") || []
+    const uniqueApprovedUsers = new Set(
+      approvedPayments.map(p => p.telegram_user_id || p.payer_email || p.id)
+    )
+
     const stats = {
       total: allPayments?.length || 0,
-      approved: allPayments?.filter(p => p.status === "approved").length || 0,
+      approved: approvedPayments.length,
+      approvedUniqueUsers: uniqueApprovedUsers.size,
       pending: allPayments?.filter(p => p.status === "pending").length || 0,
       rejected: allPayments?.filter(p => p.status === "rejected").length || 0,
       cancelled: allPayments?.filter(p => p.status === "cancelled").length || 0,
-      totalApproved: allPayments
-        ?.filter(p => p.status === "approved")
+      totalApproved: approvedPayments
         .reduce((sum, p) => sum + Number(p.amount), 0) || 0,
       totalPending: allPayments
         ?.filter(p => p.status === "pending")

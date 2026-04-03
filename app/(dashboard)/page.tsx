@@ -143,6 +143,7 @@ export default function DashboardPage() {
     stats: {
       totalApproved: number
       approved: number
+      approvedUniqueUsers: number
     }
   }>(
     selectedBot ? `/api/payments/list?bot_id=${selectedBot.id}&page=1&per_page=1` : null,
@@ -336,7 +337,7 @@ export default function DashboardPage() {
                     </div>
                     Usuários Ativos
                   </div>
-                  <div className="text-3xl font-bold">{paymentsData?.stats?.approved || 0}</div>
+                  <div className="text-3xl font-bold">{paymentsData?.stats?.approvedUniqueUsers || 0}</div>
                 </div>
               </div>
             </div>
