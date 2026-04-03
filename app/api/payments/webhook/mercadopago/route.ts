@@ -354,27 +354,39 @@ export async function POST(request: NextRequest) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
       // Busca o pagamento no banco pelo external_payment_id
+      console.log("[v0] Buscando pagamento com external_payment_id:", String(paymentId))
       const { data: payment, error } = await supabase
         .from("payments")
         .select("*")
         .eq("external_payment_id", String(paymentId))
         .single()
 
+      console.log("[v0] Pagamento encontrado:", payment?.id, "erro:", error?.message)
+
       if (error || !payment) {
-        console.log("Payment not found for webhook:", paymentId)
+        console.log("[v0] Payment not found for webhook:", paymentId, "error:", error)
         return NextResponse.json({ received: true })
       }
 
       // Busca o gateway para pegar o access_token
-      const { data: gateway } = await supabase
+      console.log("[v0] Buscando gateway para bot_id:", payment.bot_id)
+      const { data: gateway, error: gatewayError } = await supabase
         .from("user_gateways")
         .select("access_token")
         .eq("bot_id", payment.bot_id)
         .eq("is_active", true)
         .single()
       
+      console.log("[v0] Gateway encontrado:", !!gateway, "erro:", gatewayError?.message)
+      
       const accessToken = gateway?.access_token
+      if (!accessToken) {
+        console.log("[v0] ERRO: Nenhum access_token encontrado para o bot")
+        return NextResponse.json({ received: true, error: "no_access_token" })
+      }
+      
       if (accessToken) {
+        console.log("[v0] Consultando API do MP para pagamento:", paymentId)
         const mpResponse = await fetch(
           `https://api.mercadopago.com/v1/payments/${paymentId}`,
           {
@@ -384,12 +396,15 @@ export async function POST(request: NextRequest) {
           }
         )
 
+        console.log("[v0] MP API response status:", mpResponse.status)
+
         if (mpResponse.ok) {
           const mpData = await mpResponse.json()
           const newStatus = mpData.status
+          console.log("[v0] Status do MP:", newStatus, "status_detail:", mpData.status_detail)
 
           // Atualiza o status no banco
-          await supabase
+          const { error: updateError } = await supabase
             .from("payments")
             .update({
               status: newStatus,
@@ -397,7 +412,7 @@ export async function POST(request: NextRequest) {
             })
             .eq("id", payment.id)
 
-          console.log(`Payment ${paymentId} updated to status: ${newStatus}`)
+          console.log("[v0] Payment", paymentId, "updated to status:", newStatus, "error:", updateError?.message)
 
           // ========== PAGAMENTO APROVADO - DISPARAR UPSELL ==========
           if (newStatus === "approved") {
