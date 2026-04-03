@@ -896,7 +896,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   email: `user${telegramUserId}@telegram.bot`,
                   first_name: (from?.first_name as string) || "Cliente",
                 },
-                notification_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://v0-payment-plans.vercel.app"}/api/payments/webhook/mercadopago`,
+                notification_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/payments/webhook/mercadopago`,
               }),
             })
 
