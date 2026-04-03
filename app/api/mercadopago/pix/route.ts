@@ -47,6 +47,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // URL de notificacao para webhook
+    const notificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://dragon.vrstudios.com.br"}/api/payments/webhook/mercadopago`
+    console.log("[v0] Notification URL:", notificationUrl)
+
     // Criar pagamento PIX via Mercado Pago (sem enviar dados do payer - igual ao bot)
     const response = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -62,6 +66,7 @@ export async function POST(request: NextRequest) {
         payer: {
           email: "cliente@checkout.com",
         },
+        notification_url: notificationUrl,
       }),
     })
 
