@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const { accessToken, amount, description, payer, siteId, userId } = await request.json()
 
-    console.log("[v0] PIX API called - amount:", amount, "siteId:", siteId, "hasPayer:", !!payer)
+    console.log("[v0] PIX API called - amount:", amount, "siteId:", siteId, "userId:", userId, "hasPayer:", !!payer)
 
     if (!accessToken || !amount) {
       return NextResponse.json(
