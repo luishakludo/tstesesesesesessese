@@ -2042,18 +2042,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     <Input
                                       type="text"
                                       inputMode="decimal"
-                                      value={plan.priceInput ?? plan.price?.toString().replace(".", ",") ?? ""}
+                                      value={plan.price || ""}
                                       onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.,]/g, "")
-                                        handleUpdatePlan(plan.id, "priceInput", val)
+                                        const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                        handleUpdatePlan(plan.id, "price", val === "" ? 0 : val)
                                       }}
                                       onBlur={(e) => {
-                                        const val = e.target.value.replace(",", ".")
-                                        const num = parseFloat(val) || 0
+                                        const num = parseFloat(String(plan.price).replace(",", ".")) || 0
                                         handleUpdatePlan(plan.id, "price", num)
-                                        handleUpdatePlan(plan.id, "priceInput", undefined)
                                       }}
-                                      placeholder="0,00"
+                                      placeholder="0.00"
                                       className="bg-secondary/50"
                                     />
                                   </div>
@@ -2517,17 +2515,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 <Input
                                                   type="text"
                                                   inputMode="decimal"
-                                                  value={plan.priceInput ?? plan.price?.toString().replace(".", ",") ?? ""}
+                                                  value={plan.price || ""}
                                                   onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, "")
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "priceInput", val)
+                                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
                                                   }}
-                                                  onBlur={(e) => {
-                                                    const val = e.target.value.replace(",", ".")
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", parseFloat(val) || 0)
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "priceInput", undefined)
+                                                  onBlur={() => {
+                                                    const num = parseFloat(String(plan.price).replace(",", ".")) || 0
+                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
                                                   }}
-                                                  placeholder="0,00"
+                                                  placeholder="0.00"
                                   className="bg-secondary/50 border-border/50 h-8 text-sm"
                                 />
                                       </div>
@@ -3025,17 +3022,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 <Input
                                                   type="text"
                                                   inputMode="decimal"
-                                                  value={plan.priceInput ?? plan.price?.toString().replace(".", ",") ?? ""}
+                                                  value={plan.price || ""}
                                                   onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, "")
-                                                    handleUpdateDownsellPlan(seq.id, plan.id, "priceInput", val)
+                                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                                    handleUpdateDownsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
                                                   }}
-                                                  onBlur={(e) => {
-                                                    const val = e.target.value.replace(",", ".")
-                                                    handleUpdateDownsellPlan(seq.id, plan.id, "price", parseFloat(val) || 0)
-                                                    handleUpdateDownsellPlan(seq.id, plan.id, "priceInput", undefined)
+                                                  onBlur={() => {
+                                                    const num = parseFloat(String(plan.price).replace(",", ".")) || 0
+                                                    handleUpdateDownsellPlan(seq.id, plan.id, "price", num)
                                                   }}
-                                                  placeholder="0,00"
+                                                  placeholder="0.00"
                                   className="bg-secondary/50 border-border/50 h-8 text-sm"
                                 />
                                         </div>
@@ -3341,17 +3337,17 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 <Input
                                   type="text"
                                   inputMode="decimal"
-                                  value={orderBumpInicial.priceInput ?? orderBumpInicial.price?.toString().replace(".", ",") ?? ""}
+                                  value={orderBumpInicial.price || ""}
                                   onChange={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.,]/g, "")
-                                    setOrderBumpInicial({...orderBumpInicial, priceInput: val})
+                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                    setOrderBumpInicial({...orderBumpInicial, price: val === "" ? 0 : val as unknown as number})
                                     setHasChanges(true)
                                   }}
-                                  onBlur={(e) => {
-                                    const val = e.target.value.replace(",", ".")
-                                    setOrderBumpInicial({...orderBumpInicial, price: parseFloat(val) || 0, priceInput: undefined})
+                                  onBlur={() => {
+                                    const num = parseFloat(String(orderBumpInicial.price).replace(",", ".")) || 0
+                                    setOrderBumpInicial({...orderBumpInicial, price: num})
                                   }}
-                                placeholder="0,00"
+                                placeholder="0.00"
                                 className="bg-secondary/50"
                               />
                             </div>
@@ -3499,7 +3495,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div className="space-y-2">
                           <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpUpsell.priceInput ?? orderBumpUpsell.price?.toString().replace(".", ",") ?? ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, ""); setOrderBumpUpsell({...orderBumpUpsell, priceInput: val}); setHasChanges(true) }} onBlur={(e) => { const val = e.target.value.replace(",", "."); setOrderBumpUpsell({...orderBumpUpsell, price: parseFloat(val) || 0, priceInput: undefined}) }} placeholder="0,00" className="bg-secondary/50" />
+                          <Input type="text" inputMode="decimal" value={orderBumpUpsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpUpsell({...orderBumpUpsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpUpsell.price).replace(",", ".")) || 0; setOrderBumpUpsell({...orderBumpUpsell, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -3575,7 +3571,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div className="space-y-2">
                           <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpDownsell.priceInput ?? orderBumpDownsell.price?.toString().replace(".", ",") ?? ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, ""); setOrderBumpDownsell({...orderBumpDownsell, priceInput: val}); setHasChanges(true) }} onBlur={(e) => { const val = e.target.value.replace(",", "."); setOrderBumpDownsell({...orderBumpDownsell, price: parseFloat(val) || 0, priceInput: undefined}) }} placeholder="0,00" className="bg-secondary/50" />
+                          <Input type="text" inputMode="decimal" value={orderBumpDownsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpDownsell({...orderBumpDownsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpDownsell.price).replace(",", ".")) || 0; setOrderBumpDownsell({...orderBumpDownsell, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -3651,7 +3647,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div className="space-y-2">
                           <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpPacks.priceInput ?? orderBumpPacks.price?.toString().replace(".", ",") ?? ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, ""); setOrderBumpPacks({...orderBumpPacks, priceInput: val}); setHasChanges(true) }} onBlur={(e) => { const val = e.target.value.replace(",", "."); setOrderBumpPacks({...orderBumpPacks, price: parseFloat(val) || 0, priceInput: undefined}) }} placeholder="0,00" className="bg-secondary/50" />
+                          <Input type="text" inputMode="decimal" value={orderBumpPacks.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpPacks({...orderBumpPacks, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpPacks.price).replace(",", ".")) || 0; setOrderBumpPacks({...orderBumpPacks, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -3889,17 +3885,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 <Input
                                   type="text"
                                   inputMode="decimal"
-                                  value={pack.priceInput ?? pack.price?.toString().replace(".", ",") ?? ""}
+                                  value={pack.price || ""}
                                   onChange={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.,]/g, "")
-                                    handleUpdatePack(pack.id, "priceInput", val)
+                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                    handleUpdatePack(pack.id, "price", val === "" ? 0 : val)
                                   }}
-                                  onBlur={(e) => {
-                                    const val = e.target.value.replace(",", ".")
-                                    handleUpdatePack(pack.id, "price", parseFloat(val) || 0)
-                                    handleUpdatePack(pack.id, "priceInput", undefined)
+                                  onBlur={() => {
+                                    const num = parseFloat(String(pack.price).replace(",", ".")) || 0
+                                    handleUpdatePack(pack.id, "price", num)
                                   }}
-                                  placeholder="0,00"
+                                  placeholder="0.00"
                                   className="bg-secondary/50"
                                 />
                               </div>
