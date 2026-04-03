@@ -76,7 +76,7 @@ export default function VendasPage() {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE
       const statusParam = activeTab !== "all" ? `&status=${activeTab}` : ""
       const url = `/api/payments/list?userId=${userId}&limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`
-      console.log("[v0] Fetching payments:", url)
+      console.log("[v0] Fetching payments - userId:", userId, "url:", url)
       const res = await fetch(url, { credentials: "include" })
       const data = await res.json()
       console.log("[v0] Payments response:", data.payments?.length, "stats:", data.stats)
