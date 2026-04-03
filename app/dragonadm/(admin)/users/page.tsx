@@ -228,8 +228,8 @@ export default function UsersManagementPage() {
             <Card className="bg-card border-border">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-500" />
+                  <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
                   <div>
                     <p className="text-xl font-bold text-foreground">{users.length}</p>
