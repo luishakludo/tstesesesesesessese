@@ -25,7 +25,7 @@ import {
   Globe, Link2, Settings2, Zap, Image as ImageIcon, Bold, Italic,
   Underline, Strikethrough, Code, Link as LinkIcon, Quote, Smile,
   ExternalLink, MessageCircle, Copy, ChevronDown, ChevronRight, Clock,
-  Check, X, Workflow, Gift, Video, Music, BarChart3
+  Check, X, Workflow, Gift, Video, Music, BarChart3, CheckCircle
 } from "lucide-react"
 
 // Types
@@ -439,6 +439,22 @@ Clique no botao abaixo para renovar com desconto especial!`)
 
   // Conversions
   const [conversionsPeriod, setConversionsPeriod] = useState("all")
+  const [conversionsData, setConversionsData] = useState<{
+    payments: Array<{
+      id: string
+      amount: number
+      status: string
+      payer_name: string
+      payer_email: string
+      created_at: string
+      bot_name?: string
+    }>
+    stats: {
+      total: number
+      totalAmount: number
+    }
+  }>({ payments: [], stats: { total: 0, totalAmount: 0 } })
+  const [loadingConversions, setLoadingConversions] = useState(false)
 
   // Packs
   const [packs, setPacks] = useState<PackConfig[]>([])
@@ -648,6 +664,87 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
       fetchFlowBots()
     }
   }, [fetchFlow, fetchFlowBots, isAuthLoading, session?.userId])
+  
+  // Fetch conversions (approved payments) for all bots in this flow
+  const fetchConversions = useCallback(async () => {
+    if (flowBots.length === 0) {
+      setConversionsData({ payments: [], stats: { total: 0, totalAmount: 0 } })
+      return
+    }
+    
+    setLoadingConversions(true)
+    
+    try {
+      const allPayments: Array<{
+        id: string
+        amount: number
+        status: string
+        payer_name: string
+        payer_email: string
+        created_at: string
+        bot_name?: string
+      }> = []
+      
+      // Fetch payments for each bot connected to this flow
+      for (const fb of flowBots) {
+        const res = await fetch(`/api/payments/list?botId=${fb.bot_id}&limit=100`)
+        const data = await res.json()
+        
+        if (data?.payments) {
+          // Filter only approved payments and add bot info
+          const approvedPayments = data.payments
+            .filter((p: { status: string }) => p.status === "approved")
+            .map((p: { id: string; amount: number; status: string; payer_name: string; payer_email: string; created_at: string }) => ({
+              ...p,
+              bot_name: fb.bot_username || fb.bot_name || "Bot"
+            }))
+          allPayments.push(...approvedPayments)
+        }
+      }
+      
+      // Filter by period
+      const now = new Date()
+      const filteredPayments = allPayments.filter(p => {
+        const paymentDate = new Date(p.created_at)
+        switch (conversionsPeriod) {
+          case "today":
+            return paymentDate.toDateString() === now.toDateString()
+          case "7days":
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            return paymentDate >= sevenDaysAgo
+          case "30days":
+            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+            return paymentDate >= thirtyDaysAgo
+          default:
+            return true
+        }
+      })
+      
+      // Sort by date descending
+      filteredPayments.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      
+      const totalAmount = filteredPayments.reduce((sum, p) => sum + Number(p.amount), 0)
+      
+      setConversionsData({
+        payments: filteredPayments,
+        stats: {
+          total: filteredPayments.length,
+          totalAmount
+        }
+      })
+    } catch (error) {
+      console.error("Error fetching conversions:", error)
+    } finally {
+      setLoadingConversions(false)
+    }
+  }, [flowBots, conversionsPeriod])
+  
+  // Reload conversions when period or bots change
+  useEffect(() => {
+    if (flowBots.length > 0) {
+      fetchConversions()
+    }
+  }, [flowBots, conversionsPeriod, fetchConversions])
 
   // Adjust selected hours when notification count changes
   useEffect(() => {
@@ -4855,14 +4952,102 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 ))}
               </div>
 
+              {/* Stats Summary */}
+              {conversionsData.payments.length > 0 && (
+                <div className="grid grid-cols-2 gap-4">
+                  <Card className="border-border/50 bg-accent/5">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground mb-1">Total de Vendas</p>
+                      <p className="text-2xl font-bold text-accent">{conversionsData.stats.total}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-border/50 bg-accent/5">
+                    <CardContent className="p-4">
+                      <p className="text-sm text-muted-foreground mb-1">Faturamento</p>
+                      <p className="text-2xl font-bold text-accent">
+                        R$ {conversionsData.stats.totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Loading State */}
+              {loadingConversions && (
+                <Card className="border-border/50">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mb-4" />
+                    <p className="text-muted-foreground">Carregando vendas...</p>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Empty State */}
-              <Card className="border-border/50">
-                <CardContent className="flex flex-col items-center justify-center py-16">
-                  <BarChart3 className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                  <p className="text-muted-foreground font-medium mb-1">Nenhuma venda registrada neste fluxo ainda.</p>
-                  <p className="text-sm text-muted-foreground">Os dados aparecerao quando houver pagamentos.</p>
-                </CardContent>
-              </Card>
+              {!loadingConversions && conversionsData.payments.length === 0 && (
+                <Card className="border-border/50">
+                  <CardContent className="flex flex-col items-center justify-center py-16">
+                    <BarChart3 className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <p className="text-muted-foreground font-medium mb-1">Nenhuma venda registrada neste fluxo ainda.</p>
+                    <p className="text-sm text-muted-foreground">Os dados aparecerao quando houver pagamentos.</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payments List */}
+              {!loadingConversions && conversionsData.payments.length > 0 && (
+                <Card className="border-border/50">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-accent" />
+                      Vendas Aprovadas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {conversionsData.payments.map((payment) => (
+                        <div
+                          key={payment.id}
+                          className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/30"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
+                              <span className="text-accent font-semibold text-sm">
+                                {(payment.payer_name || payment.payer_email || "?").charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">
+                                {payment.payer_name || payment.payer_email || "Cliente"}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>{payment.bot_name}</span>
+                                <span>•</span>
+                                <span>
+                                  {new Date(payment.created_at).toLocaleDateString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "2-digit",
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                  })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-accent">
+                              R$ {Number(payment.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                            </p>
+                            <Badge className="bg-accent/10 text-accent border-accent/30 text-xs">
+                              Aprovado
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>
