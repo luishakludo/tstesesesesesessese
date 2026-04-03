@@ -214,7 +214,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
     
     // 3.1 Handle callback queries
     if (callbackQuery && callbackData && callbackQueryId) {
-      console.log("[v0] Callback recebido:", callbackData)
+      console.log("[v0] Callback recebido:", callbackData, "- isOrderBump:", callbackData.startsWith("ob_"))
       
       // Handle "ver_planos" - show plans as buttons
       if (callbackData === "ver_planos") {
@@ -677,13 +677,18 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         let description = mainDescription
         
         if (isAccept) {
-          const mainAmount = parseFloat(parts[0]) || 0
-          const bumpAmount = parseFloat(parts[1]) || 0
+          // Valores vem em centavos, converter para reais
+          const mainAmountCents = parseInt(parts[0]) || 0
+          const bumpAmountCents = parseInt(parts[1]) || 0
+          const mainAmount = mainAmountCents / 100
+          const bumpAmount = bumpAmountCents / 100
           totalAmount = mainAmount + bumpAmount
           description = `${mainDescription} + ${orderBumpName}`
           console.log("[v0] Order Bump ACEITO - main:", mainAmount, "bump:", bumpAmount, "TOTAL:", totalAmount)
         } else {
-          totalAmount = parseFloat(parts[0]) || 0
+          // Valor vem em centavos
+          const mainAmountCents = parseInt(parts[0]) || 0
+          totalAmount = mainAmountCents / 100
           description = mainDescription
           console.log("[v0] Order Bump RECUSADO - Total:", totalAmount)
         }
@@ -773,7 +778,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           const productType = isAccept ? `${sourceType}_order_bump` : sourceType
           
           // Save payment
-          await supabase.from("payments").insert({
+          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount)
+          const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: botDataOB.user_id,
             flow_id: userState?.flow_id,
@@ -791,6 +797,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
+          if (obPaymentError) {
+            console.error("[v0] Error saving OB payment:", obPaymentError)
+          } else {
+            console.log("[v0] OB payment saved successfully")
+          }
           
         } catch (pixError) {
           console.error("[v0] Erro ao gerar PIX para Order Bump:", pixError)
@@ -894,7 +905,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
 
             if (pixData.id && pixData.point_of_interaction?.transaction_data?.qr_code) {
               // Salvar pagamento do upsell
-              await supabase.from("payments").insert({
+              console.log("[v0] Saving upsell payment - user_id:", botOwner?.user_id, "bot_id:", botUuid, "amount:", upsellPrice)
+              const { error: upsellPaymentError } = await supabase.from("payments").insert({
                 user_id: botOwner?.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
@@ -906,6 +918,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
+              if (upsellPaymentError) {
+                console.error("[v0] Error saving upsell payment:", upsellPaymentError)
+              } else {
+                console.log("[v0] Upsell payment saved successfully")
+              }
 
               // Atualizar estado
               await supabase
@@ -1110,7 +1127,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   await sendTelegramMessage(botToken, chatId, `<code>${pixResult.copyPaste}</code>`)
                   
                   // Salvar pagamento
-                  await supabase.from("payments").insert({
+                  console.log("[v0] Saving downsell payment - user_id:", botData?.user_id, "bot_id:", botUuid, "amount:", price)
+                  const { error: downsellPaymentError } = await supabase.from("payments").insert({
                     user_id: botData?.user_id,
                     bot_id: botUuid,
                     telegram_user_id: String(telegramUserId),
@@ -1126,6 +1144,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                     status: "pending",
                     product_type: "downsell"
                   })
+                  if (downsellPaymentError) {
+                    console.error("[v0] Error saving downsell payment:", downsellPaymentError)
+                  } else {
+                    console.log("[v0] Downsell payment saved successfully")
+                  }
                   
                   // Cancelar outros downsells pendentes
                   await supabase
@@ -1274,10 +1297,17 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const orderBumpDeclineText = orderBumpInicial.rejectText || "NAO QUERO"
             
             // Formato: ob_accept_{mainAmount}_{bumpAmount} ou ob_decline_{mainAmount}
+            // Arredondar precos para evitar problemas com decimais no callback
+            const mainPriceRounded = Math.round(planPrice * 100)
+            const bumpPriceRounded = Math.round(orderBumpInicial.price * 100)
+            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+            const declineCallback = `ob_decline_${mainPriceRounded}`
+            console.log("[v0] Order Bump callbacks:", acceptCallback, declineCallback)
+            
             const orderBumpKeyboard = {
               inline_keyboard: [
-                [{ text: orderBumpAcceptText, callback_data: `ob_accept_${planPrice}_${orderBumpInicial.price}` }],
-                [{ text: orderBumpDeclineText, callback_data: `ob_decline_${planPrice}` }]
+                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
               ]
             }
             

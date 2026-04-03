@@ -46,6 +46,17 @@ export async function GET() {
       .select("user_id, amount, status")
       .eq("status", "approved")
 
+    // Buscar saldos de afiliados (referral_sales)
+    const { data: allReferralSales } = await supabase
+      .from("referral_sales")
+      .select("referrer_id, amount")
+    
+    // Buscar saques de afiliados para calcular saldo disponivel
+    const { data: allWithdraws } = await supabase
+      .from("referral_withdraws")
+      .select("user_id, amount, status")
+      .in("status", ["approved", "paid"])
+
     // Buscar starts por bot
     const { data: allStarts } = await supabase
       .from("telegram_users")
@@ -80,6 +91,13 @@ export async function GET() {
       const userBotIds = userBots.map(b => b.id)
       const totalStarts = userBotIds.reduce((acc, botId) => acc + (startsByBot[botId] || 0), 0)
 
+      // Calcular saldo de afiliado
+      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === profile.id) || []
+      const totalReferralEarnings = userReferralSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0)
+      const userWithdraws = allWithdraws?.filter(w => w.user_id === profile.id) || []
+      const totalWithdrawn = userWithdraws.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
+      const affiliateBalance = totalReferralEarnings - totalWithdrawn
+
       return {
         id: profile.id,
         email: profile.email,
@@ -111,6 +129,9 @@ export async function GET() {
           totalPayments: userPayments.length,
           totalRevenue: userPayments.reduce((acc, p) => acc + (p.amount || 0), 0),
         },
+        affiliateBalance,
+        totalReferralEarnings,
+        totalWithdrawn,
       }
     })
 
