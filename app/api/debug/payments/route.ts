@@ -11,38 +11,57 @@ export async function GET(request: NextRequest) {
     
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     
-    // 1. Buscar todos os payments (ultimos 20)
+    // 1. Buscar todos os payments (ultimos 30)
     const { data: allPayments, error: paymentsError } = await supabase
       .from("payments")
       .select("id, bot_id, user_id, amount, status, product_type, created_at")
       .order("created_at", { ascending: false })
-      .limit(20)
+      .limit(30)
     
-    // 2. Buscar bots do usuario (se fornecido)
-    let userBots: { id: string; name: string }[] = []
-    if (userId) {
-      const { data: bots } = await supabase
-        .from("bots")
-        .select("id, name")
-        .eq("user_id", userId)
-      userBots = bots || []
-    }
+    // 2. Contar por product_type
+    const typeCounts: Record<string, number> = {}
+    allPayments?.forEach(p => {
+      const type = p.product_type || "sem_tipo"
+      typeCounts[type] = (typeCounts[type] || 0) + 1
+    })
     
-    // 3. Filtrar payments por bot_id OU user_id
-    const userBotIds = userBots.map(b => b.id)
-    const userPayments = allPayments?.filter(p => 
-      userBotIds.includes(p.bot_id) || p.user_id === userId
+    // 3. Contar por status
+    const statusCounts: Record<string, number> = {}
+    allPayments?.forEach(p => {
+      const status = p.status || "sem_status"
+      statusCounts[status] = (statusCounts[status] || 0) + 1
+    })
+    
+    // 4. Buscar estados de Order Bump pendentes
+    const { data: obStates } = await supabase
+      .from("user_flow_state")
+      .select("bot_id, telegram_user_id, status, metadata, updated_at")
+      .eq("status", "waiting_order_bump")
+      .order("updated_at", { ascending: false })
+      .limit(5)
+    
+    // 5. Buscar pagamentos com product_type contendo "order_bump"
+    const orderBumpPayments = allPayments?.filter(p => 
+      p.product_type?.includes("order_bump")
+    ) || []
+    
+    // 6. Buscar pagamentos aprovados
+    const approvedPayments = allPayments?.filter(p => 
+      p.status === "approved"
     ) || []
     
     return NextResponse.json({
-      debug: true,
-      userId,
-      userBots,
-      userBotIds,
-      allPaymentsCount: allPayments?.length || 0,
-      allPayments: allPayments?.slice(0, 10),
-      userPaymentsCount: userPayments.length,
-      userPayments,
+      resumo: {
+        totalUltimos30: allPayments?.length || 0,
+        porTipo: typeCounts,
+        porStatus: statusCounts,
+        orderBumpCount: orderBumpPayments.length,
+        aprovadosCount: approvedPayments.length,
+      },
+      orderBumpPayments,
+      approvedPayments: approvedPayments.slice(0, 5),
+      estadosOrderBumpPendentes: obStates,
+      ultimosPagamentos: allPayments?.slice(0, 10),
       error: paymentsError,
     })
   } catch (error) {
