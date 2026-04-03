@@ -11,7 +11,7 @@ export async function GET() {
     // 1. Buscar todos os bots (para debug - sem auth)
     const { data: bots, error: botsError } = await supabase
       .from("bots")
-      .select("id, name, username")
+      .select("id, name, token")
       .limit(10)
 
     if (botsError) {
@@ -119,8 +119,7 @@ export async function GET() {
       return {
         bot: {
           id: bot.id,
-          name: bot.name,
-          username: bot.username
+          name: bot.name
         },
         resumo: {
           totalFluxos: allFlows.length,
