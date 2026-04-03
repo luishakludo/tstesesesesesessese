@@ -400,12 +400,12 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-sm bg-blue-600"></span>
-                    <span className="text-xs font-bold text-foreground">0</span>
+                    <span className="text-xs font-bold text-foreground">{conversationsData?.total || 0}</span>
                     <span className="text-xs text-muted-foreground">Leads</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-sm bg-muted"></span>
-                    <span className="text-xs font-bold text-foreground">0</span>
+                    <span className="text-xs font-bold text-foreground">{faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xs text-muted-foreground">Receita</span>
                   </div>
                   <div className="flex items-center gap-2">
