@@ -539,13 +539,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         console.log("[v0] orderBumpConfig:", JSON.stringify(orderBumpConfig))
         console.log("[v0] orderBumpPacks:", JSON.stringify(orderBumpPacks))
         console.log("[v0] CONDICOES PARA ORDER BUMP:")
-        console.log("[v0]   - orderBumpConfig?.enabled =", orderBumpConfig?.enabled)
         console.log("[v0]   - orderBumpPacks?.enabled =", orderBumpPacks?.enabled)
         console.log("[v0]   - orderBumpPacks?.price =", orderBumpPacks?.price)
-        console.log("[v0]   - RESULTADO FINAL =", !!(orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks?.price && orderBumpPacks.price > 0))
+        console.log("[v0]   - RESULTADO FINAL =", !!(orderBumpPacks?.enabled && orderBumpPacks?.price && orderBumpPacks.price > 0))
         
         // Se order bump de packs estiver habilitado, enviar oferta
-        if (orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks.price && orderBumpPacks.price > 0) {
+        // NOTA: Cada tipo de order bump (inicial, upsell, downsell, packs) tem seu proprio enabled
+        // Nao depende do orderBumpConfig.enabled geral
+        if (orderBumpPacks?.enabled && orderBumpPacks.price && orderBumpPacks.price > 0) {
           console.log("[v0] ====== ORDER BUMP SERA MOSTRADO! ======")
           console.log("[v0] Enviando Order Bump para Pack - name:", orderBumpPacks.name, "price:", orderBumpPacks.price)
           

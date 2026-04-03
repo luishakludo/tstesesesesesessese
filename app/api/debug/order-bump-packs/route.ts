@@ -74,8 +74,9 @@ export async function GET() {
         const orderBump = config.orderBump as { enabled?: boolean; packs?: { enabled?: boolean; name?: string; price?: number; description?: string } } | null
         const orderBumpPacks = orderBump?.packs || null
 
+        // NOTA: Cada tipo de order bump (inicial, upsell, downsell, packs) tem seu proprio enabled
+        // Nao depende do orderBump.enabled geral - apenas do packs.enabled
         const wouldShow = !!(
-          orderBump?.enabled && 
           orderBumpPacks?.enabled && 
           orderBumpPacks?.price && 
           orderBumpPacks.price > 0
@@ -84,8 +85,6 @@ export async function GET() {
         let reason = "OK - Order Bump SERA mostrado!"
         if (!orderBump) {
           reason = "orderBump NAO EXISTE no config"
-        } else if (!orderBump.enabled) {
-          reason = "orderBump.enabled = false"
         } else if (!orderBumpPacks) {
           reason = "orderBump.packs NAO EXISTE"
         } else if (!orderBumpPacks.enabled) {
