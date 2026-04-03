@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 import {
   LayoutDashboard,
   DollarSign,
-  Users,
   Bot,
   GitBranch,
   Megaphone,
@@ -46,7 +45,6 @@ const navSections: NavSection[] = [
     items: [
       { label: "Dashboard", description: "Visao geral", href: "/", icon: LayoutDashboard },
       { label: "Vendas", description: "Vendas e transacoes", href: "/payments", icon: DollarSign },
-      // { label: "Clientes", description: "Base de leads", href: "/users", icon: Users },
     ],
   },
   {
