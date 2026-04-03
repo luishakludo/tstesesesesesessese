@@ -214,7 +214,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
     
     // 3.1 Handle callback queries
     if (callbackQuery && callbackData && callbackQueryId) {
-      console.log("[v0] Callback recebido:", callbackData)
+      console.log("[v0] Callback recebido:", callbackData, "- isOrderBump:", callbackData.startsWith("ob_"))
       
       // Handle "ver_planos" - show plans as buttons
       if (callbackData === "ver_planos") {
