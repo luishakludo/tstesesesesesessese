@@ -336,7 +336,7 @@ export default function DashboardPage() {
                     </div>
                     Usuários Ativos
                   </div>
-                  <div className="text-3xl font-bold">0</div>
+                  <div className="text-3xl font-bold">{paymentsData?.stats?.approved || 0}</div>
                 </div>
               </div>
             </div>
