@@ -652,13 +652,21 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
       
       // ========== ORDER BUMP CALLBACKS ==========
       if (callbackData.startsWith("ob_accept_") || callbackData.startsWith("ob_decline_")) {
-        console.log("[v0] Order Bump Callback recebido:", callbackData)
+        console.log("[v0] Order Bump Callback recebido:", callbackData, "botUuid:", botUuid, "telegramUserId:", telegramUserId)
+        
+        // Answer callback query imediatamente
+        await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callback_query_id: callbackQueryId })
+        })
         
         const isAccept = callbackData.startsWith("ob_accept_")
         const parts = callbackData.replace("ob_accept_", "").replace("ob_decline_", "").split("_")
+        console.log("[v0] Order Bump parts:", parts, "isAccept:", isAccept)
         
         // Buscar metadata do order bump salvo no estado
-        const { data: userState } = await supabase
+        const { data: userState, error: stateError } = await supabase
           .from("user_flow_state")
           .select("metadata, flow_id")
           .eq("bot_id", botUuid)
@@ -667,6 +675,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .order("updated_at", { ascending: false })
           .limit(1)
           .single()
+        
+        console.log("[v0] Order Bump userState:", userState, "error:", stateError)
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const metadata = userState?.metadata as Record<string, any> | null
@@ -693,7 +703,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.log("[v0] Order Bump RECUSADO - Total:", totalAmount)
         }
         
+        console.log("[v0] Order Bump - totalAmount calculado:", totalAmount)
         if (totalAmount <= 0) {
+          console.log("[v0] Order Bump ERRO - totalAmount <= 0, retornando")
           await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
           return
         }
@@ -1329,7 +1341,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
             
             // Salvar estado para quando usuario responder
-            await supabase.from("user_flow_state").upsert({
+            console.log("[v0] Salvando estado Order Bump - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId))
+            const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
               bot_id: botUuid,
               telegram_user_id: String(telegramUserId),
               flow_id: flowForOrderBump.id,
@@ -1345,6 +1358,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             }, {
               onConflict: "bot_id,telegram_user_id"
             })
+            if (stateUpsertError) {
+              console.error("[v0] Erro ao salvar estado Order Bump:", stateUpsertError)
+            } else {
+              console.log("[v0] Estado Order Bump salvo com sucesso")
+            }
             
             return // STOP - aguardar decisao do Order Bump
           }
