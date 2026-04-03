@@ -41,7 +41,10 @@ interface Payment {
 
 export default function VendasPage() {
   const { session, isLoading: authLoading } = useAuth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id || session?.userId
+  
+  // Debug: mostra userId no console assim que carregar
+  console.log("[v0] VendasPage - session:", session, "userId:", userId, "authLoading:", authLoading)
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
