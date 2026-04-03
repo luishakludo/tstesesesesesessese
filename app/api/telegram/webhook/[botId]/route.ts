@@ -677,13 +677,18 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         let description = mainDescription
         
         if (isAccept) {
-          const mainAmount = parseFloat(parts[0]) || 0
-          const bumpAmount = parseFloat(parts[1]) || 0
+          // Valores vem em centavos, converter para reais
+          const mainAmountCents = parseInt(parts[0]) || 0
+          const bumpAmountCents = parseInt(parts[1]) || 0
+          const mainAmount = mainAmountCents / 100
+          const bumpAmount = bumpAmountCents / 100
           totalAmount = mainAmount + bumpAmount
           description = `${mainDescription} + ${orderBumpName}`
           console.log("[v0] Order Bump ACEITO - main:", mainAmount, "bump:", bumpAmount, "TOTAL:", totalAmount)
         } else {
-          totalAmount = parseFloat(parts[0]) || 0
+          // Valor vem em centavos
+          const mainAmountCents = parseInt(parts[0]) || 0
+          totalAmount = mainAmountCents / 100
           description = mainDescription
           console.log("[v0] Order Bump RECUSADO - Total:", totalAmount)
         }
@@ -1292,10 +1297,17 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const orderBumpDeclineText = orderBumpInicial.rejectText || "NAO QUERO"
             
             // Formato: ob_accept_{mainAmount}_{bumpAmount} ou ob_decline_{mainAmount}
+            // Arredondar precos para evitar problemas com decimais no callback
+            const mainPriceRounded = Math.round(planPrice * 100)
+            const bumpPriceRounded = Math.round(orderBumpInicial.price * 100)
+            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+            const declineCallback = `ob_decline_${mainPriceRounded}`
+            console.log("[v0] Order Bump callbacks:", acceptCallback, declineCallback)
+            
             const orderBumpKeyboard = {
               inline_keyboard: [
-                [{ text: orderBumpAcceptText, callback_data: `ob_accept_${planPrice}_${orderBumpInicial.price}` }],
-                [{ text: orderBumpDeclineText, callback_data: `ob_decline_${planPrice}` }]
+                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
               ]
             }
             
