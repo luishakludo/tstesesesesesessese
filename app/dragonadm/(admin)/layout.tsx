@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
-  Shield,
   Users,
   Bot,
   CreditCard,
@@ -134,11 +134,14 @@ export default function DragonAdmLayout({
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <span className="font-bold text-white">Dragon ADM</span>
+            <div className="flex items-center">
+              <Image
+                src="/images/logo-dragon.png"
+                alt="Dragon"
+                width={140}
+                height={40}
+                className="h-8 w-auto"
+              />
             </div>
             <Button
               variant="ghost"
