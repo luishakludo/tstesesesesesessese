@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const { accessToken, amount, description, payer, siteId, userId } = await request.json()
 
-    console.log("[v0] PIX API called - amount:", amount, "siteId:", siteId, "hasPayer:", !!payer)
+    console.log("[v0] PIX API called - amount:", amount, "siteId:", siteId, "userId:", userId, "hasPayer:", !!payer)
 
     if (!accessToken || !amount) {
       return NextResponse.json(
@@ -90,10 +90,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Salvar pagamento na tabela payments se tiver userId (para aparecer em Vendas)
+    console.log("[v0] Saving payment - userId:", userId)
     if (userId) {
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-        await supabase.from("payments").insert({
+        const paymentInsert = {
           user_id: userId,
           amount: amount,
           status: "pending",
@@ -108,7 +109,20 @@ export async function POST(request: NextRequest) {
           qr_code: pixData.qr_code_base64,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        })
+        }
+        console.log("[v0] Payment insert data:", JSON.stringify(paymentInsert))
+        
+        const { data: insertedPayment, error: paymentError } = await supabase
+          .from("payments")
+          .insert(paymentInsert)
+          .select()
+          .single()
+        
+        if (paymentError) {
+          console.error("[v0] Payment insert error:", paymentError)
+        } else {
+          console.log("[v0] Payment saved:", insertedPayment?.id)
+        }
         
         // Atualizar lead com payment_id
         if (leadId) {
@@ -120,6 +134,8 @@ export async function POST(request: NextRequest) {
       } catch (err) {
         console.error("[v0] Error saving payment:", err)
       }
+    } else {
+      console.log("[v0] No userId provided, payment not saved to DB")
     }
 
     return NextResponse.json({

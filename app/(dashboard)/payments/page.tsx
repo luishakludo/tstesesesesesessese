@@ -41,7 +41,10 @@ interface Payment {
 
 export default function VendasPage() {
   const { session, isLoading: authLoading } = useAuth()
-  const userId = session?.user?.id
+  const userId = session?.user?.id || session?.userId
+  
+  // Debug: mostra userId no console assim que carregar
+  console.log("[v0] VendasPage - session:", session, "userId:", userId, "authLoading:", authLoading)
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
@@ -75,15 +78,18 @@ export default function VendasPage() {
     try {
       const offset = (currentPage - 1) * ITEMS_PER_PAGE
       const statusParam = activeTab !== "all" ? `&status=${activeTab}` : ""
-      const res = await fetch(`/api/payments/list?userId=${userId}&limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`, { credentials: "include" })
+      const url = `/api/payments/list?userId=${userId}&limit=${ITEMS_PER_PAGE}&offset=${offset}${statusParam}`
+      console.log("[v0] Fetching payments - userId:", userId, "url:", url)
+      const res = await fetch(url, { credentials: "include" })
       const data = await res.json()
+      console.log("[v0] Payments response:", data.payments?.length, "stats:", data.stats)
       if (data.payments) {
         setPayments(data.payments)
         setTotalCount(data.total || 0)
         if (data.stats) setApiStats(data.stats)
       }
     } catch (err) {
-      console.error("Error:", err)
+      console.error("[v0] Error:", err)
     } finally {
       setLoading(false)
     }

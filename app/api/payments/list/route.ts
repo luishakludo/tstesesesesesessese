@@ -18,25 +18,15 @@ export async function GET(request: NextRequest) {
     // Se tiver userId, buscar os bots desse usuario
     let userBotIds: string[] = []
     if (userId) {
-      const { data: userBots } = await supabase
+      const { data: userBots, error: botsError } = await supabase
         .from("bots")
         .select("id")
         .eq("user_id", userId)
       userBotIds = userBots?.map(b => b.id) || []
+      console.log("[v0] Payments list - userId:", userId, "userBots:", userBots?.length, "botIds:", userBotIds, "error:", botsError)
     }
 
-    // Se nao tem bots, retornar vazio
-    if (userId && userBotIds.length === 0) {
-      return NextResponse.json({
-        payments: [],
-        stats: { total: 0, approved: 0, pending: 0, rejected: 0, cancelled: 0, totalApproved: 0, totalPending: 0 },
-        total: 0,
-        limit,
-        offset,
-      })
-    }
-
-    // Build query - buscar pagamentos dos bots do usuario
+    // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
     let query = supabase
       .from("payments")
       .select(`
@@ -49,9 +39,15 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1)
 
-    // Filtrar APENAS por bot_id dos bots do usuario (cada bot so pertence a um usuario)
-    if (userId && userBotIds.length > 0) {
-      query = query.in("bot_id", userBotIds)
+    // Filtrar por bot_id dos bots do usuario OU user_id direto (checkout)
+    if (userId) {
+      if (userBotIds.length > 0) {
+        // Tem bots: buscar por bot_id OU user_id
+        query = query.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+      } else {
+        // Sem bots: buscar apenas por user_id
+        query = query.eq("user_id", userId)
+      }
     }
 
     if (botId) {
@@ -64,21 +60,27 @@ export async function GET(request: NextRequest) {
 
     const { data: payments, error, count } = await query
 
+    console.log("[v0] Payments query result - count:", count, "payments:", payments?.length, "error:", error)
+
     if (error) {
-      console.error("Error fetching payments:", error)
+      console.error("[v0] Error fetching payments:", error)
       return NextResponse.json(
         { error: "Erro ao buscar pagamentos" },
         { status: 500 }
       )
     }
 
-    // Calculate stats - mesmo filtro por bot_id
+    // Calculate stats - mesmo filtro
     let statsQuery = supabase
       .from("payments")
       .select("status, amount")
 
-    if (userId && userBotIds.length > 0) {
-      statsQuery = statsQuery.in("bot_id", userBotIds)
+    if (userId) {
+      if (userBotIds.length > 0) {
+        statsQuery = statsQuery.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+      } else {
+        statsQuery = statsQuery.eq("user_id", userId)
+      }
     }
 
     if (botId) {
