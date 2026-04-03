@@ -57,10 +57,17 @@ export async function GET(request: NextRequest) {
   // Teste 4: Listar pagamentos do usuario
   const { data: userPayments, error: listError } = await supabase
     .from("payments")
-    .select("id, amount, status, product_type, created_at")
+    .select("id, amount, status, product_type, bot_id, user_id, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10)
+  
+  // Teste 5: Listar TODOS os pagamentos recentes (para ver se foi salvo com outro bot_id)
+  const { data: allRecentPayments } = await supabase
+    .from("payments")
+    .select("id, amount, status, product_type, bot_id, user_id, created_at")
+    .order("created_at", { ascending: false })
+    .limit(20)
   
   return NextResponse.json({
     success: true,
@@ -69,6 +76,7 @@ export async function GET(request: NextRequest) {
       read: { success: !readError, data: readBack },
       list: { success: !listError, count: userPayments?.length || 0, data: userPayments }
     },
+    allRecentPayments: allRecentPayments,
     message: "Todos os testes passaram!"
   })
 }
