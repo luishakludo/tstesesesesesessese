@@ -36,7 +36,6 @@ export async function GET() {
           id,
           name,
           config,
-          is_active,
           status,
           bot_id,
           user_id
@@ -46,7 +45,7 @@ export async function GET() {
     // 3. Extrair os flows dos flow_bots (contorna RLS)
     const allSystemFlows = (allFlowBots || [])
       .map(fb => fb.flows)
-      .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string; bot_id: string; user_id: string }[]
+      .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; status: string; bot_id: string; user_id: string }[]
     
     console.log("[v0] flowBotsError:", flowBotsError?.message)
     console.log("[v0] allFlowBots count:", allFlowBots?.length)
@@ -63,7 +62,6 @@ export async function GET() {
             id,
             name,
             config,
-            is_active,
             status
           )
         `)
@@ -71,11 +69,11 @@ export async function GET() {
       
       // Extrair os flows do join
       const allFlows = (flowBotsWithFlows || [])
-        .map(fb => fb.flows as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string } | null)
-        .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string }[]
+        .map(fb => fb.flows as { id: string; name: string; config: Record<string, unknown>; status: string } | null)
+        .filter(Boolean) as { id: string; name: string; config: Record<string, unknown>; status: string }[]
       
       // Filtrar apenas ativos (aceitando "ativo" ou "active")
-      const activeFlows = allFlows.filter(f => f.is_active || f.status === "active" || f.status === "ativo")
+      const activeFlows = allFlows.filter(f => f.status === "active" || f.status === "ativo")
 
       // Analisar cada fluxo
       const flowsAnalysis = allFlows.map(flow => {
@@ -106,7 +104,7 @@ export async function GET() {
         return {
           flowId: flow.id,
           flowName: flow.name,
-          isActive: flow.is_active || flow.status === "active",
+          isActive: flow.status === "active" || flow.status === "ativo",
           configKeys: Object.keys(config),
           orderBump: {
             exists: !!orderBump,
