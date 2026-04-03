@@ -207,8 +207,8 @@ export default function UsersManagementPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Usuarios</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-2xl font-bold text-white">Usuarios</h1>
+              <p className="text-sm text-zinc-400">
                 Gerencie todos os usuarios do sistema
               </p>
             </div>
@@ -217,6 +217,7 @@ export default function UsersManagementPage() {
               size="sm"
               onClick={loadUsers}
               disabled={isLoading}
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
               Atualizar
@@ -225,54 +226,54 @@ export default function UsersManagementPage() {
 
           {/* Stats Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-card border-border">
+            <Card className="bg-zinc-900 border-zinc-800">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-blue-500" />
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-foreground">{users.length}</p>
-                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-xl font-bold text-white">{users.length}</p>
+                    <p className="text-xs text-zinc-400">Total</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-card border-border">
+            <Card className="bg-zinc-900 border-zinc-800">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                     <CheckCircle className="h-5 w-5 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-foreground">{activeUsers}</p>
-                    <p className="text-xs text-muted-foreground">Ativos</p>
+                    <p className="text-xl font-bold text-white">{activeUsers}</p>
+                    <p className="text-xs text-zinc-400">Ativos</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-card border-border">
+            <Card className="bg-zinc-900 border-zinc-800">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
                     <Ban className="h-5 w-5 text-red-500" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-foreground">{bannedUsers}</p>
-                    <p className="text-xs text-muted-foreground">Banidos</p>
+                    <p className="text-xl font-bold text-white">{bannedUsers}</p>
+                    <p className="text-xs text-zinc-400">Banidos</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card className="bg-card border-border">
+            <Card className="bg-zinc-900 border-zinc-800">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                    <Bot className="h-5 w-5 text-accent" />
+                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-foreground">{totalBots}</p>
-                    <p className="text-xs text-muted-foreground">Bots</p>
+                    <p className="text-xl font-bold text-white">{totalBots}</p>
+                    <p className="text-xs text-zinc-400">Bots</p>
                   </div>
                 </div>
               </CardContent>
@@ -280,19 +281,19 @@ export default function UsersManagementPage() {
           </div>
 
           {/* Users Table */}
-          <Card className="bg-card border-border">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader className="pb-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle className="text-base font-semibold text-foreground">
+                <CardTitle className="text-base font-semibold text-white">
                   Lista de Usuarios
                 </CardTitle>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
                   <Input
                     placeholder="Buscar usuario..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="w-full sm:w-64 bg-secondary pl-9 border-border text-sm"
+                    className="w-full sm:w-64 bg-zinc-800 pl-9 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
                   />
                 </div>
               </div>
@@ -300,12 +301,12 @@ export default function UsersManagementPage() {
             <CardContent className="p-0">
               {isLoading ? (
                 <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Users className="h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">
+                  <Users className="h-10 w-10 text-zinc-700" />
+                  <p className="text-sm text-zinc-400">
                     {users.length === 0 ? "Nenhum usuario registrado" : "Nenhum resultado"}
                   </p>
                 </div>
@@ -313,32 +314,32 @@ export default function UsersManagementPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-border hover:bg-transparent">
-                        <TableHead className="text-muted-foreground text-xs">Usuario</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Bots</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Gateway</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Indicacoes</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Saldo Afiliado</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Status</TableHead>
-                        <TableHead className="text-muted-foreground text-xs">Criado em</TableHead>
-                        <TableHead className="text-muted-foreground text-xs text-right">Acoes</TableHead>
+                      <TableRow className="border-zinc-800 hover:bg-transparent">
+                        <TableHead className="text-zinc-500 text-xs">Usuario</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Bots</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Gateway</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Indicacoes</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Saldo Afiliado</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Status</TableHead>
+                        <TableHead className="text-zinc-500 text-xs">Criado em</TableHead>
+                        <TableHead className="text-zinc-500 text-xs text-right">Acoes</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.map((user) => (
-                        <TableRow key={user.id} className="border-border">
+                        <TableRow key={user.id} className="border-zinc-800">
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="text-sm font-medium text-foreground">
+                              <span className="text-sm font-medium text-white">
                                 {user.name || "Sem nome"}
                               </span>
-                              <span className="text-xs text-muted-foreground">
+                              <span className="text-xs text-zinc-400">
                                 {user.email}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs bg-zinc-800 text-zinc-300">
                               {user.bots?.length || 0} bots
                             </Badge>
                           </TableCell>
@@ -353,21 +354,21 @@ export default function UsersManagementPage() {
                             ) : (
                               <Badge 
                                 variant="outline" 
-                                className="text-xs text-muted-foreground"
+                                className="text-xs text-zinc-500 border-zinc-700"
                               >
                                 Sem gateway
                               </Badge>
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-foreground">
+                            <span className="text-sm text-white">
                               {user.referrals?.length || 0}
                             </span>
                           </TableCell>
                           <TableCell>
                             <span className={cn(
                               "text-sm font-medium",
-                              (user.affiliateBalance || 0) > 0 ? "text-emerald-500" : "text-muted-foreground"
+                              (user.affiliateBalance || 0) > 0 ? "text-emerald-500" : "text-zinc-500"
                             )}>
                               R$ {(user.affiliateBalance || 0).toFixed(2)}
                             </span>
@@ -376,7 +377,7 @@ export default function UsersManagementPage() {
                             {user.banned ? (
                               <Badge
                                 variant="outline"
-                                className="bg-destructive/10 text-destructive border-destructive/20 text-xs"
+                                className="bg-red-500/10 text-red-400 border-red-500/20 text-xs"
                               >
                                 Banido
                               </Badge>
@@ -390,7 +391,7 @@ export default function UsersManagementPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-zinc-400">
                               {new Date(user.created_at).toLocaleDateString("pt-BR")}
                             </span>
                           </TableCell>
@@ -400,7 +401,7 @@ export default function UsersManagementPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 text-muted-foreground"
+                                  className="h-8 w-8 text-zinc-400 hover:bg-zinc-800"
                                   disabled={actionLoading === user.id}
                                 >
                                   {actionLoading === user.id ? (
@@ -410,19 +411,19 @@ export default function UsersManagementPage() {
                                   )}
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-popover border-border">
+                              <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
                                 <DropdownMenuItem
                                   onClick={() => openUserDetails(user)}
-                                  className="text-foreground"
+                                  className="text-white hover:bg-zinc-800"
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
                                   Ver Detalhes
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-border" />
+                                <DropdownMenuSeparator className="bg-zinc-800" />
                                 {user.banned ? (
                                   <DropdownMenuItem
                                     onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="text-emerald-400"
+                                    className="text-emerald-400 hover:bg-zinc-800"
                                   >
                                     <CheckCircle className="mr-2 h-4 w-4" />
                                     Desbanir
@@ -430,7 +431,7 @@ export default function UsersManagementPage() {
                                 ) : (
                                   <DropdownMenuItem
                                     onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="text-destructive"
+                                    className="text-red-400 hover:bg-zinc-800"
                                   >
                                     <Ban className="mr-2 h-4 w-4" />
                                     Banir
@@ -452,31 +453,31 @@ export default function UsersManagementPage() {
 
       {/* User Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl bg-card border-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-foreground">Detalhes do Usuario</DialogTitle>
+            <DialogTitle className="text-white">Detalhes do Usuario</DialogTitle>
           </DialogHeader>
 
           {selectedUser && (
             <div className="space-y-6">
               {/* User Info */}
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center">
-                  <span className="text-xl font-bold text-accent">
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white">
                     {selectedUser.email?.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-foreground">
+                  <h3 className="text-lg font-semibold text-white">
                     {selectedUser.name || "Sem nome"}
                   </h3>
-                  <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                  <p className="text-sm text-zinc-400">{selectedUser.email}</p>
                   {selectedUser.phone && (
-                    <p className="text-sm text-muted-foreground">{selectedUser.phone}</p>
+                    <p className="text-sm text-zinc-400">{selectedUser.phone}</p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     {selectedUser.banned ? (
-                      <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                      <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">
                         Banido
                       </Badge>
                     ) : (
@@ -484,7 +485,7 @@ export default function UsersManagementPage() {
                         Ativo
                       </Badge>
                     )}
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-zinc-500">
                       Desde {new Date(selectedUser.created_at).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
@@ -492,12 +493,12 @@ export default function UsersManagementPage() {
               </div>
 
               {/* Affiliate Balance */}
-              <Card className="bg-emerald-500/5 border-emerald-500/20">
+              <Card className="bg-zinc-800 border-zinc-700">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Wallet className="h-5 w-5 text-emerald-500" />
-                      <span className="text-sm font-semibold text-foreground">Saldo de Afiliado</span>
+                      <span className="text-sm font-semibold text-white">Saldo de Afiliado (Indique e Ganhe)</span>
                     </div>
                     {!editingBalance && (
                       <Button
@@ -507,9 +508,9 @@ export default function UsersManagementPage() {
                           setEditingBalance(true)
                           setBalanceInput((selectedUser.affiliateBalance || 0).toFixed(2))
                         }}
-                        className="text-xs"
+                        className="text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                       >
-                        Editar
+                        Editar Saldo
                       </Button>
                     )}
                   </div>
@@ -517,21 +518,21 @@ export default function UsersManagementPage() {
                   {editingBalance ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Novo Saldo (R$)</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">Novo Saldo (R$)</label>
                         <Input
                           value={balanceInput}
                           onChange={(e) => setBalanceInput(e.target.value.replace(/[^0-9.,]/g, ""))}
                           placeholder="0.00"
-                          className="bg-background"
+                          className="bg-zinc-900 border-zinc-700 text-white"
                         />
                       </div>
                       <div>
-                        <label className="text-xs text-muted-foreground mb-1 block">Motivo (opcional)</label>
+                        <label className="text-xs text-zinc-400 mb-1 block">Motivo (opcional)</label>
                         <Input
                           value={balanceReason}
                           onChange={(e) => setBalanceReason(e.target.value)}
                           placeholder="Ex: Ajuste de teste"
-                          className="bg-background"
+                          className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
                         />
                       </div>
                       <div className="flex gap-2">
@@ -540,7 +541,7 @@ export default function UsersManagementPage() {
                           size="sm"
                           onClick={() => setEditingBalance(false)}
                           disabled={balanceLoading}
-                          className="flex-1"
+                          className="flex-1 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                         >
                           Cancelar
                         </Button>
@@ -548,7 +549,7 @@ export default function UsersManagementPage() {
                           size="sm"
                           onClick={handleUpdateBalance}
                           disabled={balanceLoading || !balanceInput}
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                          className="flex-1 bg-white text-zinc-900 hover:bg-zinc-200"
                         >
                           {balanceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
                         </Button>
@@ -560,19 +561,19 @@ export default function UsersManagementPage() {
                         <p className="text-2xl font-bold text-emerald-500">
                           R$ {(selectedUser.affiliateBalance || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">Saldo Disponivel</p>
+                        <p className="text-[10px] text-zinc-400">Saldo Disponivel</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-lg font-bold text-foreground">
+                        <p className="text-lg font-bold text-white">
                           R$ {(selectedUser.totalReferralEarnings || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">Total Ganho</p>
+                        <p className="text-[10px] text-zinc-400">Total Ganho</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-lg font-bold text-foreground">
+                        <p className="text-lg font-bold text-white">
                           R$ {(selectedUser.totalWithdrawn || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">Sacado</p>
+                        <p className="text-[10px] text-zinc-400">Sacado</p>
                       </div>
                     </div>
                   )}
@@ -581,32 +582,32 @@ export default function UsersManagementPage() {
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <Card className="bg-secondary/50 border-border">
+                <Card className="bg-zinc-800/50 border-zinc-700">
                   <CardContent className="p-4 text-center">
-                    <Activity className="h-5 w-5 text-accent mx-auto mb-2" />
-                    <p className="text-lg font-bold text-foreground">{selectedUser.stats?.totalStarts || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Starts</p>
+                    <Activity className="h-5 w-5 text-white mx-auto mb-2" />
+                    <p className="text-lg font-bold text-white">{selectedUser.stats?.totalStarts || 0}</p>
+                    <p className="text-xs text-zinc-400">Total Starts</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-secondary/50 border-border">
+                <Card className="bg-zinc-800/50 border-zinc-700">
                   <CardContent className="p-4 text-center">
-                    <CreditCard className="h-5 w-5 text-accent mx-auto mb-2" />
-                    <p className="text-lg font-bold text-foreground">{selectedUser.stats?.totalPayments || 0}</p>
-                    <p className="text-xs text-muted-foreground">Pagamentos</p>
+                    <CreditCard className="h-5 w-5 text-white mx-auto mb-2" />
+                    <p className="text-lg font-bold text-white">{selectedUser.stats?.totalPayments || 0}</p>
+                    <p className="text-xs text-zinc-400">Pagamentos</p>
                   </CardContent>
                 </Card>
-                <Card className="bg-secondary/50 border-border">
+                <Card className="bg-zinc-800/50 border-zinc-700">
                   <CardContent className="p-4 text-center">
-                    <UserPlus className="h-5 w-5 text-accent mx-auto mb-2" />
-                    <p className="text-lg font-bold text-foreground">{selectedUser.referrals?.length || 0}</p>
-                    <p className="text-xs text-muted-foreground">Indicacoes</p>
+                    <UserPlus className="h-5 w-5 text-white mx-auto mb-2" />
+                    <p className="text-lg font-bold text-white">{selectedUser.referrals?.length || 0}</p>
+                    <p className="text-xs text-zinc-400">Indicacoes</p>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Bots */}
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                   <Bot className="h-4 w-4" />
                   Bots ({selectedUser.bots?.length || 0})
                 </h4>
@@ -615,17 +616,17 @@ export default function UsersManagementPage() {
                     {selectedUser.bots.map((bot) => (
                       <div
                         key={bot.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
                       >
                         <div>
-                          <p className="text-sm font-medium text-foreground">{bot.name}</p>
-                          <p className="text-xs text-muted-foreground">@{bot.username}</p>
+                          <p className="text-sm font-medium text-white">{bot.name}</p>
+                          <p className="text-xs text-zinc-400">@{bot.username}</p>
                         </div>
                         <Badge
                           variant="outline"
                           className={bot.is_active 
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                            : "text-muted-foreground"
+                            : "text-zinc-500 border-zinc-700"
                           }
                         >
                           {bot.is_active ? "Ativo" : "Inativo"}
@@ -634,13 +635,13 @@ export default function UsersManagementPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum bot cadastrado</p>
+                  <p className="text-sm text-zinc-400">Nenhum bot cadastrado</p>
                 )}
               </div>
 
               {/* Gateways */}
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
                   Gateways de Pagamento ({selectedUser.gateways?.length || 0})
                 </h4>
@@ -649,13 +650,13 @@ export default function UsersManagementPage() {
                     {selectedUser.gateways.map((gateway) => (
                       <div
                         key={gateway.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
                       >
                         <div>
-                          <p className="text-sm font-medium text-foreground capitalize">
+                          <p className="text-sm font-medium text-white capitalize">
                             {gateway.gateway_name}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-zinc-400">
                             Criado em {new Date(gateway.created_at).toLocaleDateString("pt-BR")}
                           </p>
                         </div>
@@ -663,7 +664,7 @@ export default function UsersManagementPage() {
                           variant="outline"
                           className={gateway.is_active 
                             ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                            : "text-muted-foreground"
+                            : "text-zinc-500 border-zinc-700"
                           }
                         >
                           {gateway.is_active ? "Ativa" : "Inativa"}
@@ -672,13 +673,13 @@ export default function UsersManagementPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhuma gateway configurada</p>
+                  <p className="text-sm text-zinc-400">Nenhuma gateway configurada</p>
                 )}
               </div>
 
               {/* Referrals */}
               <div>
-                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                   <UserPlus className="h-4 w-4" />
                   Usuarios Indicados ({selectedUser.referrals?.length || 0})
                 </h4>
@@ -687,20 +688,20 @@ export default function UsersManagementPage() {
                     {selectedUser.referrals.map((ref) => (
                       <div
                         key={ref.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
+                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
                       >
                         <div>
-                          <p className="text-sm font-medium text-foreground">{ref.name || ref.email}</p>
-                          <p className="text-xs text-muted-foreground">{ref.email}</p>
+                          <p className="text-sm font-medium text-white">{ref.name || ref.email}</p>
+                          <p className="text-xs text-zinc-400">{ref.email}</p>
                         </div>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-zinc-500">
                           {new Date(ref.created_at).toLocaleDateString("pt-BR")}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nenhum usuario indicado</p>
+                  <p className="text-sm text-zinc-400">Nenhum usuario indicado</p>
                 )}
               </div>
             </div>

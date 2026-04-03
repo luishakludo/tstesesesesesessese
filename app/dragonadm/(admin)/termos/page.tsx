@@ -116,8 +116,8 @@ export default function TermosPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      <div className="flex items-center justify-center h-96 bg-zinc-950">
+        <Loader2 className="h-8 w-8 animate-spin text-white" />
       </div>
     )
   }
@@ -128,17 +128,17 @@ export default function TermosPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Termos e Politicas</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-2xl font-bold text-white">Termos e Politicas</h1>
+            <p className="text-sm text-zinc-400">
               Edite os termos de uso e politica de privacidade
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setPreviewOpen(true)}>
+            <Button variant="outline" onClick={() => setPreviewOpen(true)} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={handleSave} disabled={saving} className="bg-white hover:bg-zinc-200 text-zinc-900">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar Alteracoes
             </Button>
@@ -151,8 +151,8 @@ export default function TermosPage() {
             onClick={() => setActiveTab("terms")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "terms"
-                ? "bg-accent/10 text-accent"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
+                ? "bg-white text-zinc-900"
+                : "bg-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
             <FileText className="h-4 w-4" />
@@ -162,8 +162,8 @@ export default function TermosPage() {
             onClick={() => setActiveTab("privacy")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "privacy"
-                ? "bg-accent/10 text-accent"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
+                ? "bg-white text-zinc-900"
+                : "bg-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
             <Shield className="h-4 w-4" />
@@ -172,22 +172,22 @@ export default function TermosPage() {
         </div>
 
         {/* Sections Editor */}
-        <Card className="bg-card border-border">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg text-white">
               {activeTab === "terms" ? "Secoes dos Termos de Uso" : "Secoes da Politica de Privacidade"}
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={addSection}>
+            <Button variant="outline" size="sm" onClick={addSection} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Secao
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             {currentData.sections.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-30" />
+              <div className="text-center py-12 text-zinc-400">
+                <FileText className="h-12 w-12 mx-auto mb-4 text-zinc-700" />
                 <p>Nenhuma secao criada</p>
-                <Button variant="outline" size="sm" className="mt-4" onClick={addSection}>
+                <Button variant="outline" size="sm" className="mt-4 border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={addSection}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar primeira secao
                 </Button>
@@ -196,21 +196,21 @@ export default function TermosPage() {
               currentData.sections.map((section, index) => (
                 <div
                   key={index}
-                  className="p-4 rounded-xl border border-border bg-secondary/30 space-y-3"
+                  className="p-4 rounded-xl border border-zinc-800 bg-zinc-800/30 space-y-3"
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex flex-col gap-1">
                       <button
                         onClick={() => moveSection(index, index - 1)}
                         disabled={index === 0}
-                        className="p-1 rounded hover:bg-secondary disabled:opacity-30"
+                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30 text-zinc-400"
                       >
                         <GripVertical className="h-3 w-3 rotate-90" />
                       </button>
                       <button
                         onClick={() => moveSection(index, index + 1)}
                         disabled={index === currentData.sections.length - 1}
-                        className="p-1 rounded hover:bg-secondary disabled:opacity-30"
+                        className="p-1 rounded hover:bg-zinc-700 disabled:opacity-30 text-zinc-400"
                       >
                         <GripVertical className="h-3 w-3 rotate-90" />
                       </button>
@@ -220,14 +220,14 @@ export default function TermosPage() {
                         value={section.title}
                         onChange={(e) => updateSection(index, "title", e.target.value)}
                         placeholder="Titulo da secao (ex: 1. Aceitacao dos Termos)"
-                        className="font-medium"
+                        className="font-medium bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
                       />
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSection(index)}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      className="text-red-400 hover:text-red-400 hover:bg-red-500/10"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -237,6 +237,7 @@ export default function TermosPage() {
                     onChange={(e) => updateSection(index, "content", e.target.value)}
                     placeholder="Conteudo da secao..."
                     rows={3}
+                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
                   />
                 </div>
               ))
@@ -247,15 +248,15 @@ export default function TermosPage() {
 
       {/* Preview Modal */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[85vh] p-0 gap-0 overflow-hidden">
-          <div className="flex items-center justify-between p-5 border-b">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] p-0 gap-0 overflow-hidden bg-zinc-900 border-zinc-800">
+          <div className="flex items-center justify-between p-5 border-b border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-accent" />
+              <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold">Preview</h3>
-                <p className="text-xs text-muted-foreground">
+                <h3 className="font-semibold text-white">Preview</h3>
+                <p className="text-xs text-zinc-400">
                   {activeTab === "terms" ? "Termos de Uso" : "Politica de Privacidade"}
                 </p>
               </div>
@@ -265,14 +266,14 @@ export default function TermosPage() {
             <div className="space-y-4">
               {currentData.sections.map((section, index) => (
                 <div key={index}>
-                  <h4 className="font-semibold text-accent mb-2">{section.title}</h4>
-                  <p className="text-sm text-muted-foreground">{section.content}</p>
+                  <h4 className="font-semibold text-white mb-2">{section.title}</h4>
+                  <p className="text-sm text-zinc-400">{section.content}</p>
                 </div>
               ))}
             </div>
           </ScrollArea>
-          <div className="p-5 border-t">
-            <Button onClick={() => setPreviewOpen(false)} className="w-full">
+          <div className="p-5 border-t border-zinc-800">
+            <Button onClick={() => setPreviewOpen(false)} className="w-full bg-white text-zinc-900 hover:bg-zinc-200">
               Fechar Preview
             </Button>
           </div>
