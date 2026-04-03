@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
@@ -40,6 +41,8 @@ import {
   Activity,
   Loader2,
   RefreshCw,
+  Wallet,
+  DollarSign,
 } from "lucide-react"
 
 interface UserBot {
@@ -81,6 +84,9 @@ interface AdminUser {
   gateways: UserGateway[]
   referrals: UserReferral[]
   stats: UserStats
+  affiliateBalance: number
+  totalReferralEarnings: number
+  totalWithdrawn: number
 }
 
 export default function UsersManagementPage() {
@@ -90,6 +96,12 @@ export default function UsersManagementPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  
+  // Affiliate balance editing
+  const [editingBalance, setEditingBalance] = useState(false)
+  const [balanceInput, setBalanceInput] = useState("")
+  const [balanceReason, setBalanceReason] = useState("")
+  const [balanceLoading, setBalanceLoading] = useState(false)
 
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
@@ -136,6 +148,47 @@ export default function UsersManagementPage() {
   const openUserDetails = (user: AdminUser) => {
     setSelectedUser(user)
     setDetailsOpen(true)
+    setEditingBalance(false)
+    setBalanceInput("")
+    setBalanceReason("")
+  }
+
+  const handleUpdateBalance = async () => {
+    if (!selectedUser || !balanceInput) return
+    
+    setBalanceLoading(true)
+    try {
+      const res = await fetch("/api/dragonadm/users/update-affiliate-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          amount: parseFloat(balanceInput.replace(",", ".")),
+          type: "set",
+          reason: balanceReason || "Ajuste manual pelo admin",
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        // Atualizar usuario localmente
+        setUsers(prev =>
+          prev.map(u =>
+            u.id === selectedUser.id
+              ? { ...u, affiliateBalance: data.newBalance }
+              : u
+          )
+        )
+        setSelectedUser(prev => prev ? { ...prev, affiliateBalance: data.newBalance } : null)
+        setEditingBalance(false)
+        setBalanceInput("")
+        setBalanceReason("")
+      }
+    } catch (error) {
+      console.error("Erro ao atualizar saldo:", error)
+    } finally {
+      setBalanceLoading(false)
+    }
   }
 
   const filteredUsers = users.filter(u =>
@@ -265,6 +318,7 @@ export default function UsersManagementPage() {
                         <TableHead className="text-muted-foreground text-xs">Bots</TableHead>
                         <TableHead className="text-muted-foreground text-xs">Gateway</TableHead>
                         <TableHead className="text-muted-foreground text-xs">Indicacoes</TableHead>
+                        <TableHead className="text-muted-foreground text-xs">Saldo Afiliado</TableHead>
                         <TableHead className="text-muted-foreground text-xs">Status</TableHead>
                         <TableHead className="text-muted-foreground text-xs">Criado em</TableHead>
                         <TableHead className="text-muted-foreground text-xs text-right">Acoes</TableHead>
@@ -308,6 +362,14 @@ export default function UsersManagementPage() {
                           <TableCell>
                             <span className="text-sm text-foreground">
                               {user.referrals?.length || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={cn(
+                              "text-sm font-medium",
+                              (user.affiliateBalance || 0) > 0 ? "text-emerald-500" : "text-muted-foreground"
+                            )}>
+                              R$ {(user.affiliateBalance || 0).toFixed(2)}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -428,6 +490,94 @@ export default function UsersManagementPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Affiliate Balance */}
+              <Card className="bg-emerald-500/5 border-emerald-500/20">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-emerald-500" />
+                      <span className="text-sm font-semibold text-foreground">Saldo de Afiliado</span>
+                    </div>
+                    {!editingBalance && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingBalance(true)
+                          setBalanceInput((selectedUser.affiliateBalance || 0).toFixed(2))
+                        }}
+                        className="text-xs"
+                      >
+                        Editar
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {editingBalance ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Novo Saldo (R$)</label>
+                        <Input
+                          value={balanceInput}
+                          onChange={(e) => setBalanceInput(e.target.value.replace(/[^0-9.,]/g, ""))}
+                          placeholder="0.00"
+                          className="bg-background"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground mb-1 block">Motivo (opcional)</label>
+                        <Input
+                          value={balanceReason}
+                          onChange={(e) => setBalanceReason(e.target.value)}
+                          placeholder="Ex: Ajuste de teste"
+                          className="bg-background"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setEditingBalance(false)}
+                          disabled={balanceLoading}
+                          className="flex-1"
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleUpdateBalance}
+                          disabled={balanceLoading || !balanceInput}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          {balanceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-emerald-500">
+                          R$ {(selectedUser.affiliateBalance || 0).toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Saldo Disponivel</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-foreground">
+                          R$ {(selectedUser.totalReferralEarnings || 0).toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Total Ganho</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-foreground">
+                          R$ {(selectedUser.totalWithdrawn || 0).toFixed(2)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">Sacado</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               {/* Stats */}
               <div className="grid grid-cols-3 gap-4">
