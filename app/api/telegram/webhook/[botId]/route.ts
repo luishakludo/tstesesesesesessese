@@ -499,6 +499,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const orderBumpConfig = flowConfig.orderBump as { enabled?: boolean; packs?: { enabled?: boolean; name?: string; price?: number; description?: string; acceptText?: string; rejectText?: string; medias?: string[] } } | undefined
         const orderBumpPacks = orderBumpConfig?.packs
         
+        console.log("[v0] Pack Order Bump Check - flowId:", flowForPack?.id)
+        console.log("[v0] Pack Order Bump Config:", JSON.stringify(orderBumpConfig))
+        console.log("[v0] Pack Order Bump Packs:", JSON.stringify(orderBumpPacks))
+        console.log("[v0] Conditions - enabled:", orderBumpConfig?.enabled, "packs.enabled:", orderBumpPacks?.enabled, "price:", orderBumpPacks?.price)
+        
         // Se order bump de packs estiver habilitado, enviar oferta
         if (orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks.price && orderBumpPacks.price > 0) {
           console.log("[v0] Enviando Order Bump para Pack")

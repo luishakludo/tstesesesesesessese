@@ -138,6 +138,21 @@ export default function DashboardPage() {
     { refreshInterval: 30000 } // Atualizar a cada 30 segundos
   )
 
+  // Buscar dados de faturamento (payments)
+  const { data: paymentsData } = useSWR<{
+    stats: {
+      totalApproved: number
+      approved: number
+      approvedUniqueUsers: number
+    }
+  }>(
+    selectedBot ? `/api/payments/list?bot_id=${selectedBot.id}&page=1&per_page=1` : null,
+    fetcher,
+    { refreshInterval: 30000 }
+  )
+
+  const faturamento = paymentsData?.stats?.totalApproved || 0
+
   const conversations = conversationsData?.conversations || []
 
   if (!selectedBot) {
@@ -301,7 +316,7 @@ export default function DashboardPage() {
                     Receita Total
                   </div>
                   <div className="text-3xl font-bold flex items-end gap-1">
-                    0 <span className="text-sm font-normal text-muted-foreground mb-1">R$</span>
+                    {faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-normal text-muted-foreground mb-1">R$</span>
                   </div>
                 </div>
                 {/* Metric 2 */}
@@ -322,7 +337,7 @@ export default function DashboardPage() {
                     </div>
                     Usuários Ativos
                   </div>
-                  <div className="text-3xl font-bold">0</div>
+                  <div className="text-3xl font-bold">{paymentsData?.stats?.approvedUniqueUsers || 0}</div>
                 </div>
               </div>
             </div>
@@ -377,7 +392,7 @@ export default function DashboardPage() {
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xs font-bold text-foreground">R$0</span>
+                    <span className="text-xs font-bold text-foreground">R${faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-[8px] text-muted-foreground">Receita Total</span>
                   </div>
                 </div>
@@ -386,12 +401,12 @@ export default function DashboardPage() {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-sm bg-blue-600"></span>
-                    <span className="text-xs font-bold text-foreground">0</span>
+                    <span className="text-xs font-bold text-foreground">{conversationsData?.total || 0}</span>
                     <span className="text-xs text-muted-foreground">Leads</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-sm bg-muted"></span>
-                    <span className="text-xs font-bold text-foreground">0</span>
+                    <span className="text-xs font-bold text-foreground">{faturamento.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <span className="text-xs text-muted-foreground">Receita</span>
                   </div>
                   <div className="flex items-center gap-2">

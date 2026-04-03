@@ -57,6 +57,9 @@ export default function FluxosPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [stats, setStats] = useState<FlowStats>({ linkedBots: 0, basicFlows: 0, n8nFlows: 0 })
 
+  // Flow metrics cache (leads, conversions per flow)
+  const [flowMetrics, setFlowMetrics] = useState<Record<string, { leads: number; conversions: number }>>({})
+
   // Create flow modal
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newFlowName, setNewFlowName] = useState("")
@@ -187,9 +190,48 @@ export default function FluxosPage() {
     setIsLoading(false)
   }, [session?.userId])
 
+  // Fetch metrics (leads and conversions) for each flow based on connected bots
+  const fetchFlowMetrics = useCallback(async (flowBotsMap: Record<string, FlowBot[]>) => {
+    const metrics: Record<string, { leads: number; conversions: number }> = {}
+    
+    for (const flowId of Object.keys(flowBotsMap)) {
+      const bots = flowBotsMap[flowId]
+      let totalLeads = 0
+      let totalConversions = 0
+      
+      // For each bot connected to this flow, fetch their stats
+      for (const fb of bots) {
+        try {
+          // Fetch leads (conversations/starts) for this bot
+          const convRes = await fetch(`/api/conversations?bot_id=${fb.bot_id}&period=year`)
+          const convData = await convRes.json()
+          totalLeads += convData?.total || 0
+          
+          // Fetch unique conversions (users who paid at least once)
+          const payRes = await fetch(`/api/payments/list?botId=${fb.bot_id}&limit=1`)
+          const payData = await payRes.json()
+          totalConversions += payData?.stats?.approvedUniqueUsers || 0
+        } catch {
+          // Ignore errors for individual bots
+        }
+      }
+      
+      metrics[flowId] = { leads: totalLeads, conversions: totalConversions }
+    }
+    
+    setFlowMetrics(metrics)
+  }, [])
+
   useEffect(() => {
     fetchFlows()
   }, [fetchFlows])
+  
+  // Fetch metrics when flowBots change
+  useEffect(() => {
+    if (Object.keys(flowBots).length > 0) {
+      fetchFlowMetrics(flowBots)
+    }
+  }, [flowBots, fetchFlowMetrics])
 
   // Refresh when page becomes visible (user returns from flow editor)
   useEffect(() => {
@@ -239,10 +281,11 @@ export default function FluxosPage() {
     const bots = flowBots[flow.id] || []
     const isBasic = flow.flow_type !== "n8n"
     
-    // Mock stats for now - these would come from real data
-    const starts = 0
-    const conversions = 0
-    const conversionRate = starts > 0 ? Math.round((conversions / starts) * 100) : 0
+    // Real stats from connected bots
+    const metrics = flowMetrics[flow.id] || { leads: 0, conversions: 0 }
+    const leads = metrics.leads
+    const conversions = metrics.conversions
+    const conversionRate = leads > 0 ? Math.round((conversions / leads) * 100) : 0
 
     return (
       <div 
@@ -305,8 +348,8 @@ export default function FluxosPage() {
         <div className="px-4 pb-4">
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-[#2a2a2e] rounded-xl py-2.5 px-2 text-center">
-              <div className="text-lg font-bold text-white">{starts}</div>
-              <div className="text-[10px] text-gray-500 font-medium">Starts</div>
+              <div className="text-lg font-bold text-white">{leads}</div>
+              <div className="text-[10px] text-gray-500 font-medium">Leads</div>
             </div>
             <div className="bg-[#2a2a2e] rounded-xl py-2.5 px-2 text-center">
               <div className="text-lg font-bold text-white">{conversions}</div>

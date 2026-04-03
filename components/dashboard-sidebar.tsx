@@ -101,24 +101,17 @@ export function DashboardSidebar({ onNavigate, defaultCollapsed = false }: Dashb
       >
 
         {/* Logo */}
-        <div className={cn("flex items-center px-6 pt-6 pb-4", collapsed && "justify-center px-2")}>
-          {collapsed ? (
-            <Image
-              src="/images/logo-dragon.png"
-              alt="Dragon"
-              width={32}
-              height={32}
-              className="h-8 w-auto object-contain"
-            />
-          ) : (
-            <Image
-              src="/images/logo-dragon.png"
-              alt="Dragon"
-              width={140}
-              height={40}
-              className="h-8 w-auto object-contain"
-            />
-          )}
+        <div className="flex items-center justify-center pt-6 pb-4 px-4">
+          <Image
+            src="/images/logo-dragon.png"
+            alt="Dragon"
+            width={160}
+            height={45}
+            className={cn(
+              "object-contain",
+              collapsed ? "h-8 w-8" : "h-9 w-auto max-w-[160px]"
+            )}
+          />
         </div>
 
         {/* User Profile + Bot Switcher */}
