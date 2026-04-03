@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js"
 const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
-// Intervalo de verificacao (60 segundos)
-const SYNC_INTERVAL = 60 * 1000
+// Intervalo de verificacao (5 segundos para entrega quase instantanea)
+const SYNC_INTERVAL = 5 * 1000
 
 let isRunning = false
 
