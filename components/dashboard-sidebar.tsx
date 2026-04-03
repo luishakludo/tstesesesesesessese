@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -100,18 +101,23 @@ export function DashboardSidebar({ onNavigate, defaultCollapsed = false }: Dashb
       >
 
         {/* Logo */}
-        <div className={cn("flex items-center gap-3 px-6 pt-6 pb-4", collapsed && "justify-center px-2")}>
+        <div className={cn("flex items-center px-6 pt-6 pb-4", collapsed && "justify-center px-2")}>
           {collapsed ? (
-            <div className="w-8 h-8 bg-foreground rounded-full flex items-center justify-center">
-              <span className="text-background font-semibold text-lg leading-none">D</span>
-            </div>
+            <Image
+              src="/images/logo-dragon.png"
+              alt="Dragon"
+              width={32}
+              height={32}
+              className="h-8 w-auto object-contain"
+            />
           ) : (
-            <>
-              <div className="w-8 h-8 bg-foreground rounded-full flex items-center justify-center">
-                <span className="text-background font-semibold text-lg leading-none">D</span>
-              </div>
-              <span className="font-bold text-xl tracking-tight text-foreground">Dragon</span>
-            </>
+            <Image
+              src="/images/logo-dragon.png"
+              alt="Dragon"
+              width={140}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
           )}
         </div>
 

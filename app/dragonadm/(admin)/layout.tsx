@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
-  Shield,
   Users,
   Bot,
   CreditCard,
@@ -16,9 +16,6 @@ import {
   X,
   ChevronRight,
   DollarSign,
-  Gift,
-  Ticket,
-  LayoutTemplate,
   MessageSquare,
   FileText,
   TrendingUp,
@@ -51,16 +48,7 @@ const menuSections = [
     title: "Financeiro",
     items: [
       { icon: CreditCard, label: "Pagamentos", href: "/dragonadm/payments" },
-      { icon: DollarSign, label: "Saques", href: "/dragonadm/saques" },
       { icon: DollarSign, label: "Saques Afiliados", href: "/dragonadm/saques-afiliados" },
-      { icon: Gift, label: "Premiacoes", href: "/dragonadm/premiacoes" },
-    ]
-  },
-  {
-    title: "Conteudo",
-    items: [
-      { icon: LayoutTemplate, label: "Templates", href: "/dragonadm/templates" },
-      { icon: Ticket, label: "Cupons", href: "/dragonadm/cupons" },
     ]
   },
   {
@@ -120,18 +108,18 @@ export default function DragonAdmLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-accent border-t-transparent rounded-full" />
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-2 border-white border-t-transparent rounded-full" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-zinc-950 flex admin-theme">
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -139,18 +127,21 @@ export default function DragonAdmLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-200 lg:translate-x-0 lg:static",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-200 lg:translate-x-0 lg:static",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center">
-                <Shield className="h-5 w-5 text-accent" />
-              </div>
-              <span className="font-bold text-foreground">Dragon ADM</span>
+          <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800">
+            <div className="flex items-center">
+              <Image
+                src="/images/logo-dragon.png"
+                alt="Dragon"
+                width={140}
+                height={40}
+                className="h-8 w-auto"
+              />
             </div>
             <Button
               variant="ghost"
@@ -167,7 +158,7 @@ export default function DragonAdmLayout({
             <nav className="px-3 space-y-4">
               {menuSections.map((section) => (
                 <div key={section.title}>
-                  <p className="px-3 mb-1 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+                  <p className="px-3 mb-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
                     {section.title}
                   </p>
                   <div className="space-y-0.5">
@@ -183,8 +174,8 @@ export default function DragonAdmLayout({
                           className={cn(
                             "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                             isActive
-                              ? "bg-accent/10 text-accent"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                              ? "bg-white text-zinc-900"
+                              : "text-zinc-400 hover:text-white hover:bg-zinc-800"
                           )}
                         >
                           <item.icon className="h-4 w-4" />
@@ -202,23 +193,23 @@ export default function DragonAdmLayout({
           </ScrollArea>
 
           {/* User & Logout */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-zinc-800">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-accent">
+              <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-sm font-bold text-white">
                   {session?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
+                <p className="text-sm font-medium text-white truncate">
                   {session?.email}
                 </p>
-                <p className="text-xs text-muted-foreground">Administrador</p>
+                <p className="text-xs text-zinc-500">Administrador</p>
               </div>
             </div>
             <Button
               variant="outline"
-              className="w-full justify-start text-muted-foreground hover:text-destructive hover:border-destructive/50"
+              className="w-full justify-start text-zinc-400 border-zinc-700 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10"
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -231,19 +222,19 @@ export default function DragonAdmLayout({
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="h-16 flex items-center justify-between px-4 border-b border-border bg-card lg:px-6">
+        <header className="h-16 flex items-center justify-between px-4 border-b border-zinc-800 bg-zinc-900 lg:px-6">
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden"
+            className="lg:hidden text-white hover:bg-zinc-800"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
 
           <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-muted-foreground hidden sm:block">
-              Logado como <span className="text-foreground font-medium">{session?.email}</span>
+            <span className="text-xs text-zinc-500 hidden sm:block">
+              Logado como <span className="text-white font-medium">{session?.email}</span>
             </span>
           </div>
         </header>

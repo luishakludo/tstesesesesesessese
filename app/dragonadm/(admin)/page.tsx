@@ -109,8 +109,8 @@ export default function DragonAdmDashboardPage() {
       <div className="p-6 space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+          <p className="text-sm text-zinc-400">
             Visao geral do sistema Dragon
           </p>
         </div>
@@ -118,17 +118,17 @@ export default function DragonAdmDashboardPage() {
         {/* Stats Grid */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat, index) => (
-            <Card key={index} className="bg-card border-border">
+            <Card key={index} className="bg-zinc-900 border-zinc-800">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className={`w-12 h-12 rounded-xl ${stat.bgColor} flex items-center justify-center`}>
                     <stat.icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-foreground">
+                    <p className="text-2xl font-bold text-white">
                       {isLoading ? "..." : stat.value}
                     </p>
-                    <p className="text-xs text-muted-foreground">{stat.title}</p>
+                    <p className="text-xs text-zinc-400">{stat.title}</p>
                   </div>
                 </div>
               </CardContent>
@@ -137,16 +137,16 @@ export default function DragonAdmDashboardPage() {
         </div>
 
         {/* Recent Activity */}
-        <Card className="bg-card border-border">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-foreground">
+            <CardTitle className="text-lg font-semibold text-white">
               Atividade Recente
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Activity className="h-12 w-12 text-muted-foreground/30 mb-4" />
-              <p className="text-sm text-muted-foreground">
+              <Activity className="h-12 w-12 text-zinc-700 mb-4" />
+              <p className="text-sm text-zinc-400">
                 Nenhuma atividade recente
               </p>
             </div>

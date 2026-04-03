@@ -174,49 +174,49 @@ export default function SuportePage() {
       <div className="p-6 space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Suporte</h1>
-          <p className="text-sm text-muted-foreground">
+          <h1 className="text-2xl font-bold text-white">Suporte</h1>
+          <p className="text-sm text-zinc-400">
             Gerencie tickets de suporte dos usuarios
           </p>
         </div>
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="bg-card border-border">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                   <AlertCircle className="h-5 w-5 text-yellow-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.open}</p>
-                  <p className="text-xs text-muted-foreground">Abertos</p>
+                  <p className="text-2xl font-bold text-white">{stats.open}</p>
+                  <p className="text-xs text-zinc-400">Abertos</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-blue-500" />
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.in_progress}</p>
-                  <p className="text-xs text-muted-foreground">Em Andamento</p>
+                  <p className="text-2xl font-bold text-white">{stats.in_progress}</p>
+                  <p className="text-xs text-zinc-400">Em Andamento</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-card border-border">
+          <Card className="bg-zinc-900 border-zinc-800">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                   <CheckCircle className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.closed}</p>
-                  <p className="text-xs text-muted-foreground">Fechados</p>
+                  <p className="text-2xl font-bold text-white">{stats.closed}</p>
+                  <p className="text-xs text-zinc-400">Fechados</p>
                 </div>
               </div>
             </CardContent>
@@ -224,16 +224,16 @@ export default function SuportePage() {
         </div>
 
         {/* Filters */}
-        <Card className="bg-card border-border">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por assunto, nome ou email..."
-                  className="pl-9"
+                  className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
                 />
               </div>
               <div className="flex gap-1">
@@ -243,8 +243,8 @@ export default function SuportePage() {
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-secondary text-muted-foreground hover:text-foreground"
+                        ? "bg-white text-zinc-900"
+                        : "bg-zinc-800 text-zinc-400 hover:text-white"
                     }`}
                   >
                     {tab.label} ({tab.count})
@@ -256,42 +256,42 @@ export default function SuportePage() {
         </Card>
 
         {/* Tickets List */}
-        <Card className="bg-card border-border">
+        <Card className="bg-zinc-900 border-zinc-800">
           <CardHeader>
-            <CardTitle className="text-lg">Tickets</CardTitle>
+            <CardTitle className="text-lg text-white">Tickets</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
             ) : filteredTickets.length === 0 ? (
               <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/30" />
-                <p className="text-muted-foreground">Nenhum ticket encontrado</p>
+                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-zinc-700" />
+                <p className="text-zinc-400">Nenhum ticket encontrado</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {filteredTickets.map((ticket) => (
                   <div
                     key={ticket.id}
-                    className="p-4 rounded-xl border border-border bg-secondary/30 flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors"
+                    className="p-4 rounded-xl border border-zinc-800 bg-zinc-800/30 flex items-center gap-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
                     onClick={() => setSelectedTicket(ticket)}
                   >
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                      <User className="h-5 w-5 text-accent" />
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{ticket.subject}</p>
-                      <p className="text-sm text-muted-foreground truncate">
+                      <p className="font-medium truncate text-white">{ticket.subject}</p>
+                      <p className="text-sm text-zinc-400 truncate">
                         {ticket.user?.name} - {ticket.user?.email}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-zinc-500">
                         {new Date(ticket.created_at).toLocaleDateString("pt-BR")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-zinc-500">
                         {ticket.replies?.length || 0} respostas
                       </p>
                     </div>
@@ -311,7 +311,7 @@ export default function SuportePage() {
 
       {/* Ticket Details Modal */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden bg-zinc-900 border-zinc-800">
           {selectedTicket && (
             <>
               {/* Header */}
