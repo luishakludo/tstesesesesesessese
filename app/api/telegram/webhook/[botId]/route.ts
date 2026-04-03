@@ -773,7 +773,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           const productType = isAccept ? `${sourceType}_order_bump` : sourceType
           
           // Save payment
-          await supabase.from("payments").insert({
+          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount)
+          const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: botDataOB.user_id,
             flow_id: userState?.flow_id,
@@ -791,6 +792,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
+          if (obPaymentError) {
+            console.error("[v0] Error saving OB payment:", obPaymentError)
+          } else {
+            console.log("[v0] OB payment saved successfully")
+          }
           
         } catch (pixError) {
           console.error("[v0] Erro ao gerar PIX para Order Bump:", pixError)
@@ -894,7 +900,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
 
             if (pixData.id && pixData.point_of_interaction?.transaction_data?.qr_code) {
               // Salvar pagamento do upsell
-              await supabase.from("payments").insert({
+              console.log("[v0] Saving upsell payment - user_id:", botOwner?.user_id, "bot_id:", botUuid, "amount:", upsellPrice)
+              const { error: upsellPaymentError } = await supabase.from("payments").insert({
                 user_id: botOwner?.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
@@ -906,6 +913,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
+              if (upsellPaymentError) {
+                console.error("[v0] Error saving upsell payment:", upsellPaymentError)
+              } else {
+                console.log("[v0] Upsell payment saved successfully")
+              }
 
               // Atualizar estado
               await supabase
@@ -1110,7 +1122,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   await sendTelegramMessage(botToken, chatId, `<code>${pixResult.copyPaste}</code>`)
                   
                   // Salvar pagamento
-                  await supabase.from("payments").insert({
+                  console.log("[v0] Saving downsell payment - user_id:", botData?.user_id, "bot_id:", botUuid, "amount:", price)
+                  const { error: downsellPaymentError } = await supabase.from("payments").insert({
                     user_id: botData?.user_id,
                     bot_id: botUuid,
                     telegram_user_id: String(telegramUserId),
@@ -1126,6 +1139,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                     status: "pending",
                     product_type: "downsell"
                   })
+                  if (downsellPaymentError) {
+                    console.error("[v0] Error saving downsell payment:", downsellPaymentError)
+                  } else {
+                    console.log("[v0] Downsell payment saved successfully")
+                  }
                   
                   // Cancelar outros downsells pendentes
                   await supabase
