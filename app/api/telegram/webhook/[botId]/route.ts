@@ -7,7 +7,7 @@ import { createPixPayment } from "@/lib/payments/gateways/mercadopago"
 // ---------------------------------------------------------------------------
 async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, botUuid: string) {
   // Primeiro tenta via flow_bots (correta)
-  const { data: flowBot } = await supabase
+  const { data: flowBot, error: flowBotError } = await supabase
     .from("flow_bots")
     .select(`
       flow_id,
@@ -22,21 +22,34 @@ async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, bot
     .limit(1)
     .single()
   
+  console.log("[v0] getActiveFlowForBot - botUuid:", botUuid)
+  console.log("[v0] getActiveFlowForBot - flowBot result:", JSON.stringify(flowBot))
+  console.log("[v0] getActiveFlowForBot - flowBot error:", flowBotError?.message)
+  
   if (flowBot?.flows) {
     const flow = flowBot.flows as { id: string; name: string; config: Record<string, unknown>; status: string }
-    if (flow.status === "ativo") {
+    console.log("[v0] getActiveFlowForBot - flow status:", flow.status)
+    // Aceitar tanto "ativo" quanto "active"
+    if (flow.status === "ativo" || flow.status === "active") {
       return flow
     }
   }
   
   // Fallback: busca direto na tabela flows (compatibilidade)
-  const { data: directFlow } = await supabase
+  const { data: directFlow, error: directError } = await supabase
     .from("flows")
     .select("id, name, config, status")
     .eq("bot_id", botUuid)
-    .eq("status", "ativo")
     .limit(1)
     .single()
+  
+  console.log("[v0] getActiveFlowForBot - directFlow result:", JSON.stringify(directFlow))
+  console.log("[v0] getActiveFlowForBot - directFlow error:", directError?.message)
+  
+  // Aceitar qualquer status para fallback (para debug)
+  if (directFlow && (directFlow.status === "ativo" || directFlow.status === "active")) {
+    return directFlow
+  }
   
   return directFlow
 }

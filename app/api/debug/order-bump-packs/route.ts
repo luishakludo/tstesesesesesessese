@@ -27,6 +27,16 @@ export async function GET() {
       }, { status: 404 })
     }
 
+    // 2. Buscar TODOS os fluxos do sistema para debug
+    const { data: allSystemFlows } = await supabase
+      .from("flows")
+      .select("id, name, config, is_active, status, bot_id, user_id")
+
+    // 3. Buscar todos os registros de flow_bots
+    const { data: allFlowBots } = await supabase
+      .from("flow_bots")
+      .select("*")
+
     // Analisar cada bot
     const botsAnalysis = await Promise.all(bots.map(async (bot) => {
       // 2. Buscar flow_bots para encontrar fluxos conectados
@@ -61,8 +71,8 @@ export async function GET() {
       }
       const allFlows = Array.from(allFlowsMap.values())
       
-      // Filtrar apenas ativos
-      const activeFlows = allFlows.filter(f => f.is_active || f.status === "active")
+      // Filtrar apenas ativos (aceitando "ativo" ou "active")
+      const activeFlows = allFlows.filter(f => f.is_active || f.status === "active" || f.status === "ativo")
 
       // Analisar cada fluxo
       const flowsAnalysis = allFlows.map(flow => {
@@ -134,7 +144,23 @@ export async function GET() {
     return NextResponse.json({
       message: "Debug Order Bump Packs",
       totalBots: bots.length,
-      bots: botsAnalysis
+      bots: botsAnalysis,
+      debug: {
+        totalFlowsNoSistema: allSystemFlows?.length || 0,
+        flowsComOrderBump: allSystemFlows?.filter(f => {
+          const config = (f.config || {}) as Record<string, unknown>
+          const ob = config.orderBump as Record<string, unknown> | undefined
+          return ob?.enabled
+        }).map(f => ({
+          id: f.id,
+          name: f.name,
+          status: f.status,
+          bot_id: f.bot_id,
+          orderBumpConfig: (f.config as Record<string, unknown>)?.orderBump
+        })) || [],
+        totalFlowBots: allFlowBots?.length || 0,
+        flowBotsRecords: allFlowBots || []
+      }
     })
 
   } catch (error) {
