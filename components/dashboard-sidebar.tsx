@@ -101,7 +101,7 @@ export function DashboardSidebar({ onNavigate, defaultCollapsed = false }: Dashb
       >
 
         {/* Logo */}
-        <div className={cn("flex items-center px-6 pt-6 pb-4", collapsed && "justify-center px-2")}>
+        <div className={cn("flex items-center justify-center pt-6 pb-4", collapsed && "px-2")}>
           {collapsed ? (
             <Image
               src="/images/logo-dragon.png"
