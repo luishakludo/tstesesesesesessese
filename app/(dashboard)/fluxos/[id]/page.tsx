@@ -2007,7 +2007,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 <div>
                                   <p className="font-medium">{plan.name || `Plano ${index + 1}`}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    R$ {plan.price.toFixed(2)} • {
+                                    R$ {Number(plan.price || 0).toFixed(2)} • {
                                       plan.duration_type === "daily" ? "Diario" :
                                       plan.duration_type === "weekly" ? "Semanal" :
                                       plan.duration_type === "monthly" ? "Mensal" :
