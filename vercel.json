@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/process-scheduled-messages",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/sync-payments",
+      "schedule": "* * * * *"
     }
   ]
 }
