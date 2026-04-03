@@ -1,33 +1,38 @@
 import { NextRequest, NextResponse } from "next/server"
+import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
-export async function GET(request: NextRequest) {
+const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6dnVsb2puZnZnc2JtaHl2cXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTk0NTMsImV4cCI6MjA4ODgzNTQ1M30.Djnn3tsrxSGLBR-Bm1dWOpQe0NHCSOWJFZkbbTOk2oM"
+
+export async function GET() {
   try {
-    // Tentar ler cookie de varias formas
     const cookieStore = await cookies()
-    const sessionCookie = cookieStore.get("dragon_session")
     
-    // Tambem tentar do header
-    const cookieHeader = request.headers.get("cookie") || ""
-    const allCookieNames = cookieHeader.split(";").map(c => c.trim().split("=")[0]).filter(Boolean)
+    const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+      },
+    })
     
-    if (!sessionCookie?.value) {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
       return NextResponse.json({ 
-        error: "Cookie dragon_session nao encontrado",
-        cookiesDisponiveis: allCookieNames,
-        tip: "Verifique se voce esta logado em /login"
+        error: "Nao autenticado",
+        tip: "Faca login em /login primeiro"
       })
     }
     
-    const session = JSON.parse(sessionCookie.value)
-    
     return NextResponse.json({
-      userId: session.user?.id || null,
-      email: session.user?.email || null,
-      name: session.user?.name || null,
-      tip: "Use este userId para testar: /api/test-payment-insert?userId=" + session.user?.id
+      userId: user.id,
+      email: user.email,
+      name: user.user_metadata?.name || null,
+      tip: "Use este userId para testar: /api/test-payment-insert?userId=" + user.id
     })
   } catch (err) {
-    return NextResponse.json({ error: "Erro ao ler sessao: " + String(err) })
+    return NextResponse.json({ error: "Erro: " + String(err) })
   }
 }
