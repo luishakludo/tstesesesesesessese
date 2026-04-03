@@ -18,11 +18,12 @@ export async function GET(request: NextRequest) {
     // Se tiver userId, buscar os bots desse usuario
     let userBotIds: string[] = []
     if (userId) {
-      const { data: userBots } = await supabase
+      const { data: userBots, error: botsError } = await supabase
         .from("bots")
         .select("id")
         .eq("user_id", userId)
       userBotIds = userBots?.map(b => b.id) || []
+      console.log("[v0] Payments list - userId:", userId, "userBots:", userBots?.length, "botIds:", userBotIds, "error:", botsError)
     }
 
     // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
@@ -59,8 +60,10 @@ export async function GET(request: NextRequest) {
 
     const { data: payments, error, count } = await query
 
+    console.log("[v0] Payments query result - count:", count, "payments:", payments?.length, "error:", error)
+
     if (error) {
-      console.error("Error fetching payments:", error)
+      console.error("[v0] Error fetching payments:", error)
       return NextResponse.json(
         { error: "Erro ao buscar pagamentos" },
         { status: 500 }
