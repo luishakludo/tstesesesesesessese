@@ -1,27 +1,18 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
-import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET() {
-  // Autenticar usuario
-  const session = await auth.api.getSession({ headers: await headers() })
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Nao autenticado. Faca login primeiro." }, { status: 401 })
-  }
-
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   try {
-    // 1. Buscar todos os bots do usuario
+    // 1. Buscar todos os bots (para debug - sem auth)
     const { data: bots, error: botsError } = await supabase
       .from("bots")
       .select("id, name, username")
-      .eq("user_id", session.user.id)
+      .limit(10)
 
     if (botsError) {
       return NextResponse.json({ 
@@ -32,8 +23,7 @@ export async function GET() {
 
     if (!bots || bots.length === 0) {
       return NextResponse.json({ 
-        error: "Voce nao tem nenhum bot cadastrado",
-        userId: session.user.id
+        error: "Nenhum bot encontrado no sistema"
       }, { status: 404 })
     }
 
@@ -48,25 +38,31 @@ export async function GET() {
       // 3. Buscar flows diretamente conectados ao bot
       const { data: directFlows } = await supabase
         .from("flows")
-        .select("id, name, config, is_active")
+        .select("id, name, config, is_active, status")
         .eq("bot_id", bot.id)
 
       // 4. Buscar flows via flow_bots
-      let flowBotsFlows: { id: string; name: string; config: Record<string, unknown>; is_active: boolean }[] = []
+      let flowBotsFlows: { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string }[] = []
       if (flowBots && flowBots.length > 0) {
         const flowIds = flowBots.map(fb => fb.flow_id)
         const { data } = await supabase
           .from("flows")
-          .select("id, name, config, is_active")
+          .select("id, name, config, is_active, status")
           .in("id", flowIds)
-        flowBotsFlows = data || []
+        flowBotsFlows = (data || []) as typeof flowBotsFlows
       }
 
-      // Combinar todos os fluxos
-      const allFlows = [...(directFlows || []), ...flowBotsFlows]
+      // Combinar todos os fluxos (remover duplicados)
+      const allFlowsMap = new Map<string, typeof directFlows[0]>()
+      for (const f of [...(directFlows || []), ...flowBotsFlows]) {
+        if (!allFlowsMap.has(f.id)) {
+          allFlowsMap.set(f.id, f)
+        }
+      }
+      const allFlows = Array.from(allFlowsMap.values())
       
       // Filtrar apenas ativos
-      const activeFlows = allFlows.filter(f => f.is_active)
+      const activeFlows = allFlows.filter(f => f.is_active || f.status === "active")
 
       // Analisar cada fluxo
       const flowsAnalysis = allFlows.map(flow => {
@@ -81,29 +77,44 @@ export async function GET() {
           orderBumpPacks.price > 0
         )
 
+        let reason = "OK - Order Bump SERA mostrado!"
+        if (!orderBump) {
+          reason = "orderBump NAO EXISTE no config"
+        } else if (!orderBump.enabled) {
+          reason = "orderBump.enabled = false"
+        } else if (!orderBumpPacks) {
+          reason = "orderBump.packs NAO EXISTE"
+        } else if (!orderBumpPacks.enabled) {
+          reason = "orderBump.packs.enabled = false"
+        } else if (!orderBumpPacks.price || orderBumpPacks.price <= 0) {
+          reason = `orderBump.packs.price = ${orderBumpPacks.price || 0} (precisa ser > 0)`
+        }
+
         return {
           flowId: flow.id,
           flowName: flow.name,
-          isActive: flow.is_active,
-          orderBumpEnabled: orderBump?.enabled || false,
-          orderBumpPacksEnabled: orderBumpPacks?.enabled || false,
-          orderBumpPacksPrice: orderBumpPacks?.price || 0,
-          orderBumpPacksName: orderBumpPacks?.name || null,
-          wouldShowOrderBump: wouldShow,
-          reason: !orderBump?.enabled 
-            ? "Order Bump DESABILITADO"
-            : !orderBumpPacks?.enabled 
-              ? "Order Bump de PACKS desabilitado"
-              : !orderBumpPacks?.price 
-                ? "Preco nao definido"
-                : orderBumpPacks.price <= 0
-                  ? "Preco é 0 ou negativo"
-                  : "OK - Order Bump SERA mostrado!"
+          isActive: flow.is_active || flow.status === "active",
+          configKeys: Object.keys(config),
+          orderBump: {
+            exists: !!orderBump,
+            enabled: orderBump?.enabled || false,
+            rawValue: orderBump
+          },
+          orderBumpPacks: {
+            exists: !!orderBumpPacks,
+            enabled: orderBumpPacks?.enabled || false,
+            price: orderBumpPacks?.price || 0,
+            name: orderBumpPacks?.name || null,
+            rawValue: orderBumpPacks
+          },
+          RESULTADO: wouldShow ? "VAI MOSTRAR ORDER BUMP" : "NAO VAI MOSTRAR",
+          reason
         }
       })
 
       // Qual fluxo seria usado (primeiro ativo)
       const activeFlow = activeFlows[0] || null
+      const activeFlowAnalysis = flowsAnalysis.find(f => f.flowId === activeFlow?.id)
       
       return {
         bot: {
@@ -111,18 +122,18 @@ export async function GET() {
           name: bot.name,
           username: bot.username
         },
-        totalFlows: allFlows.length,
-        activeFlows: activeFlows.length,
-        flowsWithOrderBumpEnabled: flowsAnalysis.filter(f => f.wouldShowOrderBump).length,
-        wouldUseFlowId: activeFlow?.id || null,
-        wouldUseFlowName: activeFlow?.name || null,
-        flows: flowsAnalysis
+        resumo: {
+          totalFluxos: allFlows.length,
+          fluxosAtivos: activeFlows.length,
+          fluxoQueSeriaUsado: activeFlow?.name || "NENHUM",
+          orderBumpVaiMostrar: activeFlowAnalysis?.RESULTADO || "N/A"
+        },
+        fluxos: flowsAnalysis
       }
     }))
 
     return NextResponse.json({
-      userId: session.user.id,
-      userEmail: session.user.email,
+      message: "Debug Order Bump Packs",
       totalBots: bots.length,
       bots: botsAnalysis
     })
