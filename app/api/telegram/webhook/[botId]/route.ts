@@ -6,8 +6,10 @@ import { createPixPayment } from "@/lib/payments/gateways/mercadopago"
 // Helper: Busca flow ativo para um bot via flow_bots (relacao many-to-many)
 // ---------------------------------------------------------------------------
 async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, botUuid: string) {
+  console.log("[v0] getActiveFlowForBot - Buscando flow para bot:", botUuid)
+  
   // Primeiro tenta via flow_bots (correta)
-  const { data: flowBot } = await supabase
+  const { data: flowBot, error: flowBotError } = await supabase
     .from("flow_bots")
     .select(`
       flow_id,
@@ -22,21 +24,48 @@ async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, bot
     .limit(1)
     .single()
   
+  console.log("[v0] getActiveFlowForBot - flow_bots result:", flowBot, "error:", flowBotError)
+  
   if (flowBot?.flows) {
     const flow = flowBot.flows as { id: string; name: string; config: Record<string, unknown>; status: string }
-    if (flow.status === "ativo") {
+    console.log("[v0] getActiveFlowForBot - Flow encontrado via flow_bots:", flow.id, "status:", flow.status)
+    // Aceitar qualquer status ativo (ativo, active, ou undefined)
+    if (flow.status === "ativo" || flow.status === "active" || !flow.status) {
       return flow
     }
   }
   
-  // Fallback: busca direto na tabela flows (compatibilidade)
+  // Fallback: busca via flow_bots sem join (para evitar problemas de RLS)
+  const { data: flowBotSimple } = await supabase
+    .from("flow_bots")
+    .select("flow_id")
+    .eq("bot_id", botUuid)
+    .limit(1)
+    .single()
+  
+  if (flowBotSimple?.flow_id) {
+    console.log("[v0] getActiveFlowForBot - Buscando flow diretamente por ID:", flowBotSimple.flow_id)
+    const { data: flowById } = await supabase
+      .from("flows")
+      .select("id, name, config, status")
+      .eq("id", flowBotSimple.flow_id)
+      .single()
+    
+    if (flowById) {
+      console.log("[v0] getActiveFlowForBot - Flow encontrado diretamente:", flowById.id, "status:", flowById.status)
+      return flowById
+    }
+  }
+  
+  // Fallback final: busca direto na tabela flows pelo bot_id (compatibilidade)
   const { data: directFlow } = await supabase
     .from("flows")
     .select("id, name, config, status")
     .eq("bot_id", botUuid)
-    .eq("status", "ativo")
     .limit(1)
     .single()
+  
+  console.log("[v0] getActiveFlowForBot - Flow direto encontrado:", directFlow?.id || "NENHUM")
   
   return directFlow
 }
@@ -484,7 +513,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const packId = parts[0]
         const packPrice = parseFloat(parts[1]) || 0
         
-        console.log("[v0] Buy Pack Callback:", packId, packPrice)
+        console.log("[v0] ========== BUY PACK CALLBACK INICIO ==========")
+        console.log("[v0] Buy Pack Callback - packId:", packId, "packPrice:", packPrice, "botUuid:", botUuid)
         
         // Confirmar recebimento
         await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
@@ -494,19 +524,30 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         })
         
         // Buscar flow para ver order bump de packs
+        console.log("[v0] Buscando flow para order bump...")
         const flowForPack = await getActiveFlowForBot(supabase, botUuid)
+        console.log("[v0] flowForPack encontrado:", flowForPack ? "SIM" : "NAO", "- id:", flowForPack?.id, "- name:", flowForPack?.name)
+        
         const flowConfig = (flowForPack?.config as Record<string, unknown>) || {}
+        console.log("[v0] flowConfig keys:", Object.keys(flowConfig))
+        console.log("[v0] flowConfig.orderBump RAW:", JSON.stringify(flowConfig.orderBump))
+        
         const orderBumpConfig = flowConfig.orderBump as { enabled?: boolean; packs?: { enabled?: boolean; name?: string; price?: number; description?: string; acceptText?: string; rejectText?: string; medias?: string[] } } | undefined
         const orderBumpPacks = orderBumpConfig?.packs
         
         console.log("[v0] Pack Order Bump Check - flowId:", flowForPack?.id)
-        console.log("[v0] Pack Order Bump Config:", JSON.stringify(orderBumpConfig))
-        console.log("[v0] Pack Order Bump Packs:", JSON.stringify(orderBumpPacks))
-        console.log("[v0] Conditions - enabled:", orderBumpConfig?.enabled, "packs.enabled:", orderBumpPacks?.enabled, "price:", orderBumpPacks?.price)
+        console.log("[v0] orderBumpConfig:", JSON.stringify(orderBumpConfig))
+        console.log("[v0] orderBumpPacks:", JSON.stringify(orderBumpPacks))
+        console.log("[v0] CONDICOES PARA ORDER BUMP:")
+        console.log("[v0]   - orderBumpConfig?.enabled =", orderBumpConfig?.enabled)
+        console.log("[v0]   - orderBumpPacks?.enabled =", orderBumpPacks?.enabled)
+        console.log("[v0]   - orderBumpPacks?.price =", orderBumpPacks?.price)
+        console.log("[v0]   - RESULTADO FINAL =", !!(orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks?.price && orderBumpPacks.price > 0))
         
         // Se order bump de packs estiver habilitado, enviar oferta
         if (orderBumpConfig?.enabled && orderBumpPacks?.enabled && orderBumpPacks.price && orderBumpPacks.price > 0) {
-          console.log("[v0] Enviando Order Bump para Pack")
+          console.log("[v0] ====== ORDER BUMP SERA MOSTRADO! ======")
+          console.log("[v0] Enviando Order Bump para Pack - name:", orderBumpPacks.name, "price:", orderBumpPacks.price)
           
           // Salvar estado
           await supabase.from("user_flow_state").upsert({
@@ -544,6 +585,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         }
         
         // Sem order bump - gerar PIX direto
+        console.log("[v0] ====== ORDER BUMP NAO SERA MOSTRADO - Gerando PIX direto ======")
         // Buscar dados do bot para pegar user_id
         const { data: botDataPack } = await supabase
           .from("bots")

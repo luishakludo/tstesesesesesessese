@@ -30,26 +30,30 @@ export async function GET() {
     // Analisar cada bot
     const botsAnalysis = await Promise.all(bots.map(async (bot) => {
       // 2. Buscar flow_bots para encontrar fluxos conectados
-      const { data: flowBots } = await supabase
+      const { data: flowBots, error: flowBotsError } = await supabase
         .from("flow_bots")
         .select("flow_id")
         .eq("bot_id", bot.id)
 
       // 3. Buscar flows diretamente conectados ao bot
-      const { data: directFlows } = await supabase
+      const { data: directFlows, error: directFlowsError } = await supabase
         .from("flows")
-        .select("id, name, config, is_active, status")
+        .select("id, name, config, status")
         .eq("bot_id", bot.id)
 
-      // 4. Buscar flows via flow_bots
-      let flowBotsFlows: { id: string; name: string; config: Record<string, unknown>; is_active: boolean; status: string }[] = []
+      // 4. Buscar flows via flow_bots (separadamente para evitar RLS)
+      let flowBotsFlows: { id: string; name: string; config: Record<string, unknown>; status: string }[] = []
       if (flowBots && flowBots.length > 0) {
-        const flowIds = flowBots.map(fb => fb.flow_id)
-        const { data } = await supabase
-          .from("flows")
-          .select("id, name, config, is_active, status")
-          .in("id", flowIds)
-        flowBotsFlows = (data || []) as typeof flowBotsFlows
+        for (const fb of flowBots) {
+          const { data: flowData } = await supabase
+            .from("flows")
+            .select("id, name, config, status")
+            .eq("id", fb.flow_id)
+            .single()
+          if (flowData) {
+            flowBotsFlows.push(flowData as typeof flowBotsFlows[0])
+          }
+        }
       }
 
       // Combinar todos os fluxos (remover duplicados)
@@ -61,8 +65,8 @@ export async function GET() {
       }
       const allFlows = Array.from(allFlowsMap.values())
       
-      // Filtrar apenas ativos
-      const activeFlows = allFlows.filter(f => f.is_active || f.status === "active")
+      // Filtrar apenas ativos (status pode ser "ativo" ou "active")
+      const activeFlows = allFlows.filter(f => f.status === "ativo" || f.status === "active" || !f.status)
 
       // Analisar cada fluxo
       const flowsAnalysis = allFlows.map(flow => {
@@ -93,7 +97,7 @@ export async function GET() {
         return {
           flowId: flow.id,
           flowName: flow.name,
-          isActive: flow.is_active || flow.status === "active",
+          status: flow.status,
           configKeys: Object.keys(config),
           orderBump: {
             exists: !!orderBump,
@@ -113,7 +117,7 @@ export async function GET() {
       })
 
       // Qual fluxo seria usado (primeiro ativo)
-      const activeFlow = activeFlows[0] || null
+      const activeFlow = activeFlows[0] || allFlows[0] || null
       const activeFlowAnalysis = flowsAnalysis.find(f => f.flowId === activeFlow?.id)
       
       return {
@@ -126,6 +130,13 @@ export async function GET() {
           fluxosAtivos: activeFlows.length,
           fluxoQueSeriaUsado: activeFlow?.name || "NENHUM",
           orderBumpVaiMostrar: activeFlowAnalysis?.RESULTADO || "N/A"
+        },
+        debug: {
+          flowBotsCount: flowBots?.length || 0,
+          flowBotsError: flowBotsError?.message || null,
+          directFlowsCount: directFlows?.length || 0,
+          directFlowsError: directFlowsError?.message || null,
+          flowBotsFlowsCount: flowBotsFlows.length
         },
         fluxos: flowsAnalysis
       }
