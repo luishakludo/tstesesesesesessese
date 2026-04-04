@@ -4,7 +4,11 @@ const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6dnVsb2puZnZnc2JtaHl2cXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTk0NTMsImV4cCI6MjA4ODgzNTQ1M30.Djnn3tsrxSGLBR-Bm1dWOpQe0NHCSOWJFZkbbTOk2oM"
 
+// Service Role Key - bypassa RLS para operacoes admin
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+
 let _supabase: ReturnType<typeof createClient> | null = null
+let _supabaseAdmin: ReturnType<typeof createClient> | null = null
 
 export function getSupabase() {
   if (!_supabase) {
@@ -13,9 +17,31 @@ export function getSupabase() {
   return _supabase
 }
 
+// Cliente admin com service role key - bypassa RLS
+export function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    // Se nao tem service role key, usa anon key como fallback
+    const key = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY
+    _supabaseAdmin = createClient(SUPABASE_URL, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  }
+  return _supabaseAdmin
+}
+
 // Mantém export para compatibilidade, mas agora é lazy
 export const supabase = new Proxy({} as ReturnType<typeof createClient>, {
   get(_, prop) {
     return (getSupabase() as Record<string | symbol, unknown>)[prop]
+  },
+})
+
+// Export admin client
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+  get(_, prop) {
+    return (getSupabaseAdmin() as Record<string | symbol, unknown>)[prop]
   },
 })

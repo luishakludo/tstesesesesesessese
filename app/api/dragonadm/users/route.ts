@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    console.log("[v0] DragonAdmin Users API - Starting fetch")
+    console.log("[v0] DragonAdmin Users API - Starting fetch with admin client")
     
-    // Buscar todos os usuarios (profiles)
-    const { data: profiles, error: profilesError } = await supabase
+    // Buscar todos os usuarios (profiles) - usando admin client para bypassar RLS
+    const { data: profiles, error: profilesError } = await supabaseAdmin
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false })
 
-    console.log("[v0] DragonAdmin Users - profiles count:", profiles?.length, "error:", profilesError)
+    console.log("[v0] DragonAdmin Users - profiles count:", profiles?.length, "error:", profilesError?.message || "none")
 
     if (profilesError) {
       console.error("Erro ao buscar profiles:", profilesError)
@@ -19,17 +19,17 @@ export async function GET() {
     }
 
     // Buscar todos os bots
-    const { data: allBots } = await supabase
+    const { data: allBots } = await supabaseAdmin
       .from("bots")
       .select("id, name, username, is_active, created_at, user_id")
 
     // Buscar todas as gateways
-    const { data: allGateways } = await supabase
+    const { data: allGateways } = await supabaseAdmin
       .from("payment_gateways")
       .select("id, gateway_name, is_active, created_at, user_id")
 
     // Buscar todos os referrals
-    const { data: allReferrals } = await supabase
+    const { data: allReferrals } = await supabaseAdmin
       .from("referrals")
       .select(`
         id,
@@ -45,24 +45,24 @@ export async function GET() {
       `)
 
     // Buscar pagamentos por usuario (para stats)
-    const { data: allPayments } = await supabase
+    const { data: allPayments } = await supabaseAdmin
       .from("payments")
       .select("user_id, amount, status")
       .eq("status", "approved")
 
     // Buscar saldos de afiliados (referral_sales)
-    const { data: allReferralSales } = await supabase
+    const { data: allReferralSales } = await supabaseAdmin
       .from("referral_sales")
       .select("referrer_id, amount")
     
     // Buscar saques de afiliados para calcular saldo disponivel
-    const { data: allWithdraws } = await supabase
+    const { data: allWithdraws } = await supabaseAdmin
       .from("referral_withdraws")
       .select("user_id, amount, status")
       .in("status", ["approved", "paid"])
 
     // Buscar starts por bot
-    const { data: allStarts } = await supabase
+    const { data: allStarts } = await supabaseAdmin
       .from("telegram_users")
       .select("bot_id")
 
