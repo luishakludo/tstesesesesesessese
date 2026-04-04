@@ -191,10 +191,6 @@ export default function UsersManagementPage() {
     u.name?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const activeUsers = users.filter(u => !u.banned).length
-  const bannedUsers = users.filter(u => u.banned).length
-  const totalBots = users.reduce((acc, u) => acc + (u.bots?.length || 0), 0)
-
   return (
     <>
       <ScrollArea className="flex-1">
@@ -230,46 +226,6 @@ export default function UsersManagementPage() {
               <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               Atualizar
             </button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { icon: Users, label: "Total", value: users.length, color: "#a1a1a1", bg: "rgba(255,255,255,0.05)" },
-              { icon: CheckCircle, label: "Ativos", value: activeUsers, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
-              { icon: Ban, label: "Banidos", value: bannedUsers, color: "#ef4444", bg: "rgba(239, 68, 68, 0.1)" },
-              { icon: Bot, label: "Bots", value: totalBots, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
-            ].map((stat, i) => (
-              <div
-                key={i}
-                className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
-                style={{
-                  background: '#0f0f0f',
-                  border: '1px solid rgba(255,255,255,0.06)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${stat.color}30`
-                  e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                  e.currentTarget.style.boxShadow = 'none'
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                    style={{ background: stat.bg }}
-                  >
-                    <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-sm text-[#666666]">{stat.label}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
 
           {/* Users Table Card */}
