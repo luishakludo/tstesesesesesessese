@@ -131,3 +131,127 @@
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
+
+/* ========== DRAGON ADMIN PREMIUM THEME ========== */
+.admin-theme {
+  /* Base: Preto profundo real #050505 */
+  --admin-bg: 0 0% 2%;
+  --admin-bg-elevated: 0 0% 5%;
+  --admin-bg-card: 0 0% 7%;
+  --admin-bg-hover: 0 0% 10%;
+  
+  /* Foreground */
+  --admin-fg: 0 0% 96%;
+  --admin-fg-muted: 0 0% 55%;
+  --admin-fg-subtle: 0 0% 40%;
+  
+  /* Borders */
+  --admin-border: 0 0% 12%;
+  --admin-border-subtle: 0 0% 8%;
+  
+  /* Primary: Verde neon */
+  --admin-primary: 142 71% 45%;
+  --admin-primary-glow: 142 71% 45%;
+  
+  /* Accent colors */
+  --admin-purple: 270 70% 60%;
+  --admin-blue: 217 91% 60%;
+  --admin-cyan: 185 75% 50%;
+  --admin-orange: 25 95% 55%;
+  --admin-red: 0 72% 51%;
+  --admin-yellow: 45 93% 55%;
+}
+
+/* Admin base styles */
+.admin-theme {
+  background: hsl(var(--admin-bg));
+  color: hsl(var(--admin-fg));
+}
+
+/* Admin Card */
+.admin-card {
+  background: hsl(var(--admin-bg-card));
+  border: 1px solid hsl(var(--admin-border-subtle));
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+
+.admin-card:hover {
+  border-color: hsl(var(--admin-border));
+  box-shadow: 0 0 40px -12px hsla(var(--admin-primary), 0.15);
+}
+
+/* Admin Glow Effects */
+.admin-glow-green {
+  box-shadow: 0 0 30px -5px hsla(var(--admin-primary), 0.4);
+}
+
+.admin-glow-purple {
+  box-shadow: 0 0 30px -5px hsla(var(--admin-purple), 0.4);
+}
+
+.admin-glow-blue {
+  box-shadow: 0 0 30px -5px hsla(var(--admin-blue), 0.4);
+}
+
+/* Admin Gradient Overlays */
+.admin-gradient-overlay {
+  background: linear-gradient(
+    135deg,
+    hsla(var(--admin-primary), 0.03) 0%,
+    transparent 50%,
+    hsla(var(--admin-purple), 0.02) 100%
+  );
+}
+
+/* Admin Sidebar Active Item */
+.admin-sidebar-active {
+  background: linear-gradient(90deg, hsla(var(--admin-primary), 0.15) 0%, transparent 100%);
+  border-left: 2px solid hsl(var(--admin-primary));
+}
+
+/* Admin Stats Card Shimmer */
+@keyframes admin-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.admin-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsla(var(--admin-fg), 0.03) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: admin-shimmer 2s infinite;
+}
+
+/* Admin Icon Container */
+.admin-icon-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.admin-icon-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.admin-icon-container:hover::after {
+  opacity: 1;
+}
+
+/* Admin Number Display */
+.admin-stat-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
