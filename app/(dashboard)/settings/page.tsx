@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
+import useSWR from "swr"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
@@ -36,6 +37,8 @@ import {
   Crown,
   Star,
 } from "lucide-react"
+
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 interface UserProfile {
   id: string
@@ -77,6 +80,13 @@ export default function SettingsPage() {
 
   // Active section for mobile tab-like navigation
   const [activeSection, setActiveSection] = useState<"perfil" | "seguranca" | "premiacoes">("perfil")
+
+  // Buscar faturamento total do usuario
+  const { data: revenueData } = useSWR<{ totalRevenue: number }>(
+    session?.userId ? `/api/user/revenue?userId=${session.userId}` : null,
+    fetcher,
+    { refreshInterval: 60000 }
+  )
 
   // Fetch profile
   const fetchProfile = useCallback(async () => {
@@ -199,11 +209,15 @@ export default function SettingsPage() {
   const lastAccess = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })
   const accountId = session?.userId?.slice(0, 12) || "000000000000"
 
-  // Rewards
-  const faturamentoAtual = 0
+  // Rewards - usando faturamento real
+  const faturamentoAtual = revenueData?.totalRevenue || 0
   const currentMilestoneIdx = milestones.findIndex((m) => faturamentoAtual < m.value)
   const proximaMeta = currentMilestoneIdx >= 0 ? milestones[currentMilestoneIdx].value : milestones[milestones.length - 1].value
-  const progressPercent = Math.min(100, (faturamentoAtual / proximaMeta) * 100)
+  const metaAnterior = currentMilestoneIdx > 0 ? milestones[currentMilestoneIdx - 1].value : 0
+  const progressoNaMeta = faturamentoAtual - metaAnterior
+  const tamanhoMeta = proximaMeta - metaAnterior
+  const progressPercent = Math.min(100, (progressoNaMeta / tamanhoMeta) * 100)
+  const faltaParaMeta = Math.max(0, proximaMeta - faturamentoAtual)
 
   if (loading) {
     return (
@@ -654,10 +668,10 @@ export default function SettingsPage() {
                   
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">
-                      Atual: <span className="text-gray-900 font-semibold">R$ {faturamentoAtual.toLocaleString("pt-BR")}</span>
+                      Atual: <span className="text-gray-900 font-semibold">R$ {faturamentoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                     </span>
                     <span className="text-gray-500">
-                      Meta: <span className="text-emerald-600 font-semibold">R$ {proximaMeta.toLocaleString("pt-BR")}</span>
+                      Faltam: <span className="text-emerald-600 font-semibold">R$ {faltaParaMeta.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                     </span>
                   </div>
                 </div>

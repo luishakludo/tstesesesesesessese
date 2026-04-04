@@ -33,13 +33,14 @@ export async function GET() {
     
     console.log("[v0] DragonAdmin Users - gateways count:", allGateways?.length, "gateways user_ids:", allGateways?.map(g => g.user_id), "error:", gatewaysError?.message || "none")
 
-    // Buscar todos os referrals
+    // Buscar todos os referrals (incluindo comissoes)
     const { data: allReferrals } = await supabaseAdmin
       .from("referrals")
       .select(`
         id,
         referrer_id,
         referred_id,
+        commission_amount,
         created_at,
         referred:referred_id (
           id,
@@ -48,6 +49,12 @@ export async function GET() {
           created_at
         )
       `)
+    
+    // Buscar saques de afiliados
+    const { data: allWithdraws } = await supabaseAdmin
+      .from("referral_withdraws")
+      .select("user_id, amount, status")
+      .in("status", ["approved", "paid"])
 
     // Buscar pagamentos por usuario (para stats)
     const { data: allPayments } = await supabaseAdmin
@@ -55,16 +62,7 @@ export async function GET() {
       .select("user_id, amount, status")
       .eq("status", "approved")
 
-    // Buscar saldos de afiliados (referral_sales)
-    const { data: allReferralSales } = await supabaseAdmin
-      .from("referral_sales")
-      .select("referrer_id, amount")
-    
-    // Buscar saques de afiliados para calcular saldo disponivel
-    const { data: allWithdraws } = await supabaseAdmin
-      .from("referral_withdraws")
-      .select("user_id, amount, status")
-      .in("status", ["approved", "paid"])
+
 
     // Buscar starts por bot
     const { data: allStarts } = await supabaseAdmin
@@ -100,9 +98,9 @@ export async function GET() {
       const userBotIds = userBots.map(b => b.id)
       const totalStarts = userBotIds.reduce((acc, botId) => acc + (startsByBot[botId] || 0), 0)
 
-      // Calcular saldo de afiliado
-      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === user.id) || []
-      const totalReferralEarnings = userReferralSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0)
+      // Calcular saldo de afiliado baseado em referrals e withdraws
+      const userReferralCommissions = allReferrals?.filter(r => r.referrer_id === user.id) || []
+      const totalReferralEarnings = userReferralCommissions.reduce((acc, r) => acc + (Number(r.commission_amount) || 0), 0)
       const userWithdraws = allWithdraws?.filter(w => w.user_id === user.id) || []
       const totalWithdrawn = userWithdraws.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
       const affiliateBalance = totalReferralEarnings - totalWithdrawn
@@ -139,8 +137,6 @@ export async function GET() {
           totalRevenue: userPayments.reduce((acc, p) => acc + (p.amount || 0), 0),
         },
         affiliateBalance,
-        totalReferralEarnings,
-        totalWithdrawn,
       }
     })
 

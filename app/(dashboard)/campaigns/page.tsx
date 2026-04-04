@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/auth-context"
 import {
   Plus, Search, MoreVertical, Trash2, Pause, Play, Copy,
   Megaphone, Send, UserX, ShoppingCart, CheckCircle2,
-  RefreshCw, Loader2, ChevronRight
+  RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -73,13 +73,32 @@ const AUDIENCES = [
   },
 ]
 
+interface BotUser {
+  id: string
+  telegram_user_id: string
+  first_name?: string
+  username?: string
+  funnel_step?: string
+  is_subscriber?: boolean
+  payment_status?: string
+  created_at: string
+}
+
 export default function CampaignsPage() {
-  const { selectedBot } = useBots()
+  const { selectedBot, bots } = useBots()
   const { session } = useAuth()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [activeTab, setActiveTab] = useState("todas")
+  
+  // Section toggle: "campanhas" ou "usuarios"
+  const [activeSection, setActiveSection] = useState<"campanhas" | "usuarios">("campanhas")
+  
+  // Users section state
+  const [expandedBots, setExpandedBots] = useState<Record<string, boolean>>({})
+  const [botUsers, setBotUsers] = useState<Record<string, BotUser[]>>({})
+  const [loadingBotUsers, setLoadingBotUsers] = useState<Record<string, boolean>>({})
   
   // Create Modal
   const [createOpen, setCreateOpen] = useState(false)
@@ -167,6 +186,59 @@ export default function CampaignsPage() {
   }
 
   const getAudience = (id: string) => AUDIENCES.find(a => a.id === id) || AUDIENCES[0]
+
+  // Fetch users for a bot
+  const fetchBotUsers = async (botId: string) => {
+    setLoadingBotUsers(prev => ({ ...prev, [botId]: true }))
+    try {
+      const res = await fetch(`/api/bots/${botId}/users`)
+      const data = await res.json()
+      setBotUsers(prev => ({ ...prev, [botId]: data.users || [] }))
+    } catch { /* ignore */ }
+    setLoadingBotUsers(prev => ({ ...prev, [botId]: false }))
+  }
+
+  const toggleBotExpanded = (botId: string) => {
+    const isExpanding = !expandedBots[botId]
+    setExpandedBots(prev => ({ ...prev, [botId]: isExpanding }))
+    if (isExpanding && !botUsers[botId]) {
+      fetchBotUsers(botId)
+    }
+  }
+
+  const getUsersByStatus = (users: BotUser[], status: string) => {
+    switch (status) {
+      case "all": return users
+      case "started_not_continued": return users.filter(u => u.funnel_step === "started" && !u.payment_status)
+      case "not_paid": return users.filter(u => u.payment_status === "pending" || u.payment_status === "pix_generated")
+      case "paid": return users.filter(u => u.payment_status === "paid" || u.payment_status === "approved")
+      case "subscribers": return users.filter(u => u.is_subscriber)
+      default: return users
+    }
+  }
+
+  const exportUsers = (users: BotUser[], botName: string) => {
+    const csv = [
+      ["ID", "Nome", "Username", "Status", "Data"].join(","),
+      ...users.map(u => [
+        u.telegram_user_id,
+        u.first_name || "-",
+        u.username || "-",
+        u.payment_status || u.funnel_step || "-",
+        new Date(u.created_at).toLocaleDateString("pt-BR")
+      ].join(","))
+    ].join("\n")
+    
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `usuarios_${botName}_${Date.now()}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const totalUsers = Object.values(botUsers).reduce((acc, users) => acc + users.length, 0)
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString("pt-BR", {
@@ -277,6 +349,35 @@ export default function CampaignsPage() {
               </div>
             </div>
 
+            {/* Section Toggle Buttons */}
+            <div className="inline-flex items-center gap-1 p-1 bg-gray-100 rounded-full mb-6">
+              <button
+                onClick={() => setActiveSection("campanhas")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activeSection === "campanhas"
+                    ? "bg-[#1c1c1e] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <Megaphone className="h-4 w-4" />
+                Campanhas
+              </button>
+              <button
+                onClick={() => setActiveSection("usuarios")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activeSection === "usuarios"
+                    ? "bg-[#1c1c1e] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Usuarios
+              </button>
+            </div>
+
+            {/* CAMPANHAS SECTION */}
+            {activeSection === "campanhas" && (
+            <>
             {/* Search and Tabs */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mb-4">
               <div className="relative flex-1 max-w-xs">
@@ -432,6 +533,153 @@ export default function CampaignsPage() {
                 </div>
               )}
             </div>
+            </>
+            )}
+
+            {/* USUARIOS SECTION */}
+            {activeSection === "usuarios" && (
+            <div className="space-y-4">
+              {/* Info */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-sm text-gray-600">
+                  Visualize e gerencie os usuarios de cada bot. Clique em um bot para expandir e ver os publicos segmentados.
+                </p>
+              </div>
+
+              {/* Bots List */}
+              {bots.length === 0 ? (
+                <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+                  <Bot className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-bold text-gray-900">Nenhum bot encontrado</p>
+                  <p className="text-xs text-gray-500 mt-1">Crie um bot primeiro para ver os usuarios</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {bots.map((bot) => {
+                    const users = botUsers[bot.id] || []
+                    const isExpanded = expandedBots[bot.id]
+                    const isLoading = loadingBotUsers[bot.id]
+                    
+                    const audiences = [
+                      { id: "all", label: "Todos", count: users.length, color: "bg-gray-100 text-gray-700" },
+                      { id: "started_not_continued", label: "Abandonou", count: getUsersByStatus(users, "started_not_continued").length, color: "bg-amber-100 text-amber-700" },
+                      { id: "not_paid", label: "Nao pagou", count: getUsersByStatus(users, "not_paid").length, color: "bg-red-100 text-red-700" },
+                      { id: "paid", label: "Pagou", count: getUsersByStatus(users, "paid").length, color: "bg-emerald-100 text-emerald-700" },
+                      { id: "subscribers", label: "Assinantes", count: getUsersByStatus(users, "subscribers").length, color: "bg-blue-100 text-blue-700" },
+                    ]
+
+                    return (
+                      <div key={bot.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                        {/* Bot Header */}
+                        <button
+                          onClick={() => toggleBotExpanded(bot.id)}
+                          className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#1c1c1e] flex items-center justify-center">
+                              <Bot className="h-5 w-5 text-[#bfff00]" />
+                            </div>
+                            <div className="text-left">
+                              <p className="font-bold text-gray-900">{bot.name}</p>
+                              <p className="text-xs text-gray-500">@{bot.username || "sem_username"}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-semibold text-gray-600">{users.length} usuarios</span>
+                            <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </div>
+                        </button>
+
+                        {/* Expanded Content */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 p-4 bg-gray-50">
+                            {isLoading ? (
+                              <div className="flex items-center justify-center py-8">
+                                <RefreshCw className="h-5 w-5 animate-spin text-gray-400" />
+                              </div>
+                            ) : (
+                              <>
+                                {/* Audiences Grid */}
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+                                  {audiences.map((aud) => (
+                                    <div key={aud.id} className={`rounded-xl p-3 ${aud.color}`}>
+                                      <p className="text-2xl font-bold">{aud.count}</p>
+                                      <p className="text-xs font-medium">{aud.label}</p>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="flex flex-wrap gap-2">
+                                  <button
+                                    onClick={() => exportUsers(users, bot.name)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Exportar CSV
+                                  </button>
+                                  <button
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                  >
+                                    <Upload className="h-4 w-4" />
+                                    Importar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActiveSection("campanhas")
+                                      setCreateOpen(true)
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1c1e] text-sm font-medium text-white hover:bg-[#2a2a2e] transition-colors"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                    Nova Campanha
+                                  </button>
+                                </div>
+
+                                {/* Users Preview */}
+                                {users.length > 0 && (
+                                  <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Ultimos usuarios</p>
+                                    <div className="space-y-2">
+                                      {users.slice(0, 5).map((user) => (
+                                        <div key={user.id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+                                          <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
+                                              {(user.first_name || "U")[0].toUpperCase()}
+                                            </div>
+                                            <div>
+                                              <p className="text-sm font-medium text-gray-900">{user.first_name || "Usuario"}</p>
+                                              <p className="text-xs text-gray-500">{user.username ? `@${user.username}` : user.telegram_user_id}</p>
+                                            </div>
+                                          </div>
+                                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                            user.payment_status === "paid" || user.payment_status === "approved"
+                                              ? "bg-emerald-100 text-emerald-700"
+                                              : user.payment_status === "pending"
+                                                ? "bg-amber-100 text-amber-700"
+                                                : "bg-gray-100 text-gray-600"
+                                          }`}>
+                                            {user.payment_status || user.funnel_step || "inicio"}
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    {users.length > 5 && (
+                                      <p className="text-xs text-gray-500 text-center mt-2">E mais {users.length - 5} usuarios...</p>
+                                    )}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            )}
           </div>
         </div>
       </ScrollArea>

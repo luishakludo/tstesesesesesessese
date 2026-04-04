@@ -96,6 +96,19 @@ interface FlowConfig {
   mainDeliverableId?: string
 }
 
+interface PlanOrderBump {
+  id: string
+  enabled: boolean
+  name: string
+  price: number
+  description: string
+  acceptText: string
+  rejectText: string
+  ctaMessage: string
+  deliveryType: "same" | "custom"
+  medias: string[]
+}
+
 interface FlowPlan {
   id: string
   name: string
@@ -107,6 +120,7 @@ interface FlowPlan {
   delivery_type: "default" | "custom"
   deliverableId?: string // ID do entregavel especifico para este plano
   custom_delivery?: string
+  // Legado (manter para compatibilidade)
   order_bump_custom: boolean
   order_bump_name?: string
   order_bump_price?: number
@@ -116,6 +130,8 @@ interface FlowPlan {
   order_bump_cta_message?: string
   order_bump_delivery?: "same" | "custom"
   order_bump_medias?: string[]
+  // Novo: array de order bumps (ate 5)
+  order_bumps?: PlanOrderBump[]
 }
 
 interface UpsellPlan {
@@ -987,21 +1003,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
   // Add plan
   const handleAddPlan = () => {
-    const newPlanId = crypto.randomUUID()
-    setPlans([
-      ...plans,
-      {
-        id: newPlanId,
-        name: "",
-        price: 0,
-        duration_days: 30,
-        duration_type: "monthly",
-        active: true,
-        delivery_type: "default",
-        order_bump_custom: false,
-        order_bump_name: "",
-        order_bump_price: 0,
-        order_bump_description: "",
+  const newPlanId = crypto.randomUUID()
+  setPlans([
+  ...plans,
+  {
+  id: newPlanId,
+  name: "",
+  price: 0,
+  duration_days: 30,
+  duration_type: "monthly",
+  active: true,
+  delivery_type: "default",
+  order_bump_custom: false,
+  order_bump_name: "",
+  order_bump_price: 0,
+  order_bump_description: "",
+  order_bumps: [], // Array de order bumps (ate 5)
         order_bump_accept_text: "ADICIONAR",
         order_bump_reject_text: "NAO QUERO",
         order_bump_cta_message: "",
@@ -2239,6 +2256,233 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           </SelectContent>
                                         </Select>
                                       )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Order Bumps do Plano */}
+                                <div className="space-y-3 pt-4 border-t border-border/50">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
+                                        <Package className="h-4 w-4 text-purple-500" />
+                                      </div>
+                                      <span className="font-medium">Order Bumps</span>
+                                      <span className="text-xs text-muted-foreground">({(plan.order_bumps || []).length}/5)</span>
+                                    </div>
+                                    {(plan.order_bumps || []).length < 5 && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          const newBump: PlanOrderBump = {
+                                            id: `bump-${Date.now()}`,
+                                            enabled: true,
+                                            name: "",
+                                            price: 0,
+                                            description: "",
+                                            acceptText: "ADICIONAR",
+                                            rejectText: "NAO QUERO",
+                                            ctaMessage: "",
+                                            deliveryType: "same",
+                                            medias: []
+                                          }
+                                          const currentBumps = plan.order_bumps || []
+                                          handleUpdatePlan(plan.id, "order_bumps", [...currentBumps, newBump])
+                                        }}
+                                        className="border-purple-500/30 text-purple-500 hover:bg-purple-500/10"
+                                      >
+                                        <Plus className="h-3 w-3 mr-1" />
+                                        Adicionar
+                                      </Button>
+                                    )}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    Produtos adicionais oferecidos antes do pagamento deste plano
+                                  </p>
+                                  
+                                  {(plan.order_bumps || []).length === 0 ? (
+                                    <div className="text-center py-4 border border-dashed border-border/50 rounded-lg">
+                                      <Package className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
+                                      <p className="text-sm text-muted-foreground">Nenhum order bump configurado</p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      {(plan.order_bumps || []).map((bump, bumpIndex) => (
+                                        <div key={bump.id} className="p-3 rounded-lg border border-purple-500/20 bg-purple-500/5">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                              <Switch
+                                                checked={bump.enabled}
+                                                onCheckedChange={(checked) => {
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, enabled: checked }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                              />
+                                              <span className="font-medium text-sm">{bump.name || `Order Bump ${bumpIndex + 1}`}</span>
+                                              {bump.price > 0 && (
+                                                <Badge variant="outline" className="text-xs">R$ {bump.price.toFixed(2)}</Badge>
+                                              )}
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                const updatedBumps = (plan.order_bumps || []).filter((_, i) => i !== bumpIndex)
+                                                handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                              }}
+                                              className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                            >
+                                              <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Nome</Label>
+                                              <Input
+                                                value={bump.name}
+                                                onChange={(e) => {
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, name: e.target.value }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                placeholder="Ex: Pack Extra"
+                                                className="h-8 text-sm bg-secondary/30"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Preco (R$)</Label>
+                                              <Input
+                                                type="text"
+                                                inputMode="decimal"
+                                                value={bump.price || ""}
+                                                onChange={(e) => {
+                                                  const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, price: parseFloat(val) || 0 }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                placeholder="0.00"
+                                                className="h-8 text-sm bg-secondary/30"
+                                              />
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="mt-3 space-y-1">
+                                            <Label className="text-xs text-muted-foreground">Descricao</Label>
+                                            <Textarea
+                                              value={bump.description}
+                                              onChange={(e) => {
+                                                const updatedBumps = [...(plan.order_bumps || [])]
+                                                updatedBumps[bumpIndex] = { ...bump, description: e.target.value }
+                                                handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                              }}
+                                              placeholder="Descricao do order bump..."
+                                              rows={2}
+                                              className="text-sm bg-secondary/30"
+                                            />
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-3 mt-3">
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Texto Aceitar</Label>
+                                              <Input
+                                                value={bump.acceptText}
+                                                onChange={(e) => {
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, acceptText: e.target.value }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                placeholder="ADICIONAR"
+                                                className="h-8 text-sm bg-secondary/30"
+                                              />
+                                            </div>
+                                            <div className="space-y-1">
+                                              <Label className="text-xs text-muted-foreground">Texto Recusar</Label>
+                                              <Input
+                                                value={bump.rejectText}
+                                                onChange={(e) => {
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, rejectText: e.target.value }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                placeholder="NAO QUERO"
+                                                className="h-8 text-sm bg-secondary/30"
+                                              />
+                                            </div>
+                                          </div>
+                                          
+                                          {/* Midias do Order Bump (ate 3) */}
+                                          <div className="mt-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <Label className="text-xs text-muted-foreground">Midias ({(bump.medias || []).length}/3)</Label>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                              {(bump.medias || []).map((media, mediaIndex) => (
+                                                <div key={mediaIndex} className="relative group">
+                                                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-border/50 bg-secondary/30">
+                                                    {media.match(/\.(mp4|webm|mov)$/i) ? (
+                                                      <video src={media} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                      <img src={media} alt="" className="w-full h-full object-cover" />
+                                                    )}
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      const updatedMedias = [...(bump.medias || [])].filter((_, i) => i !== mediaIndex)
+                                                      const updatedBumps = [...(plan.order_bumps || [])]
+                                                      updatedBumps[bumpIndex] = { ...bump, medias: updatedMedias }
+                                                      handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                    }}
+                                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    <X className="h-3 w-3" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                              {(bump.medias || []).length < 3 && (
+                                                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors">
+                                                  <input
+                                                    type="file"
+                                                    accept="image/*,video/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                      const file = e.target.files?.[0]
+                                                      if (!file) return
+                                                      
+                                                      const fileExt = file.name.split('.').pop()
+                                                      const fileName = `${flow.id}/planbump_${plan.id}_${bump.id}_${Date.now()}.${fileExt}`
+                                                      
+                                                      const { error } = await supabase.storage
+                                                        .from('flow-medias')
+                                                        .upload(fileName, file, { cacheControl: '3600', upsert: false })
+                                                      
+                                                      if (error) {
+                                                        toast({ title: "Erro no upload", description: error.message, variant: "destructive" })
+                                                        return
+                                                      }
+                                                      
+                                                      const { data: urlData } = supabase.storage.from('flow-medias').getPublicUrl(fileName)
+                                                      const updatedMedias = [...(bump.medias || []), urlData.publicUrl]
+                                                      const updatedBumps = [...(plan.order_bumps || [])]
+                                                      updatedBumps[bumpIndex] = { ...bump, medias: updatedMedias }
+                                                      handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                    }}
+                                                  />
+                                                  <Plus className="h-4 w-4 text-muted-foreground" />
+                                                </label>
+                                              )}
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">Imagens ou videos para exibir no order bump</p>
+                                          </div>
+                                        </div>
+                                      ))}
                                     </div>
                                   )}
                                 </div>
