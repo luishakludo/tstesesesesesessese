@@ -5,16 +5,16 @@ export async function GET() {
   try {
     console.log("[v0] DragonAdmin Users API - Starting fetch with admin client")
     
-    // Buscar todos os usuarios (profiles) - usando admin client para bypassar RLS
-    const { data: profiles, error: profilesError } = await supabaseAdmin
-      .from("profiles")
+    // Buscar todos os usuarios - usando admin client para bypassar RLS
+    const { data: usersData, error: usersError } = await supabaseAdmin
+      .from("users")
       .select("*")
       .order("created_at", { ascending: false })
 
-    console.log("[v0] DragonAdmin Users - profiles count:", profiles?.length, "error:", profilesError?.message || "none")
+    console.log("[v0] DragonAdmin Users - users count:", usersData?.length, "error:", usersError?.message || "none")
 
-    if (profilesError) {
-      console.error("Erro ao buscar profiles:", profilesError)
+    if (usersError) {
+      console.error("Erro ao buscar users:", usersError)
       return NextResponse.json({ error: "Erro ao buscar usuarios" }, { status: 500 })
     }
 
@@ -85,30 +85,30 @@ export async function GET() {
     })
 
     // Montar resposta com dados agregados
-    const users = profiles?.map(profile => {
-      const userBots = allBots?.filter(b => b.user_id === profile.id) || []
-      const userGateways = allGateways?.filter(g => g.user_id === profile.id) || []
-      const userReferrals = allReferrals?.filter(r => r.referrer_id === profile.id) || []
-      const userPayments = allPayments?.filter(p => p.user_id === profile.id) || []
+    const users = usersData?.map(user => {
+      const userBots = allBots?.filter(b => b.user_id === user.id) || []
+      const userGateways = allGateways?.filter(g => g.user_id === user.id) || []
+      const userReferrals = allReferrals?.filter(r => r.referrer_id === user.id) || []
+      const userPayments = allPayments?.filter(p => p.user_id === user.id) || []
 
       // Calcular total de starts dos bots do usuario
       const userBotIds = userBots.map(b => b.id)
       const totalStarts = userBotIds.reduce((acc, botId) => acc + (startsByBot[botId] || 0), 0)
 
       // Calcular saldo de afiliado
-      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === profile.id) || []
+      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === user.id) || []
       const totalReferralEarnings = userReferralSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0)
-      const userWithdraws = allWithdraws?.filter(w => w.user_id === profile.id) || []
+      const userWithdraws = allWithdraws?.filter(w => w.user_id === user.id) || []
       const totalWithdrawn = userWithdraws.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
       const affiliateBalance = totalReferralEarnings - totalWithdrawn
 
       return {
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        phone: profile.phone,
-        banned: profile.banned || false,
-        created_at: profile.created_at,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        banned: user.banned || false,
+        created_at: user.created_at,
         bots: userBots.map(b => ({
           id: b.id,
           name: b.name,
