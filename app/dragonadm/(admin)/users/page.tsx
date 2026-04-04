@@ -2,19 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { cn } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -37,12 +26,14 @@ import {
   Eye,
   Bot,
   CreditCard,
-  UserPlus,
-  Activity,
   Loader2,
   RefreshCw,
   Wallet,
   DollarSign,
+  Shield,
+  Clock,
+  UserPlus,
+  Zap,
 } from "lucide-react"
 
 interface UserBot {
@@ -97,7 +88,6 @@ export default function UsersManagementPage() {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   
-  // Affiliate balance editing
   const [editingBalance, setEditingBalance] = useState(false)
   const [balanceInput, setBalanceInput] = useState("")
   const [balanceReason, setBalanceReason] = useState("")
@@ -171,7 +161,6 @@ export default function UsersManagementPage() {
 
       if (res.ok) {
         const data = await res.json()
-        // Atualizar usuario localmente
         setUsers(prev =>
           prev.map(u =>
             u.id === selectedUser.id
@@ -203,507 +192,594 @@ export default function UsersManagementPage() {
   return (
     <>
       <ScrollArea className="flex-1">
-        <div className="p-6 space-y-6">
+        <div className="p-6 lg:p-8 space-y-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <div>
-              <h1 className="text-2xl font-bold text-white">Usuarios</h1>
-              <p className="text-sm text-zinc-400">
+              <div className="flex items-center gap-3 mb-2">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.1))',
+                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                  }}
+                >
+                  <Users className="w-5 h-5 text-[#3b82f6]" />
+                </div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Usuarios</h1>
+              </div>
+              <p className="text-[#666666] text-sm">
                 Gerencie todos os usuarios do sistema
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
+            <button
               onClick={loadUsers}
               disabled={isLoading}
-              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-white disabled:opacity-50"
+              style={{ 
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+              <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
               Atualizar
-            </Button>
+            </button>
           </div>
 
           {/* Stats Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-white" />
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: Users, label: "Total", value: users.length, color: "#a1a1a1", bg: "rgba(255,255,255,0.05)" },
+              { icon: CheckCircle, label: "Ativos", value: activeUsers, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
+              { icon: Ban, label: "Banidos", value: bannedUsers, color: "#ef4444", bg: "rgba(239, 68, 68, 0.1)" },
+              { icon: Bot, label: "Bots", value: totalBots, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+                style={{
+                  background: '#0f0f0f',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = `${stat.color}30`
+                  e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{ background: stat.bg }}
+                  >
+                    <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-white">{users.length}</p>
-                    <p className="text-xs text-zinc-400">Total</p>
+                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+                    <p className="text-sm text-[#666666]">{stat.label}</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                    <CheckCircle className="h-5 w-5 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">{activeUsers}</p>
-                    <p className="text-xs text-zinc-400">Ativos</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                    <Ban className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">{bannedUsers}</p>
-                    <p className="text-xs text-zinc-400">Banidos</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                    <Bot className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xl font-bold text-white">{totalBots}</p>
-                    <p className="text-xs text-zinc-400">Bots</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Users Table */}
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <CardTitle className="text-base font-semibold text-white">
-                  Lista de Usuarios
-                </CardTitle>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                  <Input
-                    placeholder="Buscar usuario..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full sm:w-64 bg-zinc-800 pl-9 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
-                  />
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
+            ))}
+          </div>
+
+          {/* Users Table Card */}
+          <div 
+            className="rounded-2xl overflow-hidden"
+            style={{ 
+              background: '#0f0f0f',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            {/* Card Header */}
+            <div 
+              className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-center gap-3">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(149, 228, 104, 0.1)' }}
+                >
+                  <UserPlus className="w-5 h-5 text-[#95e468]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">Lista de Usuarios</h2>
+                  <p className="text-xs text-[#666666]">{filteredUsers.length} usuarios encontrados</p>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#666666]" />
+                <input
+                  placeholder="Buscar usuario..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full sm:w-72 pl-11 pr-4 py-2.5 rounded-xl text-sm text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-[#95e468]/30 transition-all"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Table Content */}
+            <div className="p-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-xl bg-[#95e468]/10 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-[#95e468] animate-spin" />
+                    </div>
+                    <div className="absolute inset-0 rounded-xl bg-[#95e468]/20 blur-xl animate-pulse" />
+                  </div>
+                  <p className="text-sm text-[#666666]">Carregando usuarios...</p>
                 </div>
               ) : filteredUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-3">
-                  <Users className="h-10 w-10 text-zinc-700" />
-                  <p className="text-sm text-zinc-400">
-                    {users.length === 0 ? "Nenhum usuario registrado" : "Nenhum resultado"}
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                    style={{ 
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}
+                  >
+                    <Users className="h-10 w-10 text-[#444444]" />
+                  </div>
+                  <p className="text-sm text-[#666666]">
+                    {users.length === 0 ? "Nenhum usuario registrado" : "Nenhum resultado encontrado"}
                   </p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-zinc-500 text-xs">Usuario</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Bots</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Gateway</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Indicacoes</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Saldo Afiliado</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Status</TableHead>
-                        <TableHead className="text-zinc-500 text-xs">Criado em</TableHead>
-                        <TableHead className="text-zinc-500 text-xs text-right">Acoes</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                  <table className="w-full">
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Usuario</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Bots</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Gateway</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Indicacoes</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Saldo Afiliado</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Criado em</th>
+                        <th className="px-6 py-4 text-right text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Acoes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {filteredUsers.map((user) => (
-                        <TableRow key={user.id} className="border-zinc-800">
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-medium text-white">
-                                {user.name || "Sem nome"}
-                              </span>
-                              <span className="text-xs text-zinc-400">
-                                {user.email}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-xs bg-zinc-800 text-zinc-300">
-                              {user.bots?.length || 0} bots
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {user.gateways?.length > 0 ? (
-                              <Badge 
-                                variant="outline" 
-                                className="text-xs bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+                        <tr 
+                          key={user.id} 
+                          className="group transition-colors hover:bg-white/[0.02]"
+                          style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                        >
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white"
+                                style={{ 
+                                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                                  border: '1px solid rgba(255,255,255,0.06)'
+                                }}
                               >
+                                {user.email?.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-white">
+                                  {user.name || "Sem nome"}
+                                </p>
+                                <p className="text-xs text-[#666666]">{user.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span 
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                              style={{ 
+                                background: 'rgba(139, 92, 246, 0.1)',
+                                color: '#8b5cf6',
+                                border: '1px solid rgba(139, 92, 246, 0.2)'
+                              }}
+                            >
+                              <Bot className="w-3 h-3" />
+                              {user.bots?.length || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            {user.gateways?.length > 0 ? (
+                              <span 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                                style={{ 
+                                  background: 'rgba(34, 197, 94, 0.1)',
+                                  color: '#22c55e',
+                                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                                }}
+                              >
+                                <Zap className="w-3 h-3" />
                                 Ativa
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge 
-                                variant="outline" 
-                                className="text-xs text-zinc-500 border-zinc-700"
+                              <span 
+                                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium"
+                                style={{ 
+                                  background: 'rgba(255,255,255,0.03)',
+                                  color: '#666666',
+                                  border: '1px solid rgba(255,255,255,0.06)'
+                                }}
                               >
                                 Sem gateway
-                              </Badge>
+                              </span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-white">
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="text-sm text-white font-medium">
                               {user.referrals?.length || 0}
                             </span>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-6 py-4">
                             <span className={cn(
-                              "text-sm font-medium",
-                              (user.affiliateBalance || 0) > 0 ? "text-emerald-500" : "text-zinc-500"
+                              "text-sm font-semibold",
+                              (user.affiliateBalance || 0) > 0 ? "text-[#22c55e]" : "text-[#666666]"
                             )}>
                               R$ {(user.affiliateBalance || 0).toFixed(2)}
                             </span>
-                          </TableCell>
-                          <TableCell>
+                          </td>
+                          <td className="px-6 py-4">
                             {user.banned ? (
-                              <Badge
-                                variant="outline"
-                                className="bg-red-500/10 text-red-400 border-red-500/20 text-xs"
+                              <span 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                                style={{ 
+                                  background: 'rgba(239, 68, 68, 0.1)',
+                                  color: '#ef4444',
+                                  border: '1px solid rgba(239, 68, 68, 0.2)'
+                                }}
                               >
+                                <Ban className="w-3 h-3" />
                                 Banido
-                              </Badge>
+                              </span>
                             ) : (
-                              <Badge
-                                variant="outline"
-                                className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs"
+                              <span 
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                                style={{ 
+                                  background: 'rgba(34, 197, 94, 0.1)',
+                                  color: '#22c55e',
+                                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                                }}
                               >
+                                <CheckCircle className="w-3 h-3" />
                                 Ativo
-                              </Badge>
+                              </span>
                             )}
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-zinc-400">
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2 text-sm text-[#666666]">
+                              <Clock className="w-3.5 h-3.5" />
                               {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-zinc-400 hover:bg-zinc-800"
+                                <button
                                   disabled={actionLoading === user.id}
+                                  className="p-2 rounded-lg text-[#666666] hover:text-white hover:bg-white/[0.05] transition-colors disabled:opacity-50"
                                 >
                                   {actionLoading === user.id ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <MoreHorizontal className="h-4 w-4" />
                                   )}
-                                </Button>
+                                </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="bg-zinc-900 border-zinc-800">
+                              <DropdownMenuContent 
+                                align="end" 
+                                className="w-48 rounded-xl p-1"
+                                style={{ 
+                                  background: '#111111',
+                                  border: '1px solid rgba(255,255,255,0.1)'
+                                }}
+                              >
                                 <DropdownMenuItem
                                   onClick={() => openUserDetails(user)}
-                                  className="text-white hover:bg-zinc-800"
+                                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-white cursor-pointer hover:bg-white/[0.05]"
                                 >
-                                  <Eye className="mr-2 h-4 w-4" />
+                                  <Eye className="h-4 w-4 text-[#3b82f6]" />
                                   Ver Detalhes
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-zinc-800" />
+                                <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
                                 {user.banned ? (
                                   <DropdownMenuItem
                                     onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="text-emerald-400 hover:bg-zinc-800"
+                                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#22c55e] cursor-pointer hover:bg-[#22c55e]/10"
                                   >
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    Desbanir
+                                    <CheckCircle className="h-4 w-4" />
+                                    Desbanir Usuario
                                   </DropdownMenuItem>
                                 ) : (
                                   <DropdownMenuItem
                                     onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="text-red-400 hover:bg-zinc-800"
+                                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#ef4444] cursor-pointer hover:bg-[#ef4444]/10"
                                   >
-                                    <Ban className="mr-2 h-4 w-4" />
-                                    Banir
+                                    <Ban className="h-4 w-4" />
+                                    Banir Usuario
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
+                          </td>
+                        </tr>
                       ))}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </ScrollArea>
 
       {/* User Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-2xl bg-zinc-900 border-zinc-800 max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+          style={{ 
+            background: '#0a0a0a',
+            border: '1px solid rgba(255,255,255,0.1)'
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="text-white">Detalhes do Usuario</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-white">Detalhes do Usuario</DialogTitle>
           </DialogHeader>
 
           {selectedUser && (
-            <div className="space-y-6">
-              {/* User Info */}
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
-                  <span className="text-xl font-bold text-white">
-                    {selectedUser.email?.charAt(0).toUpperCase()}
-                  </span>
+            <div className="space-y-6 pt-4">
+              {/* User Header */}
+              <div 
+                className="flex items-start gap-4 p-5 rounded-xl"
+                style={{ 
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              >
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(149, 228, 104, 0.2))',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  {selectedUser.email?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-white">
                     {selectedUser.name || "Sem nome"}
                   </h3>
-                  <p className="text-sm text-zinc-400">{selectedUser.email}</p>
+                  <p className="text-sm text-[#666666]">{selectedUser.email}</p>
                   {selectedUser.phone && (
-                    <p className="text-sm text-zinc-400">{selectedUser.phone}</p>
+                    <p className="text-sm text-[#666666]">{selectedUser.phone}</p>
                   )}
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex items-center gap-3 mt-3">
                     {selectedUser.banned ? (
-                      <Badge variant="outline" className="bg-red-500/10 text-red-400 border-red-500/20">
+                      <span 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                        style={{ 
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          color: '#ef4444',
+                          border: '1px solid rgba(239, 68, 68, 0.2)'
+                        }}
+                      >
+                        <Ban className="w-3 h-3" />
                         Banido
-                      </Badge>
+                      </span>
                     ) : (
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                      <span 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                        style={{ 
+                          background: 'rgba(34, 197, 94, 0.1)',
+                          color: '#22c55e',
+                          border: '1px solid rgba(34, 197, 94, 0.2)'
+                        }}
+                      >
+                        <CheckCircle className="w-3 h-3" />
                         Ativo
-                      </Badge>
+                      </span>
                     )}
-                    <span className="text-xs text-zinc-500">
+                    <span className="text-xs text-[#666666] flex items-center gap-1.5">
+                      <Clock className="w-3 h-3" />
                       Desde {new Date(selectedUser.created_at).toLocaleDateString("pt-BR")}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Affiliate Balance */}
-              <Card className="bg-zinc-800 border-zinc-700">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5 text-emerald-500" />
-                      <span className="text-sm font-semibold text-white">Saldo de Afiliado (Indique e Ganhe)</span>
+              {/* Affiliate Balance Card */}
+              <div 
+                className="rounded-xl overflow-hidden"
+                style={{ 
+                  background: 'linear-gradient(145deg, rgba(34, 197, 94, 0.05), rgba(149, 228, 104, 0.02))',
+                  border: '1px solid rgba(34, 197, 94, 0.15)'
+                }}
+              >
+                <div 
+                  className="px-5 py-4 flex items-center justify-between"
+                  style={{ borderBottom: '1px solid rgba(34, 197, 94, 0.1)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: 'rgba(34, 197, 94, 0.15)' }}
+                    >
+                      <Wallet className="h-5 w-5 text-[#22c55e]" />
                     </div>
-                    {!editingBalance && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditingBalance(true)
-                          setBalanceInput((selectedUser.affiliateBalance || 0).toFixed(2))
-                        }}
-                        className="text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                      >
-                        Editar Saldo
-                      </Button>
-                    )}
+                    <span className="text-sm font-semibold text-white">Saldo de Afiliado</span>
                   </div>
-                  
+                  {!editingBalance && (
+                    <button
+                      onClick={() => {
+                        setEditingBalance(true)
+                        setBalanceInput(selectedUser.affiliateBalance?.toString() || "0")
+                      }}
+                      className="px-4 py-2 rounded-lg text-xs font-medium text-[#22c55e] transition-colors hover:bg-[#22c55e]/10"
+                      style={{ border: '1px solid rgba(34, 197, 94, 0.3)' }}
+                    >
+                      Editar Saldo
+                    </button>
+                  )}
+                </div>
+                <div className="p-5">
                   {editingBalance ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">Novo Saldo (R$)</label>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-[#666666] uppercase tracking-wider">Novo Saldo (R$)</label>
                         <Input
                           value={balanceInput}
-                          onChange={(e) => setBalanceInput(e.target.value.replace(/[^0-9.,]/g, ""))}
+                          onChange={(e) => setBalanceInput(e.target.value)}
                           placeholder="0.00"
-                          className="bg-zinc-900 border-zinc-700 text-white"
+                          className="bg-[#111111] border-[rgba(255,255,255,0.1)] text-white text-lg font-semibold"
                         />
                       </div>
-                      <div>
-                        <label className="text-xs text-zinc-400 mb-1 block">Motivo (opcional)</label>
+                      <div className="space-y-2">
+                        <label className="text-xs font-medium text-[#666666] uppercase tracking-wider">Motivo (opcional)</label>
                         <Input
                           value={balanceReason}
                           onChange={(e) => setBalanceReason(e.target.value)}
-                          placeholder="Ex: Ajuste de teste"
-                          className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500"
+                          placeholder="Ex: Ajuste manual"
+                          className="bg-[#111111] border-[rgba(255,255,255,0.1)] text-white"
                         />
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingBalance(false)}
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={handleUpdateBalance}
                           disabled={balanceLoading}
-                          className="flex-1 border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#050505] transition-all disabled:opacity-50"
+                          style={{ background: '#22c55e' }}
+                        >
+                          {balanceLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                          Salvar
+                        </button>
+                        <button
+                          onClick={() => setEditingBalance(false)}
+                          className="px-4 py-2.5 rounded-xl text-sm font-medium text-[#a1a1a1] hover:text-white transition-colors"
+                          style={{ background: 'rgba(255,255,255,0.05)' }}
                         >
                           Cancelar
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={handleUpdateBalance}
-                          disabled={balanceLoading || !balanceInput}
-                          className="flex-1 bg-white text-zinc-900 hover:bg-zinc-200"
-                        >
-                          {balanceLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
-                        </Button>
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-emerald-500">
+                      <div>
+                        <p className="text-2xl font-bold text-[#22c55e]">
                           R$ {(selectedUser.affiliateBalance || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-zinc-400">Saldo Disponivel</p>
+                        <p className="text-xs text-[#666666] mt-1">Saldo Disponivel</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-white">
+                      <div>
+                        <p className="text-xl font-semibold text-white">
                           R$ {(selectedUser.totalReferralEarnings || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-zinc-400">Total Ganho</p>
+                        <p className="text-xs text-[#666666] mt-1">Total Ganho</p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-lg font-bold text-white">
+                      <div>
+                        <p className="text-xl font-semibold text-white">
                           R$ {(selectedUser.totalWithdrawn || 0).toFixed(2)}
                         </p>
-                        <p className="text-[10px] text-zinc-400">Sacado</p>
+                        <p className="text-xs text-[#666666] mt-1">Total Sacado</p>
                       </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Stats */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-4">
-                <Card className="bg-zinc-800/50 border-zinc-700">
-                  <CardContent className="p-4 text-center">
-                    <Activity className="h-5 w-5 text-white mx-auto mb-2" />
-                    <p className="text-lg font-bold text-white">{selectedUser.stats?.totalStarts || 0}</p>
-                    <p className="text-xs text-zinc-400">Total Starts</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-zinc-800/50 border-zinc-700">
-                  <CardContent className="p-4 text-center">
-                    <CreditCard className="h-5 w-5 text-white mx-auto mb-2" />
-                    <p className="text-lg font-bold text-white">{selectedUser.stats?.totalPayments || 0}</p>
-                    <p className="text-xs text-zinc-400">Pagamentos</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-zinc-800/50 border-zinc-700">
-                  <CardContent className="p-4 text-center">
-                    <UserPlus className="h-5 w-5 text-white mx-auto mb-2" />
-                    <p className="text-lg font-bold text-white">{selectedUser.referrals?.length || 0}</p>
-                    <p className="text-xs text-zinc-400">Indicacoes</p>
-                  </CardContent>
-                </Card>
+                {[
+                  { icon: Bot, label: "Bots", value: selectedUser.bots?.length || 0, color: "#8b5cf6" },
+                  { icon: CreditCard, label: "Pagamentos", value: selectedUser.stats?.totalPayments || 0, color: "#f59e0b" },
+                  { icon: Users, label: "Indicados", value: selectedUser.referrals?.length || 0, color: "#3b82f6" },
+                ].map((stat, i) => (
+                  <div 
+                    key={i}
+                    className="p-4 rounded-xl text-center"
+                    style={{ 
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3"
+                      style={{ background: `${stat.color}15` }}
+                    >
+                      <stat.icon className="w-5 h-5" style={{ color: stat.color }} />
+                    </div>
+                    <p className="text-xl font-bold text-white">{stat.value}</p>
+                    <p className="text-xs text-[#666666] mt-1">{stat.label}</p>
+                  </div>
+                ))}
               </div>
 
-              {/* Bots */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <Bot className="h-4 w-4" />
-                  Bots ({selectedUser.bots?.length || 0})
-                </h4>
-                {selectedUser.bots?.length > 0 ? (
-                  <div className="space-y-2">
+              {/* Bots List */}
+              {selectedUser.bots && selectedUser.bots.length > 0 && (
+                <div 
+                  className="rounded-xl overflow-hidden"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  <div 
+                    className="px-5 py-4"
+                    style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <h4 className="text-sm font-semibold text-white">Bots do Usuario</h4>
+                  </div>
+                  <div className="p-4 space-y-2">
                     {selectedUser.bots.map((bot) => (
-                      <div
+                      <div 
                         key={bot.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
+                        className="flex items-center justify-between p-3 rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.02)' }}
                       >
-                        <div>
-                          <p className="text-sm font-medium text-white">{bot.name}</p>
-                          <p className="text-xs text-zinc-400">@{bot.username}</p>
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-8 h-8 rounded-lg flex items-center justify-center"
+                            style={{ background: 'rgba(139, 92, 246, 0.1)' }}
+                          >
+                            <Bot className="w-4 h-4 text-[#8b5cf6]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-white">{bot.name}</p>
+                            <p className="text-xs text-[#666666]">@{bot.username}</p>
+                          </div>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className={bot.is_active 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                            : "text-zinc-500 border-zinc-700"
-                          }
-                        >
-                          {bot.is_active ? "Ativo" : "Inativo"}
-                        </Badge>
+                        {bot.is_active ? (
+                          <span 
+                            className="px-2.5 py-1 rounded-md text-[10px] font-medium"
+                            style={{ 
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              color: '#22c55e'
+                            }}
+                          >
+                            Ativo
+                          </span>
+                        ) : (
+                          <span 
+                            className="px-2.5 py-1 rounded-md text-[10px] font-medium"
+                            style={{ 
+                              background: 'rgba(255,255,255,0.05)',
+                              color: '#666666'
+                            }}
+                          >
+                            Inativo
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-zinc-400">Nenhum bot cadastrado</p>
-                )}
-              </div>
-
-              {/* Gateways */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Gateways de Pagamento ({selectedUser.gateways?.length || 0})
-                </h4>
-                {selectedUser.gateways?.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedUser.gateways.map((gateway) => (
-                      <div
-                        key={gateway.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-white capitalize">
-                            {gateway.gateway_name}
-                          </p>
-                          <p className="text-xs text-zinc-400">
-                            Criado em {new Date(gateway.created_at).toLocaleDateString("pt-BR")}
-                          </p>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={gateway.is_active 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                            : "text-zinc-500 border-zinc-700"
-                          }
-                        >
-                          {gateway.is_active ? "Ativa" : "Inativa"}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-400">Nenhuma gateway configurada</p>
-                )}
-              </div>
-
-              {/* Referrals */}
-              <div>
-                <h4 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" />
-                  Usuarios Indicados ({selectedUser.referrals?.length || 0})
-                </h4>
-                {selectedUser.referrals?.length > 0 ? (
-                  <div className="space-y-2">
-                    {selectedUser.referrals.map((ref) => (
-                      <div
-                        key={ref.id}
-                        className="flex items-center justify-between p-3 rounded-lg bg-zinc-800/50"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-white">{ref.name || ref.email}</p>
-                          <p className="text-xs text-zinc-400">{ref.email}</p>
-                        </div>
-                        <span className="text-xs text-zinc-500">
-                          {new Date(ref.created_at).toLocaleDateString("pt-BR")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-400">Nenhum usuario indicado</p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

@@ -1,20 +1,9 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Bot, Search, RefreshCw, Loader2, CheckCircle, XCircle } from "lucide-react"
+import { Bot, Search, RefreshCw, Loader2, CheckCircle, XCircle, Clock, Zap, User } from "lucide-react"
 
 interface BotData {
   id: string
@@ -58,151 +47,240 @@ export default function BotsPage() {
 
   return (
     <ScrollArea className="flex-1">
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
-            <h1 className="text-2xl font-bold text-white">Bots</h1>
-            <p className="text-sm text-zinc-400">
+            <div className="flex items-center gap-3 mb-2">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.1))',
+                  border: '1px solid rgba(139, 92, 246, 0.2)'
+                }}
+              >
+                <Bot className="w-5 h-5 text-[#8b5cf6]" />
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Bots</h1>
+            </div>
+            <p className="text-[#666666] text-sm">
               Gerencie todos os bots do sistema
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={loadBots}
             disabled={isLoading}
-            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-white disabled:opacity-50"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             Atualizar
-          </Button>
+          </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <Bot className="h-5 w-5 text-white" />
+        {/* Stats Cards */}
+        <div className="grid gap-5 sm:grid-cols-3">
+          {[
+            { icon: Bot, label: "Total", value: bots.length, color: "#a1a1a1", bg: "rgba(255,255,255,0.05)" },
+            { icon: Zap, label: "Ativos", value: activeBots, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
+            { icon: XCircle, label: "Inativos", value: bots.length - activeBots, color: "#ef4444", bg: "rgba(239, 68, 68, 0.1)" },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: '#0f0f0f',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${stat.color}30`
+                e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: stat.bg }}
+                >
+                  <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{bots.length}</p>
-                  <p className="text-xs text-zinc-400">Total</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-sm text-[#666666]">{stat.label}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">{activeBots}</p>
-                  <p className="text-xs text-zinc-400">Ativos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
-                  <XCircle className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">{bots.length - activeBots}</p>
-                  <p className="text-xs text-zinc-400">Inativos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle className="text-base font-semibold text-white">
-                Lista de Bots
-              </CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <Input
-                  placeholder="Buscar bot..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full sm:w-64 bg-zinc-800 pl-9 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
-                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
+          ))}
+        </div>
+
+        {/* Bots Table Card */}
+        <div 
+          className="rounded-2xl overflow-hidden"
+          style={{ 
+            background: '#0f0f0f',
+            border: '1px solid rgba(255,255,255,0.06)'
+          }}
+        >
+          {/* Card Header */}
+          <div 
+            className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(149, 228, 104, 0.1)' }}
+              >
+                <Bot className="w-5 h-5 text-[#95e468]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white">Lista de Bots</h2>
+                <p className="text-xs text-[#666666]">{filteredBots.length} bots encontrados</p>
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#666666]" />
+              <input
+                placeholder="Buscar bot..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full sm:w-72 pl-11 pr-4 py-2.5 rounded-xl text-sm text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-[#95e468]/30 transition-all"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Table Content */}
+          <div className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-[#8b5cf6]/10 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-[#8b5cf6] animate-spin" />
+                  </div>
+                  <div className="absolute inset-0 rounded-xl bg-[#8b5cf6]/20 blur-xl animate-pulse" />
+                </div>
+                <p className="text-sm text-[#666666]">Carregando bots...</p>
               </div>
             ) : filteredBots.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Bot className="h-10 w-10 text-zinc-700" />
-                <p className="text-sm text-zinc-400">
-                  {bots.length === 0 ? "Nenhum bot criado" : "Nenhum resultado"}
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div 
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  <Bot className="h-10 w-10 text-[#444444]" />
+                </div>
+                <p className="text-sm text-[#666666]">
+                  {bots.length === 0 ? "Nenhum bot criado" : "Nenhum resultado encontrado"}
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-zinc-800 hover:bg-transparent">
-                      <TableHead className="text-zinc-500 text-xs">Bot</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Username</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Dono</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Status</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Criado em</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Bot</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Username</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Dono</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Criado em</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {filteredBots.map((bot) => (
-                      <TableRow key={bot.id} className="border-zinc-800">
-                        <TableCell>
-                          <span className="text-sm font-medium text-white">
-                            {bot.name}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-zinc-400">
+                      <tr 
+                        key={bot.id}
+                        className="group transition-colors hover:bg-white/[0.02]"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-10 h-10 rounded-xl flex items-center justify-center"
+                              style={{ 
+                                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.1))',
+                                border: '1px solid rgba(139, 92, 246, 0.2)'
+                              }}
+                            >
+                              <Bot className="w-5 h-5 text-[#8b5cf6]" />
+                            </div>
+                            <span className="text-sm font-medium text-white">
+                              {bot.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span 
+                            className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium"
+                            style={{ 
+                              background: 'rgba(255,255,255,0.03)',
+                              color: '#a1a1a1',
+                              border: '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
                             @{bot.username}
                           </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-zinc-400">
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-[#666666]">
+                            <User className="w-3.5 h-3.5" />
                             {bot.user_email || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
                           {bot.is_active ? (
-                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs">
+                            <span 
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                              style={{ 
+                                background: 'rgba(34, 197, 94, 0.1)',
+                                color: '#22c55e',
+                                border: '1px solid rgba(34, 197, 94, 0.2)'
+                              }}
+                            >
+                              <CheckCircle className="w-3 h-3" />
                               Ativo
-                            </Badge>
+                            </span>
                           ) : (
-                            <Badge variant="outline" className="text-zinc-500 border-zinc-700 text-xs">
+                            <span 
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                              style={{ 
+                                background: 'rgba(255,255,255,0.03)',
+                                color: '#666666',
+                                border: '1px solid rgba(255,255,255,0.06)'
+                              }}
+                            >
+                              <XCircle className="w-3 h-3" />
                               Inativo
-                            </Badge>
+                            </span>
                           )}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-zinc-400">
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-[#666666]">
+                            <Clock className="w-3.5 h-3.5" />
                             {new Date(bot.created_at).toLocaleDateString("pt-BR")}
-                          </span>
-                        </TableCell>
-                      </TableRow>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ScrollArea>
   )

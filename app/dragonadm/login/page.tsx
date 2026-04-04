@@ -3,9 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Loader2, Shield, Eye, EyeOff } from "lucide-react"
+import { Loader2, Shield, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react"
 
 // Credenciais do admin
 const ADMIN_EMAIL = "1@gmail.com"
@@ -43,81 +41,130 @@ export default function DragonAdmLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md border-border bg-card">
-        <CardHeader className="text-center space-y-4">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center">
-            <Shield className="h-8 w-8 text-accent" />
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 admin-theme"
+      style={{ background: '#050505' }}
+    >
+      {/* Background glow effects */}
+      <div 
+        className="fixed top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #95e468 0%, transparent 70%)' }}
+      />
+      <div 
+        className="fixed bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
+        style={{ background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' }}
+      />
+
+      {/* Login Card */}
+      <div 
+        className="w-full max-w-md rounded-3xl overflow-hidden relative"
+        style={{ 
+          background: 'linear-gradient(145deg, #0a0a0a 0%, #0f0f0f 100%)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+        }}
+      >
+        {/* Top glow line */}
+        <div 
+          className="absolute top-0 left-8 right-8 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(149, 228, 104, 0.3), transparent)' }}
+        />
+
+        {/* Header */}
+        <div className="p-8 pb-0 text-center">
+          <div className="relative inline-block mb-6">
+            <div 
+              className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(149, 228, 104, 0.2), rgba(139, 92, 246, 0.1))',
+                border: '1px solid rgba(149, 228, 104, 0.3)',
+                boxShadow: '0 0 40px rgba(149, 228, 104, 0.2)'
+              }}
+            >
+              <Sparkles className="w-10 h-10 text-[#95e468]" />
+            </div>
+            <div className="absolute -inset-4 rounded-3xl bg-[#95e468]/10 blur-2xl -z-10" />
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold text-foreground">Dragon ADM</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Painel de administracao do sistema
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Email</label>
+          <h1 className="text-2xl font-bold text-white mb-2">Dragon Admin</h1>
+          <p className="text-sm text-[#666666]">Painel de administracao do sistema</p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleLogin} className="p-8 space-y-5">
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-[#666666] uppercase tracking-wider">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
               <Input
                 type="email"
                 placeholder="admin@dragon.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-secondary border-border"
+                className="h-12 rounded-xl pl-11 bg-[#111111] border-[rgba(255,255,255,0.06)] text-white placeholder:text-[#444444] focus:border-[#95e468]/50 focus:ring-[#95e468]/20"
                 required
               />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Senha</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="********"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-secondary border-border pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-[#666666] uppercase tracking-wider">Senha</label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#666666]" />
+              <Input
+                type={showPassword ? "text" : "password"}
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 rounded-xl pl-11 pr-11 bg-[#111111] border-[rgba(255,255,255,0.06)] text-white placeholder:text-[#444444] focus:border-[#95e468]/50 focus:ring-[#95e468]/20"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#666666] hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
+          </div>
 
-            {error && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold"
-              disabled={isLoading}
+          {error && (
+            <div 
+              className="p-4 rounded-xl flex items-center gap-3"
+              style={{ 
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)'
+              }}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Entrando...
-                </>
-              ) : (
-                "Entrar"
-              )}
-            </Button>
-          </form>
+              <Shield className="w-5 h-5 text-[#ef4444]" />
+              <p className="text-sm text-[#ef4444]">{error}</p>
+            </div>
+          )}
 
-          <p className="text-xs text-muted-foreground text-center mt-6">
-            Acesso restrito a administradores
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 rounded-xl text-sm font-semibold text-[#050505] transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+            style={{ 
+              background: 'linear-gradient(135deg, #95e468, #7bc752)',
+              boxShadow: '0 0 30px rgba(149, 228, 104, 0.3)'
+            }}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Entrando...
+              </>
+            ) : (
+              "Entrar no Painel"
+            )}
+          </button>
+
+          <p className="text-xs text-[#444444] text-center pt-2">
+            Acesso restrito a administradores autorizados
           </p>
-        </CardContent>
-      </Card>
+        </form>
+      </div>
     </div>
   )
 }
