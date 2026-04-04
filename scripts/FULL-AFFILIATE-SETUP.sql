@@ -60,5 +60,28 @@ COMMENT ON COLUMN users.affiliate_balance_adjustment IS 'Ajuste manual do saldo 
 COMMENT ON COLUMN users.affiliate_balance_reason IS 'Motivo do ultimo ajuste';
 
 -- ============================================
--- PRONTO! Sistema de afiliados configurado.
+-- 4. Tabela de campanhas de remarketing
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS remarketing_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bot_id UUID NOT NULL REFERENCES bots(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  audience_id TEXT NOT NULL,
+  message_template TEXT,
+  status TEXT DEFAULT 'rascunho' CHECK (status IN ('rascunho', 'ativa', 'pausada', 'concluida')),
+  scheduled_at TIMESTAMP WITH TIME ZONE,
+  sent_count INTEGER DEFAULT 0,
+  delivered_count INTEGER DEFAULT 0,
+  open_rate DECIMAL(5, 2) DEFAULT 0,
+  click_rate DECIMAL(5, 2) DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_remarketing_campaigns_bot_id ON remarketing_campaigns(bot_id);
+CREATE INDEX IF NOT EXISTS idx_remarketing_campaigns_status ON remarketing_campaigns(status);
+
+-- ============================================
+-- PRONTO! Sistema de afiliados e remarketing configurado.
 -- ============================================
