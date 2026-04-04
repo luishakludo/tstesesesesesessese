@@ -1,9 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import useSWR from "swr"
 
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Lock, ChevronRight, ChevronLeft } from "lucide-react"
+import { Lock, ChevronRight, ChevronLeft, Loader2 } from "lucide-react"
+import { useBots } from "@/lib/bot-context"
+import { useAuth } from "@/lib/auth-context"
+
+const fetcher = (url: string) => fetch(url).then(res => res.json())
 
 const premiacoes = [
   { 
@@ -49,13 +54,41 @@ const premiacoes = [
 ]
 
 export default function RewardsPage() {
+  const { bots } = useBots()
+  const { session } = useAuth()
   const [activeIndex, setActiveIndex] = useState(0)
   const currentPremio = premiacoes[activeIndex]
   
-  // Dados do usuario (mock) - TODO: Buscar do banco de dados
-  const faturamentoAtual = 0
+  // Buscar faturamento total de TODOS os bots do usuario
+  const { data: faturamentoData, isLoading } = useSWR<{ totalRevenue: number }>(
+    session?.userId ? `/api/user/revenue?userId=${session.userId}` : null,
+    fetcher,
+    { refreshInterval: 60000 }
+  )
+  
+  const faturamentoAtual = faturamentoData?.totalRevenue || 0
+  
+  // Encontrar a proxima meta (a primeira que ainda nao foi atingida)
+  const proximaMetaIndex = premiacoes.findIndex(p => faturamentoAtual < p.pontosNum)
+  const proximaMeta = proximaMetaIndex >= 0 ? premiacoes[proximaMetaIndex] : premiacoes[premiacoes.length - 1]
+  
+  // Calcular progresso baseado na proxima meta
+  const metaAtual = currentPremio.pontosNum
+  const metaAnterior = activeIndex > 0 ? premiacoes[activeIndex - 1].pontosNum : 0
+  const progressoNaMeta = faturamentoAtual - metaAnterior
+  const tamanhoMeta = metaAtual - metaAnterior
+  const progressPercent = Math.min((progressoNaMeta / tamanhoMeta) * 100, 100)
+  
   const isDesbloqueado = faturamentoAtual >= currentPremio.pontosNum
-  const progressPercent = Math.min((faturamentoAtual / currentPremio.pontosNum) * 100, 100)
+  const faltaParaMeta = Math.max(0, currentPremio.pontosNum - faturamentoAtual)
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#f3f4f6]">
+        <Loader2 className="h-6 w-6 animate-spin text-[#ccff00]" />
+      </div>
+    )
+  }
 
   return (
     <>
@@ -67,23 +100,30 @@ export default function RewardsPage() {
             {/* Faturamento */}
             <div className="text-center mb-3">
               <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400 font-medium mb-2">
-                Faturamento Total
+                Seu Faturamento Total
               </p>
               <p className="text-5xl font-black text-gray-900 tracking-tight">
-                R$ {faturamentoAtual.toLocaleString("pt-BR")}
+                R$ {faturamentoAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </p>
+              {faturamentoAtual > 0 && proximaMetaIndex >= 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Faltam <span className="font-bold text-gray-900">R$ {faltaParaMeta.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span> para a proxima meta
+                </p>
+              )}
             </div>
 
             {/* Barra de progresso */}
             <div className="mb-16">
-              <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className="absolute left-0 top-0 h-full bg-[#ccff00] rounded-full transition-all duration-700 ease-out"
+                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-[#bfff00] to-[#ccff00] rounded-full transition-all duration-700 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
               <div className="flex justify-between mt-2">
-                <span className="text-xs text-gray-600 font-semibold">R$ {faturamentoAtual.toLocaleString("pt-BR")}</span>
+                <span className="text-xs text-gray-600 font-semibold">
+                  {activeIndex > 0 ? `R$ ${premiacoes[activeIndex - 1].pontosNum.toLocaleString("pt-BR")}` : "R$ 0"}
+                </span>
                 <span className="text-xs text-gray-900 font-bold">R$ {currentPremio.pontosNum.toLocaleString("pt-BR")}</span>
               </div>
             </div>
@@ -161,7 +201,7 @@ export default function RewardsPage() {
                   </button>
                 ) : (
                   <div className="px-10 py-3.5 bg-gray-200 text-gray-600 font-bold text-sm rounded-full">
-                    Faltam R$ {(currentPremio.pontosNum - faturamentoAtual).toLocaleString("pt-BR")}
+                    Faltam R$ {faltaParaMeta.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                   </div>
                 )}
               </div>
