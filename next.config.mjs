@@ -8,7 +8,6 @@ const nextConfig = {
       bodySizeLimit: '50mb',
     },
   },
-  instrumentationHook: true,
 }
 
 export default nextConfig
