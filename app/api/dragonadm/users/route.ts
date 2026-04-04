@@ -12,6 +12,7 @@ export async function GET() {
       .order("created_at", { ascending: false })
 
     console.log("[v0] DragonAdmin Users - users count:", usersData?.length, "error:", usersError?.message || "none")
+    console.log("[v0] DragonAdmin Users - user IDs:", usersData?.map(u => u.id))
 
     if (usersError) {
       console.error("Erro ao buscar users:", usersError)
@@ -19,14 +20,18 @@ export async function GET() {
     }
 
     // Buscar todos os bots
-    const { data: allBots } = await supabaseAdmin
+    const { data: allBots, error: botsError } = await supabaseAdmin
       .from("bots")
       .select("id, name, username, is_active, created_at, user_id")
+    
+    console.log("[v0] DragonAdmin Users - bots count:", allBots?.length, "bots user_ids:", allBots?.map(b => b.user_id), "error:", botsError?.message || "none")
 
     // Buscar todas as gateways
-    const { data: allGateways } = await supabaseAdmin
+    const { data: allGateways, error: gatewaysError } = await supabaseAdmin
       .from("payment_gateways")
       .select("id, gateway_name, is_active, created_at, user_id")
+    
+    console.log("[v0] DragonAdmin Users - gateways count:", allGateways?.length, "gateways user_ids:", allGateways?.map(g => g.user_id), "error:", gatewaysError?.message || "none")
 
     // Buscar todos os referrals
     const { data: allReferrals } = await supabaseAdmin
