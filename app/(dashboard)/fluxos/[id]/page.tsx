@@ -2415,6 +2415,72 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                               />
                                             </div>
                                           </div>
+                                          
+                                          {/* Midias do Order Bump (ate 3) */}
+                                          <div className="mt-3 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                              <Label className="text-xs text-muted-foreground">Midias ({(bump.medias || []).length}/3)</Label>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                              {(bump.medias || []).map((media, mediaIndex) => (
+                                                <div key={mediaIndex} className="relative group">
+                                                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-border/50 bg-secondary/30">
+                                                    {media.match(/\.(mp4|webm|mov)$/i) ? (
+                                                      <video src={media} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                      <img src={media} alt="" className="w-full h-full object-cover" />
+                                                    )}
+                                                  </div>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      const updatedMedias = [...(bump.medias || [])].filter((_, i) => i !== mediaIndex)
+                                                      const updatedBumps = [...(plan.order_bumps || [])]
+                                                      updatedBumps[bumpIndex] = { ...bump, medias: updatedMedias }
+                                                      handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                    }}
+                                                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                  >
+                                                    <X className="h-3 w-3" />
+                                                  </button>
+                                                </div>
+                                              ))}
+                                              {(bump.medias || []).length < 3 && (
+                                                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors">
+                                                  <input
+                                                    type="file"
+                                                    accept="image/*,video/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                      const file = e.target.files?.[0]
+                                                      if (!file) return
+                                                      
+                                                      const fileExt = file.name.split('.').pop()
+                                                      const fileName = `${flow.id}/planbump_${plan.id}_${bump.id}_${Date.now()}.${fileExt}`
+                                                      
+                                                      const { error } = await supabase.storage
+                                                        .from('flow-medias')
+                                                        .upload(fileName, file, { cacheControl: '3600', upsert: false })
+                                                      
+                                                      if (error) {
+                                                        toast({ title: "Erro no upload", description: error.message, variant: "destructive" })
+                                                        return
+                                                      }
+                                                      
+                                                      const { data: urlData } = supabase.storage.from('flow-medias').getPublicUrl(fileName)
+                                                      const updatedMedias = [...(bump.medias || []), urlData.publicUrl]
+                                                      const updatedBumps = [...(plan.order_bumps || [])]
+                                                      updatedBumps[bumpIndex] = { ...bump, medias: updatedMedias }
+                                                      handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                    }}
+                                                  />
+                                                  <Plus className="h-4 w-4 text-muted-foreground" />
+                                                </label>
+                                              )}
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground">Imagens ou videos para exibir no order bump</p>
+                                          </div>
                                         </div>
                                       ))}
                                     </div>
