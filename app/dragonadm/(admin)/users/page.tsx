@@ -96,13 +96,19 @@ export default function UsersManagementPage() {
   const loadUsers = useCallback(async () => {
     setIsLoading(true)
     try {
+      console.log("[v0] Users page - fetching users...")
       const res = await fetch("/api/dragonadm/users")
+      console.log("[v0] Users page - response status:", res.status)
       if (res.ok) {
         const data = await res.json()
+        console.log("[v0] Users page - received users:", data.users?.length, "data:", data)
         setUsers(data.users || [])
+      } else {
+        const errorText = await res.text()
+        console.error("[v0] Users page - API error:", errorText)
       }
     } catch (error) {
-      console.error("Erro ao carregar usuarios:", error)
+      console.error("[v0] Users page - Erro ao carregar usuarios:", error)
     } finally {
       setIsLoading(false)
     }

@@ -31,17 +31,17 @@ interface AdminSession {
 
 const menuSections = [
   {
-    title: "Principal",
-    items: [
-      { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
-      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
-    ]
-  },
-  {
     title: "Usuarios",
     items: [
       { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
       { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
+    ]
+  },
+  {
+    title: "Principal",
+    items: [
+      { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
+      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
     ]
   },
   {
