@@ -3,11 +3,15 @@ import { supabase } from "@/lib/supabase"
 
 export async function GET() {
   try {
+    console.log("[v0] DragonAdmin Users API - Starting fetch")
+    
     // Buscar todos os usuarios (profiles)
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("*")
       .order("created_at", { ascending: false })
+
+    console.log("[v0] DragonAdmin Users - profiles count:", profiles?.length, "error:", profilesError)
 
     if (profilesError) {
       console.error("Erro ao buscar profiles:", profilesError)
@@ -135,9 +139,10 @@ export async function GET() {
       }
     })
 
+    console.log("[v0] DragonAdmin Users - returning users:", users?.length)
     return NextResponse.json({ users })
   } catch (error) {
-    console.error("Erro ao buscar usuarios:", error)
+    console.error("[v0] DragonAdmin Users - Error:", error)
     return NextResponse.json({ error: "Erro ao buscar usuarios" }, { status: 500 })
   }
 }

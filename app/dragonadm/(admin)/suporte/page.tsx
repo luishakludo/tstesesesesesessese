@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { getSupabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/hooks/use-toast"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
@@ -18,8 +16,9 @@ import {
   CheckCircle,
   AlertCircle,
   Send,
-  X,
+  RefreshCw,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface Ticket {
   id: string
@@ -82,7 +81,6 @@ export default function SuportePage() {
 
     setSending(true)
     try {
-      // Add reply
       const { error: replyError } = await supabase.from("ticket_replies").insert({
         ticket_id: selectedTicket.id,
         message: replyMessage,
@@ -91,7 +89,6 @@ export default function SuportePage() {
 
       if (replyError) throw replyError
 
-      // Update status to in_progress if open
       if (selectedTicket.status === "open") {
         await supabase
           .from("support_tickets")
@@ -103,7 +100,6 @@ export default function SuportePage() {
       setReplyMessage("")
       loadTickets()
       
-      // Reload selected ticket
       const { data } = await supabase
         .from("support_tickets")
         .select(`*, user:users(name, email), replies:ticket_replies(*)`)
@@ -157,191 +153,272 @@ export default function SuportePage() {
     { id: "all", label: "Todos", count: tickets.length },
   ]
 
-  const priorityColors = {
-    low: "bg-blue-500/10 text-blue-500",
-    medium: "bg-yellow-500/10 text-yellow-500",
-    high: "bg-red-500/10 text-red-500",
-  }
-
-  const statusColors = {
-    open: "bg-yellow-500/10 text-yellow-500",
-    in_progress: "bg-blue-500/10 text-blue-500",
-    closed: "bg-emerald-500/10 text-emerald-500",
-  }
-
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-white">Suporte</h1>
-          <p className="text-sm text-zinc-400">
-            Gerencie tickets de suporte dos usuarios
-          </p>
-        </div>
+    <>
+      <ScrollArea className="flex-1">
+        <div className="p-6 lg:p-8 space-y-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.1))',
+                    border: '1px solid rgba(59, 130, 246, 0.2)'
+                  }}
+                >
+                  <MessageSquare className="w-5 h-5 text-[#3b82f6]" />
+                </div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">Suporte</h1>
+              </div>
+              <p className="text-[#666666] text-sm">
+                Gerencie tickets de suporte dos usuarios
+              </p>
+            </div>
+            <button
+              onClick={loadTickets}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-white disabled:opacity-50"
+              style={{ 
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+            >
+              <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              Atualizar
+            </button>
+          </div>
 
-        {/* Stats */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{stats.open}</p>
-                  <p className="text-xs text-zinc-400">Abertos</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{stats.in_progress}</p>
-                  <p className="text-xs text-zinc-400">Em Andamento</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{stats.closed}</p>
-                  <p className="text-xs text-zinc-400">Fechados</p>
+          {/* Stats Cards */}
+          <div className="grid gap-5 sm:grid-cols-3">
+            {[
+              { icon: AlertCircle, label: "Abertos", value: stats.open, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+              { icon: Clock, label: "Em Andamento", value: stats.in_progress, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
+              { icon: CheckCircle, label: "Fechados", value: stats.closed, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+                style={{
+                  background: '#0f0f0f',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = `${stat.color}30`
+                  e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{ background: stat.bg }}
+                  >
+                    <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-white">{stat.value}</p>
+                    <p className="text-sm text-[#666666]">{stat.label}</p>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ))}
+          </div>
 
-        {/* Filters */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-4">
+          {/* Filters */}
+          <div 
+            className="rounded-2xl p-5"
+            style={{ 
+              background: '#0f0f0f',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                <Input
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#666666]" />
+                <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar por assunto, nome ou email..."
-                  className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                  className="w-full pl-11 pr-4 py-2.5 rounded-xl text-sm text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-[#95e468]/30 transition-all"
+                  style={{ 
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
                 />
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-2 flex-wrap">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                       activeTab === tab.id
-                        ? "bg-white text-zinc-900"
-                        : "bg-zinc-800 text-zinc-400 hover:text-white"
-                    }`}
+                        ? "text-[#050505]"
+                        : "text-[#a1a1a1] hover:text-white"
+                    )}
+                    style={activeTab === tab.id ? {
+                      background: 'linear-gradient(135deg, #95e468, #7bc752)',
+                      boxShadow: '0 0 15px rgba(149, 228, 104, 0.3)'
+                    } : {
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}
                   >
                     {tab.label} ({tab.count})
                   </button>
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Tickets List */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader>
-            <CardTitle className="text-lg text-white">Tickets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
-              </div>
-            ) : filteredTickets.length === 0 ? (
-              <div className="text-center py-12">
-                <MessageSquare className="h-12 w-12 mx-auto mb-4 text-zinc-700" />
-                <p className="text-zinc-400">Nenhum ticket encontrado</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredTickets.map((ticket) => (
-                  <div
-                    key={ticket.id}
-                    className="p-4 rounded-xl border border-zinc-800 bg-zinc-800/30 flex items-center gap-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+          {/* Tickets List */}
+          <div 
+            className="rounded-2xl overflow-hidden"
+            style={{ 
+              background: '#0f0f0f',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            <div 
+              className="px-6 py-5"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <h2 className="text-lg font-semibold text-white">Tickets</h2>
+            </div>
+            <div className="p-0">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-xl bg-[#3b82f6]/10 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-[#3b82f6] animate-spin" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-white">{ticket.subject}</p>
-                      <p className="text-sm text-zinc-400 truncate">
-                        {ticket.user?.name} - {ticket.user?.email}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-zinc-500">
-                        {new Date(ticket.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {ticket.replies?.length || 0} respostas
-                      </p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${priorityColors[ticket.priority]}`}>
-                      {ticket.priority === "high" ? "Alta" : ticket.priority === "medium" ? "Media" : "Baixa"}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[ticket.status]}`}>
-                      {ticket.status === "open" ? "Aberto" : ticket.status === "in_progress" ? "Em Andamento" : "Fechado"}
-                    </span>
+                    <div className="absolute inset-0 rounded-xl bg-[#3b82f6]/20 blur-xl animate-pulse" />
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                  <p className="text-sm text-[#666666]">Carregando tickets...</p>
+                </div>
+              ) : filteredTickets.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 gap-4">
+                  <div 
+                    className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                    style={{ 
+                      background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}
+                  >
+                    <MessageSquare className="h-10 w-10 text-[#444444]" />
+                  </div>
+                  <p className="text-sm text-[#666666]">Nenhum ticket encontrado</p>
+                </div>
+              ) : (
+                <div>
+                  {filteredTickets.map((ticket, i) => (
+                    <div
+                      key={ticket.id}
+                      className="p-5 flex items-center gap-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                      style={{ borderBottom: i < filteredTickets.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      <div 
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold text-white"
+                        style={{ 
+                          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                          border: '1px solid rgba(255,255,255,0.06)'
+                        }}
+                      >
+                        {ticket.user?.name?.charAt(0).toUpperCase() || <User className="w-5 h-5" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate text-white">{ticket.subject}</p>
+                        <p className="text-sm text-[#666666] truncate">
+                          {ticket.user?.name} - {ticket.user?.email}
+                        </p>
+                      </div>
+                      <div className="text-right hidden sm:block">
+                        <p className="text-xs text-[#666666]">
+                          {new Date(ticket.created_at).toLocaleDateString("pt-BR")}
+                        </p>
+                        <p className="text-xs text-[#444444]">
+                          {ticket.replies?.length || 0} respostas
+                        </p>
+                      </div>
+                      <span 
+                        className="px-3 py-1.5 rounded-full text-xs font-medium hidden sm:inline-flex"
+                        style={{ 
+                          background: ticket.priority === "high" ? 'rgba(239, 68, 68, 0.1)' : ticket.priority === "medium" ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+                          color: ticket.priority === "high" ? '#ef4444' : ticket.priority === "medium" ? '#f59e0b' : '#3b82f6',
+                          border: `1px solid ${ticket.priority === "high" ? 'rgba(239, 68, 68, 0.2)' : ticket.priority === "medium" ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)'}`
+                        }}
+                      >
+                        {ticket.priority === "high" ? "Alta" : ticket.priority === "medium" ? "Media" : "Baixa"}
+                      </span>
+                      <span 
+                        className="px-3 py-1.5 rounded-full text-xs font-medium"
+                        style={{ 
+                          background: ticket.status === "open" ? 'rgba(245, 158, 11, 0.1)' : ticket.status === "in_progress" ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                          color: ticket.status === "open" ? '#f59e0b' : ticket.status === "in_progress" ? '#3b82f6' : '#22c55e',
+                          border: `1px solid ${ticket.status === "open" ? 'rgba(245, 158, 11, 0.2)' : ticket.status === "in_progress" ? 'rgba(59, 130, 246, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`
+                        }}
+                      >
+                        {ticket.status === "open" ? "Aberto" : ticket.status === "in_progress" ? "Em Andamento" : "Fechado"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
 
       {/* Ticket Details Modal */}
       <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden bg-zinc-900 border-zinc-800">
+        <DialogContent 
+          className="sm:max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden rounded-2xl"
+          style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
           {selectedTicket && (
             <>
               {/* Header */}
-              <div className="p-5 border-b">
+              <div className="p-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                      <MessageSquare className="h-5 w-5 text-accent" />
+                    <div 
+                      className="w-11 h-11 rounded-xl flex items-center justify-center"
+                      style={{ background: 'rgba(149, 228, 104, 0.1)' }}
+                    >
+                      <MessageSquare className="h-5 w-5 text-[#95e468]" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{selectedTicket.subject}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <h3 className="font-semibold text-white">{selectedTicket.subject}</h3>
+                      <p className="text-sm text-[#666666]">
                         {selectedTicket.user?.name} - {selectedTicket.user?.email}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[selectedTicket.status]}`}>
+                    <span 
+                      className="px-3 py-1.5 rounded-full text-xs font-medium"
+                      style={{ 
+                        background: selectedTicket.status === "open" ? 'rgba(245, 158, 11, 0.1)' : selectedTicket.status === "in_progress" ? 'rgba(59, 130, 246, 0.1)' : 'rgba(34, 197, 94, 0.1)',
+                        color: selectedTicket.status === "open" ? '#f59e0b' : selectedTicket.status === "in_progress" ? '#3b82f6' : '#22c55e',
+                      }}
+                    >
                       {selectedTicket.status === "open" ? "Aberto" : selectedTicket.status === "in_progress" ? "Em Andamento" : "Fechado"}
                     </span>
                     {selectedTicket.status !== "closed" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
                         onClick={() => handleClose(selectedTicket.id)}
-                        className="text-emerald-500 hover:text-emerald-600"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#22c55e] hover:bg-[#22c55e]/10 transition-colors"
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                        <CheckCircle className="h-3.5 w-3.5" />
                         Fechar
-                      </Button>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -351,11 +428,14 @@ export default function SuportePage() {
               <ScrollArea className="max-h-[400px] p-5">
                 <div className="space-y-4">
                   {/* Original message */}
-                  <div className="p-3 rounded-lg bg-secondary">
-                    <p className="text-xs text-muted-foreground mb-1">
+                  <div 
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <p className="text-xs text-[#666666] mb-2">
                       {new Date(selectedTicket.created_at).toLocaleString("pt-BR")}
                     </p>
-                    <p className="text-sm">{selectedTicket.message}</p>
+                    <p className="text-sm text-white">{selectedTicket.message}</p>
                   </div>
 
                   {/* Replies */}
@@ -364,21 +444,21 @@ export default function SuportePage() {
                   ).map((reply) => (
                     <div
                       key={reply.id}
-                      className={`p-3 rounded-lg ${
-                        reply.is_admin 
-                          ? "bg-accent/10 border border-accent/20 ml-4" 
-                          : "bg-secondary mr-4"
-                      }`}
+                      className={cn("p-4 rounded-xl", reply.is_admin ? "ml-6" : "mr-6")}
+                      style={{ 
+                        background: reply.is_admin ? 'rgba(149, 228, 104, 0.05)' : 'rgba(255,255,255,0.03)',
+                        border: reply.is_admin ? '1px solid rgba(149, 228, 104, 0.15)' : '1px solid rgba(255,255,255,0.06)'
+                      }}
                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-medium ${reply.is_admin ? "text-accent" : "text-foreground"}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={cn("text-xs font-medium", reply.is_admin ? "text-[#95e468]" : "text-white")}>
                           {reply.is_admin ? "Suporte Dragon" : selectedTicket.user?.name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-[#666666]">
                           {new Date(reply.created_at).toLocaleString("pt-BR")}
                         </span>
                       </div>
-                      <p className="text-sm">{reply.message}</p>
+                      <p className="text-sm text-white">{reply.message}</p>
                     </div>
                   ))}
                 </div>
@@ -386,22 +466,25 @@ export default function SuportePage() {
 
               {/* Reply Input */}
               {selectedTicket.status !== "closed" && (
-                <div className="p-5 border-t">
-                  <div className="flex gap-2">
+                <div className="p-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div className="flex gap-3">
                     <Textarea
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       placeholder="Digite sua resposta..."
                       rows={2}
-                      className="flex-1 resize-none"
+                      className="flex-1 resize-none bg-[#111111] border-[rgba(255,255,255,0.06)] text-white placeholder:text-[#666666] rounded-xl"
                     />
-                    <Button
+                    <button
                       onClick={handleReply}
                       disabled={sending || !replyMessage.trim()}
-                      className="bg-accent hover:bg-accent/90"
+                      className="px-4 rounded-xl text-sm font-semibold text-[#050505] transition-all duration-200 disabled:opacity-50"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #95e468, #7bc752)',
+                      }}
                     >
                       {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    </Button>
+                    </button>
                   </div>
                 </div>
               )}
@@ -409,6 +492,6 @@ export default function SuportePage() {
           )}
         </DialogContent>
       </Dialog>
-    </ScrollArea>
+    </>
   )
 }

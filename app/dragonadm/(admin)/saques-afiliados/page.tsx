@@ -1,11 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { 
@@ -19,11 +16,12 @@ import {
   CreditCard,
   Key,
   Calendar,
-  AlertTriangle,
   RefreshCw,
+  Wallet,
 } from "lucide-react"
 import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -155,251 +153,328 @@ export default function SaquesAfiliadosPage() {
     return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
   }
 
+  const tabs = [
+    { id: "all", label: "Todos" },
+    { id: "pending", label: "Pendentes" },
+    { id: "approved", label: "Aprovados" },
+    { id: "paid", label: "Pagos" },
+    { id: "rejected", label: "Rejeitados" },
+  ]
+
   return (
     <ScrollArea className="flex-1">
-      <div className="p-6 space-y-6">
+      <div className="p-6 lg:p-8 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
-            <h1 className="text-2xl font-bold text-white">Saques de Afiliados</h1>
-            <p className="text-sm text-zinc-400">Gerencie as solicitacoes de saque do programa de indicacao</p>
+            <div className="flex items-center gap-3 mb-2">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(149, 228, 104, 0.1))',
+                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                }}
+              >
+                <Wallet className="w-5 h-5 text-[#22c55e]" />
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Saques de Afiliados</h1>
+            </div>
+            <p className="text-[#666666] text-sm">
+              Gerencie as solicitacoes de saque do programa de indicacao
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchWithdraws} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
-            <RefreshCw className="h-4 w-4 mr-2" />
+          <button
+            onClick={fetchWithdraws}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-white disabled:opacity-50"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
             Atualizar
-          </Button>
+          </button>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-amber-500" />
+        {/* Stats Cards */}
+        <div className="grid gap-5 grid-cols-2 lg:grid-cols-4">
+          {[
+            { icon: Clock, label: "Pendentes", value: stats.pending, subValue: `R$ ${stats.pendingAmount.toFixed(2)}`, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+            { icon: CheckCircle2, label: "Aprovados", value: stats.approved, color: "#a1a1a1", bg: "rgba(255,255,255,0.05)" },
+            { icon: DollarSign, label: "Pagos", value: stats.paid, subValue: `R$ ${stats.paidAmount.toFixed(2)}`, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)" },
+            { icon: DollarSign, label: "Total Saques", value: withdraws.length, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: '#0f0f0f',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${stat.color}30`
+                e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: stat.bg }}
+                >
+                  <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-400">Pendentes</p>
-                  <p className="text-xl font-bold text-white">{stats.pending}</p>
-                  <p className="text-xs text-amber-500">R$ {stats.pendingAmount.toFixed(2)}</p>
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-[#666666]">{stat.label}</p>
+                  {stat.subValue && (
+                    <p className="text-xs font-medium mt-0.5" style={{ color: stat.color }}>{stat.subValue}</p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <CheckCircle2 className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-400">Aprovados</p>
-                  <p className="text-xl font-bold text-white">{stats.approved}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-400">Pagos</p>
-                  <p className="text-xl font-bold text-white">{stats.paid}</p>
-                  <p className="text-xs text-emerald-500">R$ {stats.paidAmount.toFixed(2)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-zinc-400">Total Saques</p>
-                  <p className="text-xl font-bold text-white">{withdraws.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          ))}
         </div>
 
         {/* Filters */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                <Input
-                  placeholder="Buscar por nome, CPF, PIX ou email..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                />
-              </div>
-              <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
-                {[
-                  { id: "all", label: "Todos" },
-                  { id: "pending", label: "Pendentes" },
-                  { id: "approved", label: "Aprovados" },
-                  { id: "paid", label: "Pagos" },
-                  { id: "rejected", label: "Rejeitados" },
-                ].map((tab) => (
-                  <Button
-                    key={tab.id}
-                    variant={filter === tab.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilter(tab.id as typeof filter)}
-                    className={filter === tab.id ? "bg-white text-zinc-900 hover:bg-zinc-200" : "border-zinc-700 text-zinc-300 hover:bg-zinc-800"}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
+        <div 
+          className="rounded-2xl p-5"
+          style={{ 
+            background: '#0f0f0f',
+            border: '1px solid rgba(255,255,255,0.06)'
+          }}
+        >
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#666666]" />
+              <input
+                placeholder="Buscar por nome, CPF, PIX ou email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-11 pr-4 py-2.5 rounded-xl text-sm text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-[#95e468]/30 transition-all"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              />
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setFilter(tab.id as typeof filter)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap",
+                    filter === tab.id
+                      ? "text-[#050505]"
+                      : "text-[#a1a1a1] hover:text-white"
+                  )}
+                  style={filter === tab.id ? {
+                    background: 'linear-gradient(135deg, #95e468, #7bc752)',
+                    boxShadow: '0 0 15px rgba(149, 228, 104, 0.3)'
+                  } : {
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         {/* Withdraws List */}
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+        <div 
+          className="rounded-2xl overflow-hidden"
+          style={{ 
+            background: '#0f0f0f',
+            border: '1px solid rgba(255,255,255,0.06)'
+          }}
+        >
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="relative">
+                <div className="w-12 h-12 rounded-xl bg-[#22c55e]/10 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-[#22c55e] animate-spin" />
+                </div>
+                <div className="absolute inset-0 rounded-xl bg-[#22c55e]/20 blur-xl animate-pulse" />
               </div>
-            ) : filteredWithdraws.length === 0 ? (
-              <div className="text-center py-12">
-                <DollarSign className="h-12 w-12 text-zinc-700 mx-auto mb-3" />
-                <p className="text-zinc-400">Nenhum saque encontrado</p>
+              <p className="text-sm text-[#666666]">Carregando saques...</p>
+            </div>
+          ) : filteredWithdraws.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div 
+                className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              >
+                <DollarSign className="h-10 w-10 text-[#444444]" />
               </div>
-            ) : (
-              <div className="divide-y divide-zinc-800">
-                {filteredWithdraws.map((withdraw) => (
-                  <div
-                    key={withdraw.id}
-                    onClick={() => {
-                      setSelectedWithdraw(withdraw)
-                      setAdminNotes(withdraw.admin_notes || "")
-                    }}
-                    className="p-4 hover:bg-zinc-800/50 cursor-pointer transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                          <span className="text-sm font-bold text-white">
-                            {withdraw.name.charAt(0).toUpperCase()}
+              <p className="text-sm text-[#666666]">Nenhum saque encontrado</p>
+            </div>
+          ) : (
+            <div>
+              {filteredWithdraws.map((withdraw, i) => (
+                <div
+                  key={withdraw.id}
+                  onClick={() => {
+                    setSelectedWithdraw(withdraw)
+                    setAdminNotes(withdraw.admin_notes || "")
+                  }}
+                  className="p-5 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                  style={{ borderBottom: i < filteredWithdraws.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div 
+                        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 text-sm font-bold text-white"
+                        style={{ 
+                          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                          border: '1px solid rgba(255,255,255,0.06)'
+                        }}
+                      >
+                        {withdraw.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white">{withdraw.name}</p>
+                        <p className="text-xs text-[#666666]">{withdraw.user?.email}</p>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="text-[11px] text-[#666666]">
+                            CPF: {formatCPF(withdraw.cpf)}
+                          </span>
+                          <span className="text-[#444444]">|</span>
+                          <span className="text-[11px] text-[#666666]">
+                            PIX: {withdraw.pix_key}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-white">{withdraw.name}</p>
-                          <p className="text-xs text-zinc-400">{withdraw.user?.email}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-zinc-500">
-                              CPF: {formatCPF(withdraw.cpf)}
-                            </span>
-                            <span className="text-xs text-zinc-500">|</span>
-                            <span className="text-xs text-zinc-500">
-                              PIX: {withdraw.pix_key}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-white">
-                          R$ {Number(withdraw.amount).toFixed(2)}
-                        </p>
-                        <Badge
-                          variant={
-                            withdraw.status === "pending" ? "secondary" :
-                            withdraw.status === "approved" ? "default" :
-                            withdraw.status === "paid" ? "default" :
-                            "destructive"
-                          }
-                          className={
-                            withdraw.status === "pending" ? "bg-amber-500/10 text-amber-500" :
-                            withdraw.status === "approved" ? "bg-white/10 text-white" :
-                            withdraw.status === "paid" ? "bg-emerald-500/10 text-emerald-500" :
-                            "bg-red-500/10 text-red-400"
-                          }
-                        >
-                          {withdraw.status === "pending" ? "Pendente" :
-                           withdraw.status === "approved" ? "Aprovado" :
-                           withdraw.status === "paid" ? "Pago" :
-                           "Rejeitado"}
-                        </Badge>
-                        <p className="text-[10px] text-zinc-500 mt-1">
-                          {formatDate(withdraw.created_at)}
-                        </p>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <p 
+                        className="text-xl font-bold"
+                        style={{
+                          background: 'linear-gradient(135deg, #22c55e, #95e468)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent'
+                        }}
+                      >
+                        R$ {Number(withdraw.amount).toFixed(2)}
+                      </p>
+                      <span 
+                        className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium mt-1"
+                        style={{ 
+                          background: withdraw.status === "pending" ? 'rgba(245, 158, 11, 0.1)' : 
+                                     withdraw.status === "approved" ? 'rgba(59, 130, 246, 0.1)' :
+                                     withdraw.status === "paid" ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                          color: withdraw.status === "pending" ? '#f59e0b' : 
+                                 withdraw.status === "approved" ? '#3b82f6' :
+                                 withdraw.status === "paid" ? '#22c55e' : '#ef4444',
+                        }}
+                      >
+                        {withdraw.status === "pending" ? "Pendente" :
+                         withdraw.status === "approved" ? "Aprovado" :
+                         withdraw.status === "paid" ? "Pago" : "Rejeitado"}
+                      </span>
+                      <p className="text-[10px] text-[#666666] mt-1.5">
+                        {formatDate(withdraw.created_at)}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Details Modal */}
       <Dialog open={!!selectedWithdraw} onOpenChange={() => setSelectedWithdraw(null)}>
-        <DialogContent className="sm:max-w-[450px] p-0 gap-0 bg-zinc-900 border-zinc-800">
+        <DialogContent 
+          className="sm:max-w-[450px] p-0 gap-0 rounded-2xl"
+          style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)' }}
+        >
           {selectedWithdraw && (
             <>
-              <div className="p-5 border-b border-zinc-800">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-white/10 flex items-center justify-center">
-                    <span className="text-lg font-bold text-white">
-                      {selectedWithdraw.name.charAt(0).toUpperCase()}
-                    </span>
+              <div className="p-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold text-white"
+                    style={{ 
+                      background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                      border: '1px solid rgba(255,255,255,0.1)'
+                    }}
+                  >
+                    {selectedWithdraw.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <h3 className="font-bold text-white">{selectedWithdraw.name}</h3>
-                    <p className="text-sm text-zinc-400">{selectedWithdraw.user?.email}</p>
+                    <p className="text-sm text-[#666666]">{selectedWithdraw.user?.email}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="p-5 space-y-4">
-                <div className="text-center p-4 rounded-xl bg-white/5 border border-zinc-700">
-                  <p className="text-xs text-zinc-400 mb-1">Valor do Saque</p>
-                  <p className="text-3xl font-bold text-white">
+              <div className="p-5 space-y-5">
+                <div 
+                  className="text-center p-5 rounded-xl"
+                  style={{ 
+                    background: 'linear-gradient(145deg, rgba(34, 197, 94, 0.05), rgba(149, 228, 104, 0.02))',
+                    border: '1px solid rgba(34, 197, 94, 0.15)'
+                  }}
+                >
+                  <p className="text-xs text-[#666666] mb-1">Valor do Saque</p>
+                  <p 
+                    className="text-4xl font-bold"
+                    style={{
+                      background: 'linear-gradient(135deg, #22c55e, #95e468)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    }}
+                  >
                     R$ {Number(selectedWithdraw.amount).toFixed(2)}
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-lg bg-zinc-800/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <User className="h-3 w-3 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-500">Nome</span>
+                  {[
+                    { icon: User, label: "Nome", value: selectedWithdraw.name },
+                    { icon: CreditCard, label: "CPF", value: formatCPF(selectedWithdraw.cpf) },
+                  ].map((item, i) => (
+                    <div 
+                      key={i}
+                      className="p-4 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    >
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <item.icon className="h-3.5 w-3.5 text-[#666666]" />
+                        <span className="text-[10px] text-[#666666] uppercase tracking-wider">{item.label}</span>
+                      </div>
+                      <p className="text-sm font-medium text-white">{item.value}</p>
                     </div>
-                    <p className="text-sm font-medium text-white">{selectedWithdraw.name}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-zinc-800/50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <CreditCard className="h-3 w-3 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-500">CPF</span>
-                    </div>
-                    <p className="text-sm font-medium text-white">{formatCPF(selectedWithdraw.cpf)}</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-zinc-800/50 col-span-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Key className="h-3 w-3 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-500">Chave PIX</span>
+                  ))}
+                  <div 
+                    className="p-4 rounded-xl col-span-2"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Key className="h-3.5 w-3.5 text-[#666666]" />
+                      <span className="text-[10px] text-[#666666] uppercase tracking-wider">Chave PIX</span>
                     </div>
                     <p className="text-sm font-medium text-white break-all">{selectedWithdraw.pix_key}</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-zinc-800/50 col-span-2">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-3 w-3 text-zinc-500" />
-                      <span className="text-[10px] text-zinc-500">Data da Solicitacao</span>
+                  <div 
+                    className="p-4 rounded-xl col-span-2"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-[#666666]" />
+                      <span className="text-[10px] text-[#666666] uppercase tracking-wider">Data da Solicitacao</span>
                     </div>
                     <p className="text-sm font-medium text-white">{formatDate(selectedWithdraw.created_at)}</p>
                   </div>
@@ -407,85 +482,100 @@ export default function SaquesAfiliadosPage() {
 
                 {selectedWithdraw.status === "pending" && (
                   <div>
-                    <label className="text-xs text-zinc-400 mb-1.5 block">
+                    <label className="text-xs text-[#666666] mb-2 block uppercase tracking-wider">
                       Observacoes (opcional)
                     </label>
                     <Textarea
                       value={adminNotes}
                       onChange={(e) => setAdminNotes(e.target.value)}
                       placeholder="Adicionar notas sobre este saque..."
-                      className="min-h-[80px] bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                      className="min-h-[80px] bg-[#111111] border-[rgba(255,255,255,0.06)] text-white placeholder:text-[#666666] rounded-xl"
                     />
                   </div>
                 )}
 
                 {selectedWithdraw.admin_notes && selectedWithdraw.status !== "pending" && (
-                  <div className="p-3 rounded-lg bg-zinc-800/50">
-                    <p className="text-[10px] text-zinc-500 mb-1">Observacoes</p>
+                  <div 
+                    className="p-4 rounded-xl"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  >
+                    <p className="text-[10px] text-[#666666] uppercase tracking-wider mb-1.5">Observacoes</p>
                     <p className="text-sm text-white">{selectedWithdraw.admin_notes}</p>
                   </div>
                 )}
               </div>
 
-              <div className="p-5 border-t border-zinc-800 bg-zinc-800/30">
+              <div className="p-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)', background: 'rgba(255,255,255,0.01)' }}>
                 {selectedWithdraw.status === "pending" && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="destructive"
+                  <div className="flex gap-3">
+                    <button
                       onClick={() => handleUpdateStatus("rejected")}
                       disabled={processing}
-                      className="flex-1"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
+                      style={{ 
+                        background: 'rgba(239, 68, 68, 0.1)',
+                        color: '#ef4444',
+                        border: '1px solid rgba(239, 68, 68, 0.2)'
+                      }}
                     >
                       {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                         <>
-                          <XCircle className="h-4 w-4 mr-2" />
+                          <XCircle className="h-4 w-4" />
                           Rejeitar
                         </>
                       )}
-                    </Button>
-                    <Button
+                    </button>
+                    <button
                       onClick={() => handleUpdateStatus("approved")}
                       disabled={processing}
-                      className="flex-1 bg-white text-zinc-900 hover:bg-zinc-200"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-[#050505] transition-all disabled:opacity-50"
+                      style={{ 
+                        background: 'linear-gradient(135deg, #95e468, #7bc752)',
+                        boxShadow: '0 0 20px rgba(149, 228, 104, 0.3)'
+                      }}
                     >
                       {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                         <>
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          <CheckCircle2 className="h-4 w-4" />
                           Aprovar
                         </>
                       )}
-                    </Button>
+                    </button>
                   </div>
                 )}
 
                 {selectedWithdraw.status === "approved" && (
-                  <Button
+                  <button
                     onClick={() => handleUpdateStatus("paid")}
                     disabled={processing}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50"
+                    style={{ 
+                      background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                      boxShadow: '0 0 20px rgba(34, 197, 94, 0.3)'
+                    }}
                   >
                     {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : (
                       <>
-                        <DollarSign className="h-4 w-4 mr-2" />
+                        <DollarSign className="h-4 w-4" />
                         Marcar como Pago
                       </>
                     )}
-                  </Button>
+                  </button>
                 )}
 
                 {(selectedWithdraw.status === "paid" || selectedWithdraw.status === "rejected") && (
                   <div className="text-center">
-                    <Badge
-                      className={
-                        selectedWithdraw.status === "paid" 
-                          ? "bg-emerald-500/10 text-emerald-500" 
-                          : "bg-red-500/10 text-red-400"
-                      }
+                    <span 
+                      className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium"
+                      style={{ 
+                        background: selectedWithdraw.status === "paid" ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        color: selectedWithdraw.status === "paid" ? '#22c55e' : '#ef4444',
+                      }}
                     >
                       {selectedWithdraw.status === "paid" ? "Saque Pago" : "Saque Rejeitado"}
-                    </Badge>
+                    </span>
                     {selectedWithdraw.processed_at && (
-                      <p className="text-xs text-zinc-500 mt-2">
+                      <p className="text-xs text-[#666666] mt-2">
                         Processado em {formatDate(selectedWithdraw.processed_at)}
                       </p>
                     )}

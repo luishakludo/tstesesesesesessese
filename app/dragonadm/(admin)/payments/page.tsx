@@ -1,20 +1,9 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { CreditCard, Search, RefreshCw, Loader2, DollarSign, Clock, CheckCircle } from "lucide-react"
+import { CreditCard, Search, RefreshCw, Loader2, DollarSign, Clock, CheckCircle, XCircle, TrendingUp } from "lucide-react"
 
 interface PaymentData {
   id: string
@@ -60,149 +49,271 @@ export default function PaymentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "approved":
-        return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-xs">Aprovado</Badge>
+        return (
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+            style={{ 
+              background: 'rgba(34, 197, 94, 0.1)',
+              color: '#22c55e',
+              border: '1px solid rgba(34, 197, 94, 0.2)'
+            }}
+          >
+            <CheckCircle className="w-3 h-3" />
+            Aprovado
+          </span>
+        )
       case "pending":
-        return <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/20 text-xs">Pendente</Badge>
+        return (
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+            style={{ 
+              background: 'rgba(245, 158, 11, 0.1)',
+              color: '#f59e0b',
+              border: '1px solid rgba(245, 158, 11, 0.2)'
+            }}
+          >
+            <Clock className="w-3 h-3" />
+            Pendente
+          </span>
+        )
       case "rejected":
-        return <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-xs">Rejeitado</Badge>
+        return (
+          <span 
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+            style={{ 
+              background: 'rgba(239, 68, 68, 0.1)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.2)'
+            }}
+          >
+            <XCircle className="w-3 h-3" />
+            Rejeitado
+          </span>
+        )
       default:
-        return <Badge variant="outline" className="text-zinc-500 border-zinc-700 text-xs">{status}</Badge>
+        return (
+          <span 
+            className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              color: '#666666',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
+          >
+            {status}
+          </span>
+        )
     }
   }
 
   return (
     <ScrollArea className="flex-1">
-      <div className="p-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
-            <h1 className="text-2xl font-bold text-white">Pagamentos</h1>
-            <p className="text-sm text-zinc-400">
+            <div className="flex items-center gap-3 mb-2">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.1))',
+                  border: '1px solid rgba(245, 158, 11, 0.2)'
+                }}
+              >
+                <CreditCard className="w-5 h-5 text-[#f59e0b]" />
+              </div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">Pagamentos</h1>
+            </div>
+            <p className="text-[#666666] text-sm">
               Gerencie todos os pagamentos do sistema
             </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
             onClick={loadPayments}
             disabled={isLoading}
-            className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-white disabled:opacity-50"
+            style={{ 
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.06)'
+            }}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
             Atualizar
-          </Button>
+          </button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                  <CreditCard className="h-5 w-5 text-white" />
+        {/* Stats Cards */}
+        <div className="grid gap-5 sm:grid-cols-3">
+          {[
+            { icon: CreditCard, label: "Total", value: payments.length, color: "#a1a1a1", bg: "rgba(255,255,255,0.05)" },
+            { icon: DollarSign, label: "Receita", value: `R$ ${totalRevenue.toFixed(2)}`, color: "#22c55e", bg: "rgba(34, 197, 94, 0.1)", highlight: true },
+            { icon: Clock, label: "Pendentes", value: pendingPayments, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="group rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1"
+              style={{
+                background: stat.highlight ? 'linear-gradient(145deg, #0f0f0f 0%, #111111 100%)' : '#0f0f0f',
+                border: stat.highlight ? '1px solid rgba(34, 197, 94, 0.2)' : '1px solid rgba(255,255,255,0.06)',
+                boxShadow: stat.highlight ? '0 0 30px rgba(34, 197, 94, 0.1)' : 'none'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${stat.color}30`
+                e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = stat.highlight ? 'rgba(34, 197, 94, 0.2)' : 'rgba(255,255,255,0.06)'
+                e.currentTarget.style.boxShadow = stat.highlight ? '0 0 30px rgba(34, 197, 94, 0.1)' : 'none'
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div 
+                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                  style={{ background: stat.bg }}
+                >
+                  <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-white">{payments.length}</p>
-                  <p className="text-xs text-zinc-400">Total</p>
+                  <p 
+                    className="text-2xl font-bold"
+                    style={stat.highlight ? {
+                      background: 'linear-gradient(135deg, #22c55e, #95e468)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent'
+                    } : { color: 'white' }}
+                  >
+                    {stat.value}
+                  </p>
+                  <p className="text-sm text-[#666666]">{stat.label}</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">R$ {totalRevenue.toFixed(2)}</p>
-                  <p className="text-xs text-zinc-400">Receita</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                  <Clock className="h-5 w-5 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-xl font-bold text-white">{pendingPayments}</p>
-                  <p className="text-xs text-zinc-400">Pendentes</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <CardTitle className="text-base font-semibold text-white">
-                Lista de Pagamentos
-              </CardTitle>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <Input
-                  placeholder="Buscar pagamento..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full sm:w-64 bg-zinc-800 pl-9 border-zinc-700 text-white placeholder:text-zinc-500 text-sm"
-                />
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
+          ))}
+        </div>
+
+        {/* Payments Table Card */}
+        <div 
+          className="rounded-2xl overflow-hidden"
+          style={{ 
+            background: '#0f0f0f',
+            border: '1px solid rgba(255,255,255,0.06)'
+          }}
+        >
+          {/* Card Header */}
+          <div 
+            className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          >
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(149, 228, 104, 0.1)' }}
+              >
+                <TrendingUp className="w-5 h-5 text-[#95e468]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-white">Lista de Pagamentos</h2>
+                <p className="text-xs text-[#666666]">{filteredPayments.length} pagamentos encontrados</p>
+              </div>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#666666]" />
+              <input
+                placeholder="Buscar pagamento..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full sm:w-72 pl-11 pr-4 py-2.5 rounded-xl text-sm text-white placeholder:text-[#666666] focus:outline-none focus:ring-2 focus:ring-[#95e468]/30 transition-all"
+                style={{ 
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Table Content */}
+          <div className="p-0">
             {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-xl bg-[#f59e0b]/10 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 text-[#f59e0b] animate-spin" />
+                  </div>
+                  <div className="absolute inset-0 rounded-xl bg-[#f59e0b]/20 blur-xl animate-pulse" />
+                </div>
+                <p className="text-sm text-[#666666]">Carregando pagamentos...</p>
               </div>
             ) : filteredPayments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <CreditCard className="h-10 w-10 text-zinc-700" />
-                <p className="text-sm text-zinc-400">
-                  {payments.length === 0 ? "Nenhum pagamento" : "Nenhum resultado"}
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <div 
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                  style={{ 
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}
+                >
+                  <CreditCard className="h-10 w-10 text-[#444444]" />
+                </div>
+                <p className="text-sm text-[#666666]">
+                  {payments.length === 0 ? "Nenhum pagamento" : "Nenhum resultado encontrado"}
                 </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-zinc-800 hover:bg-transparent">
-                      <TableHead className="text-zinc-500 text-xs">Usuario</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Valor</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Status</TableHead>
-                      <TableHead className="text-zinc-500 text-xs">Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+                <table className="w-full">
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Usuario</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Valor</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
                     {filteredPayments.map((payment) => (
-                      <TableRow key={payment.id} className="border-zinc-800">
-                        <TableCell>
-                          <span className="text-sm text-white">
-                            {payment.user_email || "-"}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium text-white">
+                      <tr 
+                        key={payment.id}
+                        className="group transition-colors hover:bg-white/[0.02]"
+                        style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
+                      >
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div 
+                              className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                              style={{ 
+                                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(234, 88, 12, 0.1))',
+                                border: '1px solid rgba(255,255,255,0.06)'
+                              }}
+                            >
+                              {payment.user_email?.charAt(0).toUpperCase() || "?"}
+                            </div>
+                            <span className="text-sm text-white">
+                              {payment.user_email || "-"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-semibold text-[#22c55e]">
                             R$ {(payment.amount || 0).toFixed(2)}
                           </span>
-                        </TableCell>
-                        <TableCell>
+                        </td>
+                        <td className="px-6 py-4">
                           {getStatusBadge(payment.status)}
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-zinc-400">
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-[#666666]">
+                            <Clock className="w-3.5 h-3.5" />
                             {new Date(payment.created_at).toLocaleDateString("pt-BR")}
-                          </span>
-                        </TableCell>
-                      </TableRow>
+                          </div>
+                        </td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
+                  </tbody>
+                </table>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </ScrollArea>
   )

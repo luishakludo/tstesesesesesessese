@@ -14,13 +14,13 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight,
   DollarSign,
   MessageSquare,
   FileText,
   TrendingUp,
+  Sparkles,
+  Zap,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface AdminSession {
@@ -31,17 +31,17 @@ interface AdminSession {
 
 const menuSections = [
   {
-    title: "Principal",
-    items: [
-      { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
-      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
-    ]
-  },
-  {
     title: "Usuarios",
     items: [
       { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
       { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
+    ]
+  },
+  {
+    title: "Principal",
+    items: [
+      { icon: BarChart3, label: "Dashboard", href: "/dragonadm" },
+      { icon: TrendingUp, label: "Analytics", href: "/dragonadm/analytics" },
     ]
   },
   {
@@ -73,7 +73,6 @@ export default function DragonAdmLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
-    // Verificar sessao do admin
     const storedSession = localStorage.getItem("dragon_adm_session")
     
     if (!storedSession) {
@@ -108,18 +107,26 @@ export default function DragonAdmLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-2 border-white border-t-transparent rounded-full" />
+      <div className="min-h-screen admin-theme flex items-center justify-center" style={{ background: '#050505' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 rounded-xl bg-[#95e468]/10 flex items-center justify-center">
+              <Zap className="w-6 h-6 text-[#95e468] animate-pulse" />
+            </div>
+            <div className="absolute inset-0 rounded-xl bg-[#95e468]/20 blur-xl animate-pulse" />
+          </div>
+          <p className="text-sm text-[#666666]">Carregando...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex admin-theme">
+    <div className="min-h-screen admin-theme flex" style={{ background: '#050505' }}>
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/70 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -127,41 +134,47 @@ export default function DragonAdmLayout({
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-zinc-900 border-r border-zinc-800 transform transition-transform duration-200 lg:translate-x-0 lg:static",
+          "fixed inset-y-0 left-0 z-50 w-72 transform transition-all duration-300 lg:translate-x-0 lg:static",
+          "admin-sidebar",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
+        style={{ 
+          background: 'linear-gradient(180deg, #0a0a0a 0%, #050505 100%)',
+          borderRight: '1px solid rgba(255,255,255,0.06)'
+        }}
       >
         <div className="flex flex-col h-full">
-          {/* Logo */}
-          <div className="h-16 flex items-center justify-between px-4 border-b border-zinc-800">
-            <div className="flex items-center">
-              <Image
-                src="/images/logo-dragon.png"
-                alt="Dragon"
-                width={140}
-                height={40}
-                className="h-8 w-auto"
-              />
+          {/* Logo Header */}
+          <div className="h-20 flex items-center justify-between px-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#95e468]/20 to-[#8b5cf6]/10 flex items-center justify-center border border-[#95e468]/20">
+                  <Sparkles className="w-5 h-5 text-[#95e468]" />
+                </div>
+                <div className="absolute -inset-1 rounded-xl bg-[#95e468]/10 blur-lg -z-10" />
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-white tracking-tight">Dragon</h1>
+                <p className="text-[10px] text-[#666666] uppercase tracking-widest">Admin Panel</p>
+              </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden"
+            <button
+              className="lg:hidden p-2 rounded-lg hover:bg-white/5 text-[#666666] hover:text-white transition-colors"
               onClick={() => setSidebarOpen(false)}
             >
               <X className="h-5 w-5" />
-            </Button>
+            </button>
           </div>
 
-          {/* Menu */}
-          <ScrollArea className="flex-1 py-2">
-            <nav className="px-3 space-y-4">
+          {/* Menu Navigation */}
+          <ScrollArea className="flex-1 py-6">
+            <nav className="px-4 space-y-6">
               {menuSections.map((section) => (
                 <div key={section.title}>
-                  <p className="px-3 mb-1 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+                  <p className="px-3 mb-3 text-[10px] font-semibold text-[#444444] uppercase tracking-[0.2em]">
                     {section.title}
                   </p>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1">
                     {section.items.map((item) => {
                       const isActive = pathname === item.href || 
                         (item.href !== "/dragonadm" && pathname.startsWith(item.href))
@@ -172,16 +185,29 @@ export default function DragonAdmLayout({
                           href={item.href}
                           onClick={() => setSidebarOpen(false)}
                           className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                            "group flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 relative",
                             isActive
-                              ? "bg-white text-zinc-900"
-                              : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                              ? "text-[#050505]"
+                              : "text-[#a1a1a1] hover:text-white hover:bg-white/[0.03]"
                           )}
+                          style={isActive ? {
+                            background: 'linear-gradient(135deg, #95e468 0%, #7bc752 100%)',
+                            boxShadow: '0 0 20px rgba(149, 228, 104, 0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
+                          } : {}}
                         >
-                          <item.icon className="h-4 w-4" />
-                          {item.label}
                           {isActive && (
-                            <ChevronRight className="h-4 w-4 ml-auto" />
+                            <div 
+                              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-1 h-8 rounded-r-full"
+                              style={{ background: '#95e468', boxShadow: '0 0 10px #95e468' }}
+                            />
+                          )}
+                          <item.icon className={cn(
+                            "h-[18px] w-[18px] transition-transform duration-200",
+                            !isActive && "group-hover:scale-110"
+                          )} />
+                          <span>{item.label}</span>
+                          {isActive && (
+                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-[#050505]/30" />
                           )}
                         </Link>
                       )
@@ -192,11 +218,18 @@ export default function DragonAdmLayout({
             </nav>
           </ScrollArea>
 
-          {/* User & Logout */}
-          <div className="p-4 border-t border-zinc-800">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-                <span className="text-sm font-bold text-white">
+          {/* User Profile & Logout */}
+          <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            {/* User Info */}
+            <div className="flex items-center gap-3 p-3 rounded-xl mb-3" style={{ background: 'rgba(255,255,255,0.02)' }}>
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                  border: '1px solid rgba(255,255,255,0.06)'
+                }}
+              >
+                <span className="text-white">
                   {session?.email?.charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -204,38 +237,86 @@ export default function DragonAdmLayout({
                 <p className="text-sm font-medium text-white truncate">
                   {session?.email}
                 </p>
-                <p className="text-xs text-zinc-500">Administrador</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#22c55e] admin-pulse" />
+                  <p className="text-[11px] text-[#666666]">Administrador</p>
+                </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-zinc-400 border-zinc-700 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10"
+
+            {/* Logout Button */}
+            <button
               onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 text-[#a1a1a1] hover:text-[#ef4444]"
+              style={{ 
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'
+                e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.02)'
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+              }}
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
+              <LogOut className="h-4 w-4" />
+              <span>Sair da Conta</span>
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="h-16 flex items-center justify-between px-4 border-b border-zinc-800 bg-zinc-900 lg:px-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden text-white hover:bg-zinc-800"
+        {/* Top Header Bar */}
+        <header 
+          className="h-20 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30"
+          style={{ 
+            background: 'rgba(5, 5, 5, 0.8)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(255,255,255,0.06)'
+          }}
+        >
+          {/* Mobile Menu Button */}
+          <button
+            className="lg:hidden p-2.5 rounded-xl text-[#a1a1a1] hover:text-white transition-colors"
+            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
-          </Button>
+          </button>
 
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-xs text-zinc-500 hidden sm:block">
-              Logado como <span className="text-white font-medium">{session?.email}</span>
-            </span>
+          {/* Right Side */}
+          <div className="flex items-center gap-4 ml-auto">
+            {/* Status Indicator */}
+            <div 
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full"
+              style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}
+            >
+              <div className="w-2 h-2 rounded-full bg-[#22c55e] admin-pulse" />
+              <span className="text-xs text-[#22c55e] font-medium">Sistema Online</span>
+            </div>
+
+            {/* User Badge */}
+            <div 
+              className="flex items-center gap-3 px-4 py-2 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div 
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                style={{ 
+                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                }}
+              >
+                <span className="text-white">{session?.email?.charAt(0).toUpperCase()}</span>
+              </div>
+              <div className="hidden sm:block">
+                <p className="text-sm font-medium text-white">{session?.email?.split('@')[0]}</p>
+                <p className="text-[10px] text-[#666666]">Admin</p>
+              </div>
+            </div>
           </div>
         </header>
 
