@@ -82,8 +82,9 @@ export default function VendasPage() {
     try {
       const syncRes = await fetch("/api/debug/auto-test")
       const syncData = await syncRes.json()
-      if (syncData.pagamentosAtualizados > 0) {
-        setSyncResult(`${syncData.pagamentosAtualizados} pagamento(s) sincronizado(s)!`)
+      const atualizados = syncData.pagamentosAtualizados || syncData.pagamentosAprovados || 0
+      if (atualizados > 0) {
+        setSyncResult(`${atualizados} pagamento(s) sincronizado(s)!`)
         setTimeout(() => setSyncResult(null), 3000)
       }
     } catch {
