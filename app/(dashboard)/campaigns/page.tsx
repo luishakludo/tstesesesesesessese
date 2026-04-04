@@ -350,27 +350,27 @@ export default function CampaignsPage() {
             </div>
 
             {/* Section Toggle Buttons */}
-            <div className="flex gap-3 mb-6">
+            <div className="inline-flex items-center gap-1 p-1 bg-gray-100 rounded-full mb-6">
               <button
                 onClick={() => setActiveSection("campanhas")}
-                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-base transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                   activeSection === "campanhas"
-                    ? "bg-[#bfff00] text-[#1c1c1e]"
-                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                    ? "bg-[#1c1c1e] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                <Megaphone className="h-5 w-5" />
+                <Megaphone className="h-4 w-4" />
                 Campanhas
               </button>
               <button
                 onClick={() => setActiveSection("usuarios")}
-                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-base transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
                   activeSection === "usuarios"
-                    ? "bg-[#bfff00] text-[#1c1c1e]"
-                    : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                    ? "bg-[#1c1c1e] text-white shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
-                <Users className="h-5 w-5" />
+                <Users className="h-4 w-4" />
                 Usuarios
               </button>
             </div>
