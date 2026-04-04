@@ -317,7 +317,7 @@ export default function RemarketingPage() {
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-2xl font-bold text-white mb-1">Remarketing</h1>
-                <p className="text-gray-500">Gerencie usuarios e campanhas dos seus bots</p>
+                <p className="text-gray-500">Gerencie usuarios e campanhas de remarketing dos seus bots</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(true)}
