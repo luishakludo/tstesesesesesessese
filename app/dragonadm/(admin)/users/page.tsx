@@ -296,185 +296,181 @@ export default function UsersManagementPage() {
                   </p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Usuario</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Bots</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Gateway</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Indicacoes</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Saldo Afiliado</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-4 text-left text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Criado em</th>
-                        <th className="px-6 py-4 text-right text-[11px] font-semibold text-[#666666] uppercase tracking-wider">Acoes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredUsers.map((user) => (
-                        <tr 
-                          key={user.id} 
-                          className="group transition-colors hover:bg-white/[0.02]"
-                          style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}
-                        >
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div 
-                                className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white"
-                                style={{ 
-                                  background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
-                                  border: '1px solid rgba(255,255,255,0.06)'
-                                }}
-                              >
-                                {user.email?.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-white">
-                                  {user.name || "Sem nome"}
-                                </p>
-                                <p className="text-xs text-[#666666]">{user.email}</p>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span 
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-                              style={{ 
-                                background: 'rgba(139, 92, 246, 0.1)',
-                                color: '#8b5cf6',
-                                border: '1px solid rgba(139, 92, 246, 0.2)'
-                              }}
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="rounded-xl p-4 transition-all hover:scale-[1.02] cursor-pointer"
+                      style={{ 
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.06)'
+                      }}
+                      onClick={() => openUserDetails(user)}
+                    >
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold text-white"
+                            style={{ 
+                              background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.1))',
+                              border: '1px solid rgba(255,255,255,0.06)'
+                            }}
+                          >
+                            {user.email?.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-white truncate">
+                              {user.name || "Sem nome"}
+                            </p>
+                            <p className="text-xs text-[#666666] truncate">{user.email}</p>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              onClick={(e) => e.stopPropagation()}
+                              disabled={actionLoading === user.id}
+                              className="p-1.5 rounded-lg text-[#666666] hover:text-white hover:bg-white/[0.05] transition-colors disabled:opacity-50"
                             >
-                              <Bot className="w-3 h-3" />
-                              {user.bots?.length || 0}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            {user.gateways?.length > 0 ? (
-                              <span 
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-                                style={{ 
-                                  background: 'rgba(34, 197, 94, 0.1)',
-                                  color: '#22c55e',
-                                  border: '1px solid rgba(34, 197, 94, 0.2)'
-                                }}
-                              >
-                                <Zap className="w-3 h-3" />
-                                Ativa
-                              </span>
-                            ) : (
-                              <span 
-                                className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium"
-                                style={{ 
-                                  background: 'rgba(255,255,255,0.03)',
-                                  color: '#666666',
-                                  border: '1px solid rgba(255,255,255,0.06)'
-                                }}
-                              >
-                                Sem gateway
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className="text-sm text-white font-medium">
-                              {user.referrals?.length || 0}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <span className={cn(
-                              "text-sm font-semibold",
-                              (user.affiliateBalance || 0) > 0 ? "text-[#22c55e]" : "text-[#666666]"
-                            )}>
-                              R$ {(user.affiliateBalance || 0).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
+                              {actionLoading === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreHorizontal className="h-4 w-4" />
+                              )}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent 
+                            align="end" 
+                            className="w-48 rounded-xl p-1"
+                            style={{ 
+                              background: '#111111',
+                              border: '1px solid rgba(255,255,255,0.1)'
+                            }}
+                          >
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openUserDetails(user)
+                              }}
+                              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-white cursor-pointer hover:bg-white/[0.05]"
+                            >
+                              <Eye className="h-4 w-4 text-[#3b82f6]" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
                             {user.banned ? (
-                              <span 
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                                style={{ 
-                                  background: 'rgba(239, 68, 68, 0.1)',
-                                  color: '#ef4444',
-                                  border: '1px solid rgba(239, 68, 68, 0.2)'
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleToggleBan(user.id, user.banned)
                                 }}
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#22c55e] cursor-pointer hover:bg-[#22c55e]/10"
                               >
-                                <Ban className="w-3 h-3" />
-                                Banido
-                              </span>
+                                <CheckCircle className="h-4 w-4" />
+                                Desbanir Usuario
+                              </DropdownMenuItem>
                             ) : (
-                              <span 
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                                style={{ 
-                                  background: 'rgba(34, 197, 94, 0.1)',
-                                  color: '#22c55e',
-                                  border: '1px solid rgba(34, 197, 94, 0.2)'
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleToggleBan(user.id, user.banned)
                                 }}
+                                className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#ef4444] cursor-pointer hover:bg-[#ef4444]/10"
                               >
-                                <CheckCircle className="w-3 h-3" />
-                                Ativo
-                              </span>
+                                <Ban className="h-4 w-4" />
+                                Banir Usuario
+                              </DropdownMenuItem>
                             )}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-sm text-[#666666]">
-                              <Clock className="w-3.5 h-3.5" />
-                              {new Date(user.created_at).toLocaleDateString("pt-BR")}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  disabled={actionLoading === user.id}
-                                  className="p-2 rounded-lg text-[#666666] hover:text-white hover:bg-white/[0.05] transition-colors disabled:opacity-50"
-                                >
-                                  {actionLoading === user.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  )}
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent 
-                                align="end" 
-                                className="w-48 rounded-xl p-1"
-                                style={{ 
-                                  background: '#111111',
-                                  border: '1px solid rgba(255,255,255,0.1)'
-                                }}
-                              >
-                                <DropdownMenuItem
-                                  onClick={() => openUserDetails(user)}
-                                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-white cursor-pointer hover:bg-white/[0.05]"
-                                >
-                                  <Eye className="h-4 w-4 text-[#3b82f6]" />
-                                  Ver Detalhes
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="my-1 bg-white/[0.06]" />
-                                {user.banned ? (
-                                  <DropdownMenuItem
-                                    onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#22c55e] cursor-pointer hover:bg-[#22c55e]/10"
-                                  >
-                                    <CheckCircle className="h-4 w-4" />
-                                    Desbanir Usuario
-                                  </DropdownMenuItem>
-                                ) : (
-                                  <DropdownMenuItem
-                                    onClick={() => handleToggleBan(user.id, user.banned)}
-                                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-[#ef4444] cursor-pointer hover:bg-[#ef4444]/10"
-                                  >
-                                    <Ban className="h-4 w-4" />
-                                    Banir Usuario
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      {/* Status Badge */}
+                      <div className="flex items-center gap-2 mb-4">
+                        {user.banned ? (
+                          <span 
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium"
+                            style={{ 
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.2)'
+                            }}
+                          >
+                            <Ban className="w-2.5 h-2.5" />
+                            Banido
+                          </span>
+                        ) : (
+                          <span 
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium"
+                            style={{ 
+                              background: 'rgba(34, 197, 94, 0.1)',
+                              color: '#22c55e',
+                              border: '1px solid rgba(34, 197, 94, 0.2)'
+                            }}
+                          >
+                            <CheckCircle className="w-2.5 h-2.5" />
+                            Ativo
+                          </span>
+                        )}
+                        <span className="text-[10px] text-[#666666] flex items-center gap-1">
+                          <Clock className="w-2.5 h-2.5" />
+                          {new Date(user.created_at).toLocaleDateString("pt-BR")}
+                        </span>
+                      </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div 
+                          className="p-2.5 rounded-lg text-center"
+                          style={{ background: 'rgba(139, 92, 246, 0.05)', border: '1px solid rgba(139, 92, 246, 0.1)' }}
+                        >
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <Bot className="w-3 h-3 text-[#8b5cf6]" />
+                            <span className="text-xs font-semibold text-white">{user.bots?.length || 0}</span>
+                          </div>
+                          <p className="text-[9px] text-[#666666] uppercase">Bots</p>
+                        </div>
+                        <div 
+                          className="p-2.5 rounded-lg text-center"
+                          style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.1)' }}
+                        >
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <UserPlus className="w-3 h-3 text-[#3b82f6]" />
+                            <span className="text-xs font-semibold text-white">{user.referrals?.length || 0}</span>
+                          </div>
+                          <p className="text-[9px] text-[#666666] uppercase">Indicacoes</p>
+                        </div>
+                      </div>
+
+                      {/* Gateway & Saldo */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-[#666666] uppercase">Gateway</span>
+                          {user.gateways?.length > 0 ? (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium"
+                              style={{ background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' }}
+                            >
+                              <Zap className="w-2.5 h-2.5" />
+                              Ativa
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-[#444444]">Nenhuma</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-[#666666] uppercase">Saldo Afiliado</span>
+                          <span className={cn(
+                            "text-xs font-semibold",
+                            (user.affiliateBalance || 0) > 0 ? "text-[#22c55e]" : "text-[#666666]"
+                          )}>
+                            R$ {(user.affiliateBalance || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

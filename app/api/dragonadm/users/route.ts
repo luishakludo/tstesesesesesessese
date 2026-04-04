@@ -1,35 +1,40 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    console.log("[v0] DragonAdmin Users API - Starting fetch")
+    console.log("[v0] DragonAdmin Users API - Starting fetch with admin client")
     
-    // Buscar todos os usuarios (profiles)
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
+    // Buscar todos os usuarios - usando admin client para bypassar RLS
+    const { data: usersData, error: usersError } = await supabaseAdmin
+      .from("users")
       .select("*")
       .order("created_at", { ascending: false })
 
-    console.log("[v0] DragonAdmin Users - profiles count:", profiles?.length, "error:", profilesError)
+    console.log("[v0] DragonAdmin Users - users count:", usersData?.length, "error:", usersError?.message || "none")
+    console.log("[v0] DragonAdmin Users - user IDs:", usersData?.map(u => u.id))
 
-    if (profilesError) {
-      console.error("Erro ao buscar profiles:", profilesError)
+    if (usersError) {
+      console.error("Erro ao buscar users:", usersError)
       return NextResponse.json({ error: "Erro ao buscar usuarios" }, { status: 500 })
     }
 
     // Buscar todos os bots
-    const { data: allBots } = await supabase
+    const { data: allBots, error: botsError } = await supabaseAdmin
       .from("bots")
       .select("id, name, username, is_active, created_at, user_id")
+    
+    console.log("[v0] DragonAdmin Users - bots count:", allBots?.length, "bots user_ids:", allBots?.map(b => b.user_id), "error:", botsError?.message || "none")
 
     // Buscar todas as gateways
-    const { data: allGateways } = await supabase
+    const { data: allGateways, error: gatewaysError } = await supabaseAdmin
       .from("payment_gateways")
       .select("id, gateway_name, is_active, created_at, user_id")
+    
+    console.log("[v0] DragonAdmin Users - gateways count:", allGateways?.length, "gateways user_ids:", allGateways?.map(g => g.user_id), "error:", gatewaysError?.message || "none")
 
     // Buscar todos os referrals
-    const { data: allReferrals } = await supabase
+    const { data: allReferrals } = await supabaseAdmin
       .from("referrals")
       .select(`
         id,
@@ -45,24 +50,24 @@ export async function GET() {
       `)
 
     // Buscar pagamentos por usuario (para stats)
-    const { data: allPayments } = await supabase
+    const { data: allPayments } = await supabaseAdmin
       .from("payments")
       .select("user_id, amount, status")
       .eq("status", "approved")
 
     // Buscar saldos de afiliados (referral_sales)
-    const { data: allReferralSales } = await supabase
+    const { data: allReferralSales } = await supabaseAdmin
       .from("referral_sales")
       .select("referrer_id, amount")
     
     // Buscar saques de afiliados para calcular saldo disponivel
-    const { data: allWithdraws } = await supabase
+    const { data: allWithdraws } = await supabaseAdmin
       .from("referral_withdraws")
       .select("user_id, amount, status")
       .in("status", ["approved", "paid"])
 
     // Buscar starts por bot
-    const { data: allStarts } = await supabase
+    const { data: allStarts } = await supabaseAdmin
       .from("telegram_users")
       .select("bot_id")
 
@@ -85,30 +90,30 @@ export async function GET() {
     })
 
     // Montar resposta com dados agregados
-    const users = profiles?.map(profile => {
-      const userBots = allBots?.filter(b => b.user_id === profile.id) || []
-      const userGateways = allGateways?.filter(g => g.user_id === profile.id) || []
-      const userReferrals = allReferrals?.filter(r => r.referrer_id === profile.id) || []
-      const userPayments = allPayments?.filter(p => p.user_id === profile.id) || []
+    const users = usersData?.map(user => {
+      const userBots = allBots?.filter(b => b.user_id === user.id) || []
+      const userGateways = allGateways?.filter(g => g.user_id === user.id) || []
+      const userReferrals = allReferrals?.filter(r => r.referrer_id === user.id) || []
+      const userPayments = allPayments?.filter(p => p.user_id === user.id) || []
 
       // Calcular total de starts dos bots do usuario
       const userBotIds = userBots.map(b => b.id)
       const totalStarts = userBotIds.reduce((acc, botId) => acc + (startsByBot[botId] || 0), 0)
 
       // Calcular saldo de afiliado
-      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === profile.id) || []
+      const userReferralSales = allReferralSales?.filter(s => s.referrer_id === user.id) || []
       const totalReferralEarnings = userReferralSales.reduce((acc, s) => acc + (Number(s.amount) || 0), 0)
-      const userWithdraws = allWithdraws?.filter(w => w.user_id === profile.id) || []
+      const userWithdraws = allWithdraws?.filter(w => w.user_id === user.id) || []
       const totalWithdrawn = userWithdraws.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
       const affiliateBalance = totalReferralEarnings - totalWithdrawn
 
       return {
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        phone: profile.phone,
-        banned: profile.banned || false,
-        created_at: profile.created_at,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+        banned: user.banned || false,
+        created_at: user.created_at,
         bots: userBots.map(b => ({
           id: b.id,
           name: b.name,
