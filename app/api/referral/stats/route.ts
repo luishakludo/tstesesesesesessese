@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Buscar contagem de referrals
     const { count, error } = await supabase
       .from("referrals")
       .select("*", { count: "exact", head: true })
@@ -20,31 +21,38 @@ export async function GET(req: NextRequest) {
 
     const totalReferrals = count || 0
 
-    // Vendas e ganhos: so conta vendas reais feitas pelos indicados
-    // Por enquanto, vendas vem de uma tabela futura (referral_sales)
-    // Quando nao existe ainda, retorna 0
-    let totalSales = 0
-    let totalEarnings = 0
+    // Buscar o saldo de afiliado do usuario (affiliate_balance_adjustment)
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("affiliate_balance_adjustment")
+      .eq("id", userId)
+      .single()
 
-    try {
-      const { count: salesCount } = await supabase
-        .from("referral_sales")
-        .select("*", { count: "exact", head: true })
-        .eq("referrer_id", userId)
-
-      if (salesCount && salesCount > 0) {
-        totalSales = salesCount
-        const earningsPerSale = 0.10
-        totalEarnings = Number((totalSales * earningsPerSale).toFixed(2))
-      }
-    } catch {
-      // tabela ainda nao existe, vendas = 0
+    if (userError) {
+      console.error("[v0] Error fetching user balance:", userError.message)
     }
+
+    // O saldo ajustado pelo admin
+    const affiliateBalanceAdjustment = Number(userData?.affiliate_balance_adjustment) || 0
+
+    // Buscar total de saques para calcular saldo disponivel
+    const { data: withdrawsData } = await supabase
+      .from("affiliate_withdraws")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("status", "approved")
+
+    const totalWithdrawn = withdrawsData?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
+
+    // Saldo disponivel = ajuste do admin - saques
+    const totalEarnings = affiliateBalanceAdjustment - totalWithdrawn
 
     return NextResponse.json({
       total_referrals: totalReferrals,
-      total_sales: totalSales,
+      total_sales: 0, // Por enquanto nao tem vendas
       total_earnings: totalEarnings,
+      affiliate_balance_adjustment: affiliateBalanceAdjustment,
+      total_withdrawn: totalWithdrawn,
     })
   } catch (err) {
     console.error("[v0] Stats GET error:", err)
