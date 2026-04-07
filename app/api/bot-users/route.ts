@@ -202,6 +202,9 @@ export async function GET(req: NextRequest) {
         iniciadoEm: u.created_at,
         ultimaAtividade,
         etapa: u.funnel_step,
+        isVip: u.is_vip || false,
+        vipSince: u.vip_since || null,
+        vipExpiresAt: u.vip_expires_at || null,
       }
     })
 
