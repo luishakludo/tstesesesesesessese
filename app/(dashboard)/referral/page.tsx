@@ -646,28 +646,29 @@ export default function ReferralPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdraw Modal */}
+      {/* Withdraw Modal - Redesigned */}
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
-        <DialogContent className="sm:max-w-[400px] bg-[#16181d] border-[#2a2a2e] p-0 gap-0 overflow-hidden">
-          {/* Header */}
-          <div className="p-5 border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-[#ccff00]" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white">Solicitar Saque</h3>
-                <p className="text-xs text-gray-400">Passo {withdrawStep} de 4</p>
+        <DialogContent className="sm:max-w-[420px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
+          {/* Header minimalista */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-black text-white tracking-tight">Saque</span>
+                <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
               </div>
             </div>
-            {/* Progress bar */}
-            <div className="flex gap-1 mt-4">
+            {/* Progress dots minimalista */}
+            <div className="flex gap-2 mt-4">
               {[1, 2, 3, 4].map((step) => (
                 <div 
                   key={step}
                   className={cn(
-                    "flex-1 h-1 rounded-full transition-colors",
-                    step <= withdrawStep ? "bg-[#ccff00]" : "bg-white/10"
+                    "h-1.5 rounded-full transition-all duration-300",
+                    step === withdrawStep 
+                      ? "bg-white w-8" 
+                      : step < withdrawStep 
+                        ? "bg-white/40 w-4" 
+                        : "bg-white/10 w-4"
                   )}
                 />
               ))}
@@ -675,130 +676,139 @@ export default function ReferralPage() {
           </div>
 
           {/* Content */}
-          <div className="p-5">
+          <div className="px-6 py-5">
             {withdrawStep === 1 && (
-              <div className="space-y-4">
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-full bg-[#ccff00]/10 flex items-center justify-center mx-auto">
-                    <Wallet className="h-8 w-8 text-[#ccff00]" />
+              <div className="space-y-6">
+                {/* Saldo display diferenciado */}
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#ccff00]/5 via-transparent to-[#ccff00]/5 rounded-2xl" />
+                  <div className="relative p-5 text-center">
+                    <p className="text-xs uppercase tracking-widest text-white/30 mb-2">Disponivel para saque</p>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-white/50 text-lg font-medium">R$</span>
+                      <span className="text-5xl font-black text-white tabular-nums">
+                        {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]/60" />
+                      <span className="text-[11px] text-white/40">Min. R$ 10,00</span>
+                    </div>
                   </div>
-                  <h4 className="text-lg font-bold text-white">Seu Saldo Disponivel</h4>
-                  <p className="text-3xl font-bold text-[#ccff00]">
-                    R$ {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-gray-400">Saque minimo: R$ 10,00</p>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Quanto deseja sacar?</label>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={withdrawData.amount}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9,]/g, "")
-                      setWithdrawData({ ...withdrawData, amount: value })
-                    }}
-                    className="bg-white/5 border-white/10 text-white h-12 text-lg text-center"
-                  />
+                
+                {/* Input de valor */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-white/50 font-medium">Valor do saque</label>
+                    <button 
+                      type="button"
+                      onClick={() => setWithdrawData({ ...withdrawData, amount: totalEarnings.toFixed(2).replace(".", ",") })}
+                      className="text-[10px] text-[#ccff00]/80 hover:text-[#ccff00] transition-colors"
+                    >
+                      Sacar tudo
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-medium">R$</span>
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={withdrawData.amount}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9,]/g, "")
+                        setWithdrawData({ ...withdrawData, amount: value })
+                      }}
+                      className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
             {withdrawStep === 2 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Seu Nome Completo</h4>
-                    <p className="text-xs text-gray-400">Conforme documento</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-white/30">Identificacao</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Qual seu nome?</h4>
+                  <p className="text-sm text-white/40 mt-1">Use o nome completo do titular da conta</p>
                 </div>
                 <Input
-                  placeholder="Digite seu nome completo"
+                  placeholder="Nome completo"
                   value={withdrawData.name}
                   onChange={(e) => setWithdrawData({ ...withdrawData, name: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg rounded-xl transition-colors"
                 />
               </div>
             )}
 
             {withdrawStep === 3 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Seu CPF</h4>
-                    <p className="text-xs text-gray-400">Para validacao do PIX</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-white/30">Documento</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Informe seu CPF</h4>
+                  <p className="text-sm text-white/40 mt-1">Necessario para validar a transferencia</p>
                 </div>
                 <Input
                   placeholder="000.000.000-00"
                   value={withdrawData.cpf}
                   onChange={(e) => setWithdrawData({ ...withdrawData, cpf: formatCPF(e.target.value) })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
                   maxLength={14}
                 />
               </div>
             )}
 
             {withdrawStep === 4 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Key className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Chave PIX</h4>
-                    <p className="text-xs text-gray-400">Mesmo CPF informado</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-white/30">Destino</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Chave PIX</h4>
+                  <p className="text-sm text-white/40 mt-1">Use a chave CPF para maior seguranca</p>
                 </div>
                 <Input
-                  placeholder="Sua chave PIX (CPF)"
+                  placeholder="Sua chave PIX"
                   value={withdrawData.pixKey}
                   onChange={(e) => setWithdrawData({ ...withdrawData, pixKey: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg rounded-xl transition-colors"
                 />
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-400">
-                    A chave PIX deve ser o mesmo CPF informado para garantir a seguranca da transferencia.
-                  </p>
-                </div>
 
-                {/* Resumo */}
-                <div className="p-4 rounded-xl bg-white/5 space-y-2 mt-4">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Resumo do Saque</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Nome:</span>
-                    <span className="text-white font-medium">{withdrawData.name}</span>
+                {/* Resumo compacto */}
+                <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs uppercase tracking-widest text-white/30">Resumo</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">CPF:</span>
-                    <span className="text-white font-medium">{withdrawData.cpf}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Valor:</span>
-                    <span className="text-[#ccff00] font-bold">R$ {withdrawData.amount}</span>
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40">{withdrawData.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/40 font-mono">{withdrawData.cpf}</span>
+                    </div>
+                    <div className="h-px bg-white/5 my-2" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-white/40 text-sm">Total</span>
+                      <span className="text-2xl font-bold text-white">R$ {withdrawData.amount}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {withdrawError && (
-              <p className="text-xs text-red-400 mt-3">{withdrawError}</p>
+              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-xs text-red-400">{withdrawError}</p>
+              </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-5 border-t border-white/5 flex gap-2">
+          {/* Footer minimalista */}
+          <div className="px-6 pb-6 pt-2 flex gap-3">
             {withdrawStep > 1 && (
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setWithdrawStep(s => s - 1)}
-                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                className="flex-1 h-12 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium"
               >
                 Voltar
               </Button>
@@ -828,24 +838,20 @@ export default function ReferralPage() {
                   setWithdrawError("")
                   setWithdrawStep(s => s + 1)
                 }}
-                className="flex-1 bg-[#ccff00] hover:bg-[#b8e600] text-black font-bold"
+                className="flex-1 h-12 bg-white hover:bg-white/90 text-black font-semibold rounded-xl transition-all"
               >
                 Continuar
-                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleWithdrawSubmit}
                 disabled={isWithdrawing || !withdrawData.pixKey}
-                className="flex-1 bg-[#ccff00] hover:bg-[#b8e600] text-black font-bold disabled:opacity-50"
+                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl disabled:opacity-50 transition-all"
               >
                 {isWithdrawing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Confirmar Saque
-                  </>
+                  "Confirmar Saque"
                 )}
               </Button>
             )}
