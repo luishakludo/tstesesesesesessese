@@ -469,58 +469,65 @@ export default function ReferralPage() {
               </div>
               
               <div className="bg-[#16181d] border border-white/5 rounded-3xl overflow-hidden">
-                {referrals.length === 0 ? (
-                  <div className="flex flex-col items-center gap-4 py-12 text-center px-6">
-                    <div className="w-14 h-14 rounded-full bg-[#ccff00]/20 flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-bold text-white">Nenhum indicado ainda</p>
-                      <p className="text-xs text-gray-400 mt-1">Compartilhe seu link e veja seus indicados aqui</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs min-w-[300px]">
-                      <thead>
-                        <tr className="border-b border-white/5 bg-white/[0.02]">
-                          <th className="px-4 py-3 font-semibold text-gray-400">Usuario</th>
-                          <th className="px-4 py-3 font-semibold text-gray-400">Status</th>
-                          <th className="px-4 py-3 font-semibold text-gray-400 text-right">Comissao</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[300px]">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/[0.02]">
+                        <th className="px-4 py-3 font-semibold text-gray-400">Usuario</th>
+                        <th className="px-4 py-3 font-semibold text-gray-400">Status</th>
+                        <th className="px-4 py-3 font-semibold text-gray-400 text-right">Comissao</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {/* Mostrar usuarios reais */}
+                      {referrals.slice(0, 5).map((ref) => (
+                        <tr key={ref.id} onClick={() => setSelectedUser(ref)} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white">{ref.name}</span>
+                              <span className="text-[10px] text-gray-400">{formatDate(ref.referral_date)}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-[10px] font-bold",
+                              ref.banned 
+                                ? "bg-red-500/10 text-red-400" 
+                                : "bg-[#ccff00]/20 text-[#ccff00]"
+                            )}>
+                              {ref.banned ? "Inativo" : "Ativo"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <span className="font-bold text-white">R$ 0,10</span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {referrals.slice(0, 5).map((ref) => (
-                          <tr key={ref.id} onClick={() => setSelectedUser(ref)} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-white">{ref.name}</span>
-                                <span className="text-[10px] text-gray-400">{formatDate(ref.referral_date)}</span>
+                      ))}
+                      {/* Preencher linhas vazias para manter altura fixa (5 linhas total) */}
+                      {Array.from({ length: Math.max(0, 5 - referrals.length) }).map((_, index) => (
+                        <tr key={`empty-${index}`} className="h-[60px]">
+                          <td colSpan={3} className="px-4 py-4 text-center">
+                            {index === 0 && referrals.length === 0 ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <svg viewBox="0 0 24 24" className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="9" cy="7" r="4"/>
+                                  <line x1="19" y1="8" x2="19" y2="14"/>
+                                  <line x1="22" y1="11" x2="16" y2="11"/>
+                                </svg>
+                                <span className="text-gray-500 text-xs">Compartilhe e atraia mais amigos!</span>
                               </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <span className={cn(
-                                "px-2 py-1 rounded-full text-[10px] font-bold",
-                                ref.banned 
-                                  ? "bg-red-500/10 text-red-400" 
-                                  : "bg-[#ccff00]/20 text-[#ccff00]"
-                              )}>
-                                {ref.banned ? "Inativo" : "Ativo"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right">
-                              <span className="font-bold text-white">R$ 0,10</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                            ) : index === Math.floor((5 - referrals.length) / 2) && referrals.length > 0 ? (
+                              <span className="text-gray-600 text-xs">Atraia mais amigos e ganhe mais!</span>
+                            ) : (
+                              <span className="text-gray-700/30 text-xs">---</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
