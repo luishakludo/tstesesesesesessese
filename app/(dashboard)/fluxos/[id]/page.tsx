@@ -444,9 +444,12 @@ Voce ja tem acesso ao conteudo!`)
 
   // Renewal System
   const [renewalDeliveryEnabled, setRenewalDeliveryEnabled] = useState(false)
+  const [renewalDeliverableId, setRenewalDeliverableId] = useState("")
   const [notifyBeforeExpireEnabled, setNotifyBeforeExpireEnabled] = useState(true)
   const [daysBeforeExpire, setDaysBeforeExpire] = useState<string[]>(["7 dias", "3 dias", "1 dia", "No dia"])
   const [renewalMediaType, setRenewalMediaType] = useState("none")
+  const [renewalMediaUrl, setRenewalMediaUrl] = useState("")
+  const [uploadingRenewalMedia, setUploadingRenewalMedia] = useState(false)
   const [renewalMessage, setRenewalMessage] = useState(`Ola {nome}!
 
 Sua assinatura do plano {plano} expira em {dias} dias.
@@ -457,6 +460,8 @@ Renove agora e continue aproveitando todos os beneficios!`)
   const [selectedHours, setSelectedHours] = useState<string[]>(["09:00", "15:00", "21:00"])
   const [expireMessageEnabled, setExpireMessageEnabled] = useState(true)
   const [expireMediaType, setExpireMediaType] = useState("none")
+  const [expireMediaUrl, setExpireMediaUrl] = useState("")
+  const [uploadingExpireMedia, setUploadingExpireMedia] = useState(false)
   const [expireMessage, setExpireMessage] = useState(`{nome}, sua assinatura expirou!
 
 Renove agora para continuar com acesso ao conteudo exclusivo.
@@ -591,6 +596,27 @@ Clique no botao abaixo para renovar com desconto especial!`)
   setPaymentGateway(config.payments?.gateway || "")
     setPixKey(config.payments?.pix_key || "")
     setSubscriptionEnabled(config.subscription?.enabled || false)
+    // Load subscription renewal settings
+    if (config.subscription) {
+      setRenewalDeliveryEnabled(config.subscription.renewalDeliveryEnabled || false)
+      setRenewalDeliverableId(config.subscription.renewalDeliverableId || "")
+      setNotifyBeforeExpireEnabled(config.subscription.notifyBeforeExpireEnabled !== false)
+      if (config.subscription.daysBeforeExpire) setDaysBeforeExpire(config.subscription.daysBeforeExpire)
+      setRenewalMediaType(config.subscription.renewalMediaType || "none")
+      setRenewalMediaUrl(config.subscription.renewalMediaUrl || "")
+      if (config.subscription.renewalMessage) setRenewalMessage(config.subscription.renewalMessage)
+      setNotifyOnDayEnabled(config.subscription.notifyOnDayEnabled !== false)
+      setNotificationCount(config.subscription.notificationCount || "3")
+      if (config.subscription.selectedHours) setSelectedHours(config.subscription.selectedHours)
+      setExpireMessageEnabled(config.subscription.expireMessageEnabled !== false)
+      setExpireMediaType(config.subscription.expireMediaType || "none")
+      setExpireMediaUrl(config.subscription.expireMediaUrl || "")
+      if (config.subscription.expireMessage) setExpireMessage(config.subscription.expireMessage)
+      setUseFlowPlans(config.subscription.useFlowPlans !== false)
+      setRenewalDiscount(config.subscription.renewalDiscount || "20%")
+      setKickFromGroup(config.subscription.kickFromGroup !== false)
+      setRemoveVipStatus(config.subscription.removeVipStatus !== false)
+    }
     setSecondaryMessageEnabled(config.secondaryMessage?.enabled || false)
     setSecondaryMessage(config.secondaryMessage?.message || "")
     setWelcomeMedias(config.welcomeMedias || [])
@@ -929,6 +955,24 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
       },
       subscription: {
         enabled: subscriptionEnabled,
+        renewalDeliveryEnabled,
+        renewalDeliverableId,
+        notifyBeforeExpireEnabled,
+        daysBeforeExpire,
+        renewalMediaType,
+        renewalMediaUrl,
+        renewalMessage,
+        notifyOnDayEnabled,
+        notificationCount,
+        selectedHours,
+        expireMessageEnabled,
+        expireMediaType,
+        expireMediaUrl,
+        expireMessage,
+        useFlowPlans,
+        renewalDiscount,
+        kickFromGroup,
+        removeVipStatus,
       },
       delivery: {
         type: deliveryType,
@@ -4851,7 +4895,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               {/* Entrega Especifica para Renovacao */}
               <Card className="border-border/50">
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Link2 className="h-5 w-5 text-emerald-500" />
@@ -4862,6 +4906,40 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                     <Switch checked={renewalDeliveryEnabled} onCheckedChange={(c) => { setRenewalDeliveryEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {renewalDeliveryEnabled && deliverables.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-border/50">
+                      <Label className="text-muted-foreground">Entregavel para Renovacao</Label>
+                      <Select
+                        value={renewalDeliverableId || "none"}
+                        onValueChange={(v) => {
+                          setRenewalDeliverableId(v === "none" ? "" : v)
+                          setHasChanges(true)
+                        }}
+                      >
+                        <SelectTrigger className="bg-secondary/50 border-border/50">
+                          <SelectValue placeholder="Selecione um entregavel..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Nenhum (usar mesmo da compra)</SelectItem>
+                          {deliverables.map((d) => (
+                            <SelectItem key={d.id} value={d.id}>
+                              {d.name} ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Este entregavel sera usado nas renovacoes em vez do entregavel principal.</p>
+                    </div>
+                  )}
+
+                  {renewalDeliveryEnabled && deliverables.length === 0 && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+                      <p className="text-sm text-amber-500">
+                        Nenhum entregavel cadastrado. Crie entregaveis na aba "Entregaveis" para poder selecionar aqui.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 
@@ -4919,7 +4997,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             <button
                               key={type.id}
                               type="button"
-                              onClick={() => { setRenewalMediaType(type.id); setHasChanges(true) }}
+                              onClick={() => { 
+                                setRenewalMediaType(type.id)
+                                if (type.id === "none") setRenewalMediaUrl("")
+                                setHasChanges(true) 
+                              }}
                               className={`px-4 py-2 rounded-lg border text-sm flex items-center gap-2 transition-colors ${
                                 renewalMediaType === type.id
                                   ? "bg-amber-500/20 border-amber-500 text-amber-500"
@@ -4931,6 +5013,95 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </button>
                           ))}
                         </div>
+                        
+                        {/* Upload de midia */}
+                        {renewalMediaType !== "none" && (
+                          <div className="mt-3">
+                            {renewalMediaUrl ? (
+                              <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden group">
+                                {renewalMediaType === "video" ? (
+                                  <video src={renewalMediaUrl} className="w-full h-full object-cover" />
+                                ) : renewalMediaType === "audio" ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-secondary/50">
+                                    <Music className="h-8 w-8 text-muted-foreground" />
+                                  </div>
+                                ) : (
+                                  <img src={renewalMediaUrl} alt="Renewal media" className="w-full h-full object-cover" />
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setRenewalMediaUrl("")
+                                    setHasChanges(true)
+                                  }}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                >
+                                  <Trash2 className="h-5 w-5 text-white" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5 transition-colors">
+                                {uploadingRenewalMedia ? (
+                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                ) : (
+                                  <>
+                                    <Plus className="h-6 w-6 text-muted-foreground mb-1" />
+                                    <span className="text-xs text-muted-foreground">Upload</span>
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  accept={renewalMediaType === "image" ? "image/*" : renewalMediaType === "video" ? "video/*" : "audio/*"}
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0]
+                                    if (!file || !flow) return
+                                    
+                                    setUploadingRenewalMedia(true)
+                                    
+                                    try {
+                                      const fileExt = file.name.split('.').pop()
+                                      const fileName = `${flow.id}/renewal_${Date.now()}.${fileExt}`
+                                      
+                                      const { error } = await supabase.storage
+                                        .from('flow-medias')
+                                        .upload(fileName, file, {
+                                          cacheControl: '3600',
+                                          upsert: false
+                                        })
+                                      
+                                      if (error) {
+                                        toast({
+                                          title: "Erro",
+                                          description: "Falha no upload: " + error.message,
+                                          variant: "destructive",
+                                        })
+                                        return
+                                      }
+                                      
+                                      const { data: urlData } = supabase.storage
+                                        .from('flow-medias')
+                                        .getPublicUrl(fileName)
+                                      
+                                      setRenewalMediaUrl(urlData.publicUrl)
+                                      setHasChanges(true)
+                                    } catch (err) {
+                                      console.error('Upload failed:', err)
+                                      toast({
+                                        title: "Erro",
+                                        description: "Erro ao fazer upload",
+                                        variant: "destructive",
+                                      })
+                                    } finally {
+                                      setUploadingRenewalMedia(false)
+                                    }
+                                    
+                                    e.target.value = ""
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Mensagem */}
@@ -5066,7 +5237,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             <button
                               key={type.id}
                               type="button"
-                              onClick={() => { setExpireMediaType(type.id); setHasChanges(true) }}
+                              onClick={() => { 
+                                setExpireMediaType(type.id)
+                                if (type.id === "none") setExpireMediaUrl("")
+                                setHasChanges(true) 
+                              }}
                               className={`px-4 py-2 rounded-lg border text-sm flex items-center gap-2 transition-colors ${
                                 expireMediaType === type.id
                                   ? "bg-amber-500/20 border-amber-500 text-amber-500"
@@ -5078,6 +5253,95 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </button>
                           ))}
                         </div>
+                        
+                        {/* Upload de midia */}
+                        {expireMediaType !== "none" && (
+                          <div className="mt-3">
+                            {expireMediaUrl ? (
+                              <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden group">
+                                {expireMediaType === "video" ? (
+                                  <video src={expireMediaUrl} className="w-full h-full object-cover" />
+                                ) : expireMediaType === "audio" ? (
+                                  <div className="w-full h-full flex items-center justify-center bg-secondary/50">
+                                    <Music className="h-8 w-8 text-muted-foreground" />
+                                  </div>
+                                ) : (
+                                  <img src={expireMediaUrl} alt="Expire media" className="w-full h-full object-cover" />
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setExpireMediaUrl("")
+                                    setHasChanges(true)
+                                  }}
+                                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                                >
+                                  <Trash2 className="h-5 w-5 text-white" />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+                                {uploadingExpireMedia ? (
+                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                ) : (
+                                  <>
+                                    <Plus className="h-6 w-6 text-muted-foreground mb-1" />
+                                    <span className="text-xs text-muted-foreground">Upload</span>
+                                  </>
+                                )}
+                                <input
+                                  type="file"
+                                  accept={expireMediaType === "image" ? "image/*" : expireMediaType === "video" ? "video/*" : "audio/*"}
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0]
+                                    if (!file || !flow) return
+                                    
+                                    setUploadingExpireMedia(true)
+                                    
+                                    try {
+                                      const fileExt = file.name.split('.').pop()
+                                      const fileName = `${flow.id}/expire_${Date.now()}.${fileExt}`
+                                      
+                                      const { error } = await supabase.storage
+                                        .from('flow-medias')
+                                        .upload(fileName, file, {
+                                          cacheControl: '3600',
+                                          upsert: false
+                                        })
+                                      
+                                      if (error) {
+                                        toast({
+                                          title: "Erro",
+                                          description: "Falha no upload: " + error.message,
+                                          variant: "destructive",
+                                        })
+                                        return
+                                      }
+                                      
+                                      const { data: urlData } = supabase.storage
+                                        .from('flow-medias')
+                                        .getPublicUrl(fileName)
+                                      
+                                      setExpireMediaUrl(urlData.publicUrl)
+                                      setHasChanges(true)
+                                    } catch (err) {
+                                      console.error('Upload failed:', err)
+                                      toast({
+                                        title: "Erro",
+                                        description: "Erro ao fazer upload",
+                                        variant: "destructive",
+                                      })
+                                    } finally {
+                                      setUploadingExpireMedia(false)
+                                    }
+                                    
+                                    e.target.value = ""
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Mensagem de Expiracao */}

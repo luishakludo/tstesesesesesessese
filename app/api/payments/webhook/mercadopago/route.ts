@@ -575,6 +575,39 @@ export async function POST(request: NextRequest) {
                   console.log(`[v0] DELIVERY: Enviando entregavel inicial para usuario ${chatId}`)
                   await sendDelivery(supabase, bot.token, chatId, flowConfig)
 
+                  // ========== MARCAR USUARIO COMO VIP ==========
+                  // Apenas para produtos principais (plan, main_product), NAO para order_bump ou pack
+                  const isMainProduct = payment.product_type === "main_product" || payment.product_type === "plan"
+                  
+                  if (isMainProduct) {
+                    // Calcular data de expiracao baseado no plano (se houver)
+                    let expiresAt = null
+                    if (flowConfig?.subscription?.enabled && payment.metadata?.plan_days) {
+                      const planDays = parseInt(payment.metadata.plan_days) || 30
+                      expiresAt = new Date(Date.now() + planDays * 24 * 60 * 60 * 1000).toISOString()
+                    }
+
+                    // Atualizar bot_user como VIP
+                    const { error: vipError } = await supabase
+                      .from("bot_users")
+                      .update({
+                        is_vip: true,
+                        vip_since: new Date().toISOString(),
+                        vip_expires_at: expiresAt,
+                        updated_at: new Date().toISOString()
+                      })
+                      .eq("bot_id", bot.id)
+                      .eq("telegram_user_id", String(chatId))
+
+                    if (vipError) {
+                      console.log(`[VIP] Error marking user as VIP:`, vipError.message)
+                    } else {
+                      console.log(`[VIP] User ${chatId} marked as VIP, expires: ${expiresAt || "never"}`)
+                    }
+                  } else {
+                    console.log(`[VIP] Skipping VIP marking for product_type: ${payment.product_type}`)
+                  }
+
                   // Depois verificar se tem upsell para enviar
                   if (upsellConfig?.enabled && upsellSequences.length > 0) {
                     // Pegar a primeira sequencia (indice 0)
