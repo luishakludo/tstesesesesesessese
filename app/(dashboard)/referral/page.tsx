@@ -309,8 +309,7 @@ export default function ReferralPage() {
                           variant="outline" 
                           size="sm"
                           onClick={openWithdrawModal}
-                          disabled={availableBalance < 10}
-                          className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4 disabled:opacity-50"
+                          className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4"
                         >
                           Sacar
                         </Button>
@@ -320,20 +319,6 @@ export default function ReferralPage() {
                       <span className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter">
                         R$ {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
-                    </div>
-                    {/* Saldo Disponivel */}
-                    <div className="mt-3 p-3 rounded-xl bg-background/5 dark:bg-white/5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground text-xs">Saldo Disponivel</span>
-                        <span className="text-lg font-bold text-accent">
-                          R$ {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </span>
-                      </div>
-                      {totalPending > 0 && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          R$ {totalPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em saques pendentes
-                        </p>
-                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-4 sm:pt-6 border-t border-background/10 dark:border-border">
