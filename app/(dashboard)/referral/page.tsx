@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
-import { Loader2, ExternalLink, ArrowRight, CheckCircle2, Wallet, User, CreditCard, Key } from "lucide-react"
+import { Loader2, ExternalLink, ArrowRight, CheckCircle2, Wallet, User, CreditCard, Key, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import useSWR from "swr"
@@ -58,6 +58,7 @@ export default function ReferralPage() {
   })
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState("")
+  const [showWithdrawHistory, setShowWithdrawHistory] = useState(false)
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -73,7 +74,7 @@ export default function ReferralPage() {
       },
     }
   )
-  const { data: statsData } = useSWR(
+  const { data: statsData, mutate: mutateStats } = useSWR(
     userId ? `/api/referral/stats?userId=${userId}` : null,
     fetcher,
     {
@@ -96,11 +97,22 @@ export default function ReferralPage() {
     }
   )
 
+  // Buscar histórico de saques do usuário
+  const { data: withdrawsData, mutate: mutateWithdraws } = useSWR(
+    userId ? `/api/referral/withdraw?userId=${userId}` : null,
+    fetcher
+  )
+
   const coupon = couponData?.coupon ?? null
   const totalReferrals = statsData?.total_referrals ?? 0
   const totalSales = statsData?.total_sales ?? 0
+  // Ganhos totais (valor fixo definido pelo admin)
   const totalEarnings = statsData?.total_earnings ?? 0
+  // Saldo disponível (desconta saques aprovados e pendentes)
+  const availableBalance = statsData?.available_balance ?? 0
+  const totalPending = statsData?.total_pending ?? 0
   const referrals: ReferralUser[] = referralsData?.referrals ?? []
+  const withdrawHistory = withdrawsData?.withdraws ?? []
 
   const referralLink = coupon && origin
     ? `${origin}/b/${coupon.coupon_code}`
@@ -207,17 +219,17 @@ export default function ReferralPage() {
   }
 
   const handleWithdrawSubmit = async () => {
-    if (!userId) return
-    
-    const amount = parseFloat(withdrawData.amount.replace(",", "."))
-    if (isNaN(amount) || amount <= 0) {
-      setWithdrawError("Valor invalido")
-      return
-    }
-    if (amount > totalEarnings) {
-      setWithdrawError("Saldo insuficiente")
-      return
-    }
+  if (!userId) return
+  
+  const amount = parseFloat(withdrawData.amount.replace(",", "."))
+  if (isNaN(amount) || amount <= 0) {
+  setWithdrawError("Valor invalido")
+  return
+  }
+  if (amount > availableBalance) {
+  setWithdrawError("Saldo insuficiente")
+  return
+  }
     if (amount < 10) {
       setWithdrawError("Valor minimo de R$ 10,00")
       return
@@ -246,13 +258,16 @@ export default function ReferralPage() {
         return
       }
 
-      toast.success("Saque solicitado com sucesso!")
-      setShowWithdrawModal(false)
-    } catch {
-      setWithdrawError("Erro ao solicitar saque")
-    } finally {
-      setIsWithdrawing(false)
-    }
+  toast.success("Saque solicitado com sucesso!")
+  setShowWithdrawModal(false)
+  // Atualizar dados
+  mutateStats()
+  mutateWithdraws()
+  } catch {
+  setWithdrawError("Erro ao solicitar saque")
+  } finally {
+  setIsWithdrawing(false)
+  }
   }
 
   return (
@@ -281,23 +296,29 @@ export default function ReferralPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Ganhos Totais</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={openWithdrawModal}
-                        disabled={totalEarnings < 10}
-                        className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4 disabled:opacity-50"
-                      >
-                        Sacar
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowWithdrawHistory(true)}
+                          className="text-muted-foreground hover:text-foreground font-medium rounded-xl px-3"
+                        >
+                          Historico
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={openWithdrawModal}
+                          className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4"
+                        >
+                          Sacar
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <span className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter">
                         R$ {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
-                      {totalEarnings > 0 && (
-                        <span className="text-accent text-xs font-bold bg-accent/10 px-2 py-1 rounded-full">+12.5%</span>
-                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4 pt-4 sm:pt-6 border-t border-background/10 dark:border-border">
@@ -469,58 +490,65 @@ export default function ReferralPage() {
               </div>
               
               <div className="bg-[#16181d] border border-white/5 rounded-3xl overflow-hidden">
-                {referrals.length === 0 ? (
-                  <div className="flex flex-col items-center gap-4 py-12 text-center px-6">
-                    <div className="w-14 h-14 rounded-full bg-[#ccff00]/20 flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                        <circle cx="9" cy="7" r="4"/>
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-bold text-white">Nenhum indicado ainda</p>
-                      <p className="text-xs text-gray-400 mt-1">Compartilhe seu link e veja seus indicados aqui</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs min-w-[300px]">
-                      <thead>
-                        <tr className="border-b border-white/5 bg-white/[0.02]">
-                          <th className="px-4 py-3 font-semibold text-gray-400">Usuario</th>
-                          <th className="px-4 py-3 font-semibold text-gray-400">Status</th>
-                          <th className="px-4 py-3 font-semibold text-gray-400 text-right">Comissao</th>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs min-w-[300px]">
+                    <thead>
+                      <tr className="border-b border-white/5 bg-white/[0.02]">
+                        <th className="px-4 py-3 font-semibold text-gray-400">Usuario</th>
+                        <th className="px-4 py-3 font-semibold text-gray-400">Status</th>
+                        <th className="px-4 py-3 font-semibold text-gray-400 text-right">Comissao</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {/* Mostrar usuarios reais */}
+                      {referrals.slice(0, 5).map((ref) => (
+                        <tr key={ref.id} onClick={() => setSelectedUser(ref)} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-white">{ref.name}</span>
+                              <span className="text-[10px] text-gray-400">{formatDate(ref.referral_date)}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <span className={cn(
+                              "px-2 py-1 rounded-full text-[10px] font-bold",
+                              ref.banned 
+                                ? "bg-red-500/10 text-red-400" 
+                                : "bg-[#ccff00]/20 text-[#ccff00]"
+                            )}>
+                              {ref.banned ? "Inativo" : "Ativo"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <span className="font-bold text-white">R$ 0,10</span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {referrals.slice(0, 5).map((ref) => (
-                          <tr key={ref.id} onClick={() => setSelectedUser(ref)} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
-                            <td className="px-4 py-4">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-white">{ref.name}</span>
-                                <span className="text-[10px] text-gray-400">{formatDate(ref.referral_date)}</span>
+                      ))}
+                      {/* Preencher linhas vazias para manter altura fixa (5 linhas total) */}
+                      {Array.from({ length: Math.max(0, 5 - referrals.length) }).map((_, index) => (
+                        <tr key={`empty-${index}`} className="h-[60px]">
+                          <td colSpan={3} className="px-4 py-4 text-center">
+                            {index === 0 && referrals.length === 0 ? (
+                              <div className="flex items-center justify-center gap-2">
+                                <svg viewBox="0 0 24 24" className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="1.5">
+                                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="9" cy="7" r="4"/>
+                                  <line x1="19" y1="8" x2="19" y2="14"/>
+                                  <line x1="22" y1="11" x2="16" y2="11"/>
+                                </svg>
+                                <span className="text-gray-500 text-xs">Compartilhe e atraia mais amigos!</span>
                               </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <span className={cn(
-                                "px-2 py-1 rounded-full text-[10px] font-bold",
-                                ref.banned 
-                                  ? "bg-red-500/10 text-red-400" 
-                                  : "bg-[#ccff00]/20 text-[#ccff00]"
-                              )}>
-                                {ref.banned ? "Inativo" : "Ativo"}
-                              </span>
-                            </td>
-                            <td className="px-4 py-4 text-right">
-                              <span className="font-bold text-white">R$ 0,10</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                            ) : index === Math.floor((5 - referrals.length) / 2) && referrals.length > 0 ? (
+                              <span className="text-gray-600 text-xs">Atraia mais amigos e ganhe mais!</span>
+                            ) : (
+                              <span className="text-gray-700/30 text-xs">---</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </section>
 
@@ -639,28 +667,29 @@ export default function ReferralPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdraw Modal */}
+      {/* Withdraw Modal - Redesigned */}
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
-        <DialogContent className="sm:max-w-[400px] bg-[#16181d] border-[#2a2a2e] p-0 gap-0 overflow-hidden">
-          {/* Header */}
-          <div className="p-5 border-b border-white/5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-[#ccff00]/10 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-[#ccff00]" />
-              </div>
-              <div>
-                <h3 className="font-bold text-white">Solicitar Saque</h3>
-                <p className="text-xs text-gray-400">Passo {withdrawStep} de 4</p>
+        <DialogContent className="sm:max-w-[420px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
+          {/* Header minimalista */}
+          <div className="px-6 pt-6 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl font-black text-white tracking-tight">Saque</span>
+                <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
               </div>
             </div>
-            {/* Progress bar */}
-            <div className="flex gap-1 mt-4">
+            {/* Progress dots */}
+            <div className="flex gap-2 mt-4">
               {[1, 2, 3, 4].map((step) => (
                 <div 
                   key={step}
                   className={cn(
-                    "flex-1 h-1 rounded-full transition-colors",
-                    step <= withdrawStep ? "bg-[#ccff00]" : "bg-white/10"
+                    "h-1.5 rounded-full transition-all duration-300",
+                    step === withdrawStep 
+                      ? "bg-[#ccff00] w-8" 
+                      : step < withdrawStep 
+                        ? "bg-[#ccff00]/50 w-4" 
+                        : "bg-white/10 w-4"
                   )}
                 />
               ))}
@@ -668,130 +697,140 @@ export default function ReferralPage() {
           </div>
 
           {/* Content */}
-          <div className="p-5">
+          <div className="px-6 py-5">
             {withdrawStep === 1 && (
-              <div className="space-y-4">
-                <div className="text-center space-y-2">
-                  <div className="w-16 h-16 rounded-full bg-[#ccff00]/10 flex items-center justify-center mx-auto">
-                    <Wallet className="h-8 w-8 text-[#ccff00]" />
+              <div className="space-y-6">
+                {/* Saldo display */}
+                <div className="relative rounded-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#ccff00]/10 via-[#ccff00]/5 to-transparent" />
+                  <div className="absolute inset-0 border border-[#ccff00]/20 rounded-2xl" />
+                  <div className="relative p-6 text-center">
+                    <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Saldo Disponivel</p>
+                    <div className="flex items-baseline justify-center gap-1">
+                      <span className="text-[#ccff00]/60 text-lg font-medium">R$</span>
+                      <span className="text-5xl font-black text-[#ccff00] tabular-nums">
+                        {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                    <div className="mt-4 flex items-center justify-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                      <span className="text-[11px] text-white/50">Min. R$ 10,00</span>
+                    </div>
                   </div>
-                  <h4 className="text-lg font-bold text-white">Seu Saldo Disponivel</h4>
-                  <p className="text-3xl font-bold text-[#ccff00]">
-                    R$ {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-xs text-gray-400">Saque minimo: R$ 10,00</p>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-400 mb-1.5 block">Quanto deseja sacar?</label>
-                  <Input
-                    type="text"
-                    placeholder="0,00"
-                    value={withdrawData.amount}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^0-9,]/g, "")
-                      setWithdrawData({ ...withdrawData, amount: value })
-                    }}
-                    className="bg-white/5 border-white/10 text-white h-12 text-lg text-center"
-                  />
+                
+                {/* Input de valor */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-white/50 font-medium">Valor do saque</label>
+                    <button 
+                      type="button"
+                      onClick={() => setWithdrawData({ ...withdrawData, amount: availableBalance.toFixed(2).replace(".", ",") })}
+                      className="text-[10px] text-[#ccff00] hover:text-[#ccff00]/80 font-medium transition-colors"
+                    >
+                      Sacar tudo
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ccff00]/50 font-medium">R$</span>
+                    <Input
+                      type="text"
+                      placeholder="0,00"
+                      value={withdrawData.amount}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/[^0-9,]/g, "")
+                        setWithdrawData({ ...withdrawData, amount: value })
+                      }}
+                      className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
             {withdrawStep === 2 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Seu Nome Completo</h4>
-                    <p className="text-xs text-gray-400">Conforme documento</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Identificacao</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Qual seu nome?</h4>
+                  <p className="text-sm text-white/40 mt-1">Use o nome completo do titular da conta</p>
                 </div>
                 <Input
-                  placeholder="Digite seu nome completo"
+                  placeholder="Nome completo"
                   value={withdrawData.name}
                   onChange={(e) => setWithdrawData({ ...withdrawData, name: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
                 />
               </div>
             )}
 
             {withdrawStep === 3 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-                    <CreditCard className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Seu CPF</h4>
-                    <p className="text-xs text-gray-400">Para validacao do PIX</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Documento</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Informe seu CPF</h4>
+                  <p className="text-sm text-white/40 mt-1">Necessario para validar a transferencia</p>
                 </div>
                 <Input
                   placeholder="000.000.000-00"
                   value={withdrawData.cpf}
                   onChange={(e) => setWithdrawData({ ...withdrawData, cpf: formatCPF(e.target.value) })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
                   maxLength={14}
                 />
               </div>
             )}
 
             {withdrawStep === 4 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                    <Key className="h-5 w-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-white">Chave PIX</h4>
-                    <p className="text-xs text-gray-400">Mesmo CPF informado</p>
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Destino</span>
+                  <h4 className="text-xl font-bold text-white mt-1">Chave PIX</h4>
+                  <p className="text-sm text-white/40 mt-1">Use a chave CPF para maior seguranca</p>
                 </div>
                 <Input
-                  placeholder="Sua chave PIX (CPF)"
+                  placeholder="Sua chave PIX"
                   value={withdrawData.pixKey}
                   onChange={(e) => setWithdrawData({ ...withdrawData, pixKey: e.target.value })}
-                  className="bg-white/5 border-white/10 text-white h-12"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
                 />
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-400">
-                    A chave PIX deve ser o mesmo CPF informado para garantir a seguranca da transferencia.
-                  </p>
-                </div>
 
-                {/* Resumo */}
-                <div className="p-4 rounded-xl bg-white/5 space-y-2 mt-4">
-                  <p className="text-xs text-gray-400 uppercase tracking-wider">Resumo do Saque</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Nome:</span>
-                    <span className="text-white font-medium">{withdrawData.name}</span>
+                {/* Resumo compacto */}
+                <div className="mt-6 p-4 rounded-xl bg-[#0d0f12] border border-[#ccff00]/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Resumo</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">CPF:</span>
-                    <span className="text-white font-medium">{withdrawData.cpf}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Valor:</span>
-                    <span className="text-[#ccff00] font-bold">R$ {withdrawData.amount}</span>
+                  <div className="space-y-2.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/50">{withdrawData.name}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-white/50 font-mono">{withdrawData.cpf}</span>
+                    </div>
+                    <div className="h-px bg-[#ccff00]/10 my-2" />
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-white/40 text-sm">Total</span>
+                      <span className="text-2xl font-bold text-[#ccff00]">R$ {withdrawData.amount}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {withdrawError && (
-              <p className="text-xs text-red-400 mt-3">{withdrawError}</p>
+              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <p className="text-xs text-red-400">{withdrawError}</p>
+              </div>
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-5 border-t border-white/5 flex gap-2">
+          {/* Footer minimalista */}
+          <div className="px-6 pb-6 pt-2 flex gap-3">
             {withdrawStep > 1 && (
               <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => setWithdrawStep(s => s - 1)}
-                className="flex-1 bg-white/5 border-white/10 text-white hover:bg-white/10"
+                className="flex-1 h-12 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium"
               >
                 Voltar
               </Button>
@@ -805,7 +844,7 @@ export default function ReferralPage() {
                       setWithdrawError("Valor minimo de R$ 10,00")
                       return
                     }
-                    if (amount > totalEarnings) {
+                    if (amount > availableBalance) {
                       setWithdrawError("Saldo insuficiente")
                       return
                     }
@@ -821,27 +860,91 @@ export default function ReferralPage() {
                   setWithdrawError("")
                   setWithdrawStep(s => s + 1)
                 }}
-                className="flex-1 bg-[#ccff00] hover:bg-[#b8e600] text-black font-bold"
+                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl transition-all"
               >
                 Continuar
-                <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
               <Button
                 onClick={handleWithdrawSubmit}
                 disabled={isWithdrawing || !withdrawData.pixKey}
-                className="flex-1 bg-[#ccff00] hover:bg-[#b8e600] text-black font-bold disabled:opacity-50"
+                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl disabled:opacity-50 transition-all"
               >
                 {isWithdrawing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Confirmar Saque
-                  </>
+                  "Confirmar Saque"
                 )}
               </Button>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw History Modal */}
+      <Dialog open={showWithdrawHistory} onOpenChange={setShowWithdrawHistory}>
+        <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
+          <div className="px-6 pt-6 pb-4 border-b border-white/5">
+            <h3 className="text-xl font-bold text-white">Historico de Saques</h3>
+            <p className="text-sm text-white/40 mt-1">Acompanhe o status das suas solicitacoes</p>
+          </div>
+
+          <div className="max-h-[400px] overflow-y-auto">
+            {withdrawHistory.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+                  <Clock className="w-8 h-8 text-white/20" />
+                </div>
+                <p className="text-white/40 text-sm">Nenhum saque solicitado</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {withdrawHistory.map((withdraw: { id: string; amount: number; status: string; created_at: string; pix_key: string }) => (
+                  <div key={withdraw.id} className="p-4 hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-bold text-white">
+                          R$ {Number(withdraw.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-white/40 mt-0.5">
+                          {new Date(withdraw.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                        <p className="text-[10px] text-white/30 mt-1">PIX: {withdraw.pix_key}</p>
+                      </div>
+                      <span 
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium",
+                          withdraw.status === "pending" && "bg-yellow-500/10 text-yellow-400",
+                          withdraw.status === "approved" && "bg-blue-500/10 text-blue-400",
+                          withdraw.status === "paid" && "bg-[#ccff00]/10 text-[#ccff00]",
+                          withdraw.status === "rejected" && "bg-red-500/10 text-red-400"
+                        )}
+                      >
+                        {withdraw.status === "pending" && "Pendente"}
+                        {withdraw.status === "approved" && "Aprovado"}
+                        {withdraw.status === "paid" && "Pago"}
+                        {withdraw.status === "rejected" && "Rejeitado"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-white/5">
+            <Button
+              onClick={() => setShowWithdrawHistory(false)}
+              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl"
+            >
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

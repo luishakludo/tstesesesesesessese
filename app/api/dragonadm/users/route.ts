@@ -98,12 +98,15 @@ export async function GET() {
       const userBotIds = userBots.map(b => b.id)
       const totalStarts = userBotIds.reduce((acc, botId) => acc + (startsByBot[botId] || 0), 0)
 
-      // Calcular saldo de afiliado baseado em referrals e withdraws
+      // Calcular saldo de afiliado baseado em referrals, adjustments e withdraws
       const userReferralCommissions = allReferrals?.filter(r => r.referrer_id === user.id) || []
       const totalReferralEarnings = userReferralCommissions.reduce((acc, r) => acc + (Number(r.commission_amount) || 0), 0)
       const userWithdraws = allWithdraws?.filter(w => w.user_id === user.id) || []
       const totalWithdrawn = userWithdraws.reduce((acc, w) => acc + (Number(w.amount) || 0), 0)
-      const affiliateBalance = totalReferralEarnings - totalWithdrawn
+      
+      // Incluir ajuste manual do admin (affiliate_balance_adjustment)
+      const affiliateBalanceAdjustment = Number(user.affiliate_balance_adjustment) || 0
+      const affiliateBalance = affiliateBalanceAdjustment - totalWithdrawn
 
       return {
         id: user.id,
@@ -137,6 +140,8 @@ export async function GET() {
           totalRevenue: userPayments.reduce((acc, p) => acc + (p.amount || 0), 0),
         },
         affiliateBalance,
+        totalReferralEarnings,
+        totalWithdrawn,
       }
     })
 
