@@ -657,7 +657,7 @@ export default function ReferralPage() {
                 <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
               </div>
             </div>
-            {/* Progress dots minimalista */}
+            {/* Progress dots */}
             <div className="flex gap-2 mt-4">
               {[1, 2, 3, 4].map((step) => (
                 <div 
@@ -665,9 +665,9 @@ export default function ReferralPage() {
                   className={cn(
                     "h-1.5 rounded-full transition-all duration-300",
                     step === withdrawStep 
-                      ? "bg-white w-8" 
+                      ? "bg-[#ccff00] w-8" 
                       : step < withdrawStep 
-                        ? "bg-white/40 w-4" 
+                        ? "bg-[#ccff00]/50 w-4" 
                         : "bg-white/10 w-4"
                   )}
                 />
@@ -679,20 +679,21 @@ export default function ReferralPage() {
           <div className="px-6 py-5">
             {withdrawStep === 1 && (
               <div className="space-y-6">
-                {/* Saldo display diferenciado */}
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#ccff00]/5 via-transparent to-[#ccff00]/5 rounded-2xl" />
-                  <div className="relative p-5 text-center">
-                    <p className="text-xs uppercase tracking-widest text-white/30 mb-2">Disponivel para saque</p>
+                {/* Saldo display */}
+                <div className="relative rounded-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#ccff00]/10 via-[#ccff00]/5 to-transparent" />
+                  <div className="absolute inset-0 border border-[#ccff00]/20 rounded-2xl" />
+                  <div className="relative p-6 text-center">
+                    <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Disponivel para saque</p>
                     <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-white/50 text-lg font-medium">R$</span>
-                      <span className="text-5xl font-black text-white tabular-nums">
+                      <span className="text-[#ccff00]/60 text-lg font-medium">R$</span>
+                      <span className="text-5xl font-black text-[#ccff00] tabular-nums">
                         {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
-                    <div className="mt-3 flex items-center justify-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]/60" />
-                      <span className="text-[11px] text-white/40">Min. R$ 10,00</span>
+                    <div className="mt-4 flex items-center justify-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                      <span className="text-[11px] text-white/50">Min. R$ 10,00</span>
                     </div>
                   </div>
                 </div>
@@ -704,13 +705,13 @@ export default function ReferralPage() {
                     <button 
                       type="button"
                       onClick={() => setWithdrawData({ ...withdrawData, amount: totalEarnings.toFixed(2).replace(".", ",") })}
-                      className="text-[10px] text-[#ccff00]/80 hover:text-[#ccff00] transition-colors"
+                      className="text-[10px] text-[#ccff00] hover:text-[#ccff00]/80 font-medium transition-colors"
                     >
                       Sacar tudo
                     </button>
                   </div>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-medium">R$</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ccff00]/50 font-medium">R$</span>
                     <Input
                       type="text"
                       placeholder="0,00"
@@ -719,7 +720,7 @@ export default function ReferralPage() {
                         const value = e.target.value.replace(/[^0-9,]/g, "")
                         setWithdrawData({ ...withdrawData, amount: value })
                       }}
-                      className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
+                      className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
                     />
                   </div>
                 </div>
@@ -729,7 +730,7 @@ export default function ReferralPage() {
             {withdrawStep === 2 && (
               <div className="space-y-5">
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-white/30">Identificacao</span>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Identificacao</span>
                   <h4 className="text-xl font-bold text-white mt-1">Qual seu nome?</h4>
                   <p className="text-sm text-white/40 mt-1">Use o nome completo do titular da conta</p>
                 </div>
@@ -737,7 +738,7 @@ export default function ReferralPage() {
                   placeholder="Nome completo"
                   value={withdrawData.name}
                   onChange={(e) => setWithdrawData({ ...withdrawData, name: e.target.value })}
-                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg rounded-xl transition-colors"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
                 />
               </div>
             )}
@@ -745,7 +746,7 @@ export default function ReferralPage() {
             {withdrawStep === 3 && (
               <div className="space-y-5">
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-white/30">Documento</span>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Documento</span>
                   <h4 className="text-xl font-bold text-white mt-1">Informe seu CPF</h4>
                   <p className="text-sm text-white/40 mt-1">Necessario para validar a transferencia</p>
                 </div>
@@ -753,7 +754,7 @@ export default function ReferralPage() {
                   placeholder="000.000.000-00"
                   value={withdrawData.cpf}
                   onChange={(e) => setWithdrawData({ ...withdrawData, cpf: formatCPF(e.target.value) })}
-                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
                   maxLength={14}
                 />
               </div>
@@ -762,7 +763,7 @@ export default function ReferralPage() {
             {withdrawStep === 4 && (
               <div className="space-y-5">
                 <div>
-                  <span className="text-xs uppercase tracking-widest text-white/30">Destino</span>
+                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Destino</span>
                   <h4 className="text-xl font-bold text-white mt-1">Chave PIX</h4>
                   <p className="text-sm text-white/40 mt-1">Use a chave CPF para maior seguranca</p>
                 </div>
@@ -770,25 +771,25 @@ export default function ReferralPage() {
                   placeholder="Sua chave PIX"
                   value={withdrawData.pixKey}
                   onChange={(e) => setWithdrawData({ ...withdrawData, pixKey: e.target.value })}
-                  className="bg-white/[0.03] border-white/10 hover:border-white/20 focus:border-white/30 text-white h-14 text-lg rounded-xl transition-colors"
+                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
                 />
 
                 {/* Resumo compacto */}
-                <div className="mt-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                <div className="mt-6 p-4 rounded-xl bg-[#0d0f12] border border-[#ccff00]/10">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs uppercase tracking-widest text-white/30">Resumo</span>
+                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Resumo</span>
                   </div>
                   <div className="space-y-2.5">
                     <div className="flex justify-between text-sm">
-                      <span className="text-white/40">{withdrawData.name}</span>
+                      <span className="text-white/50">{withdrawData.name}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-white/40 font-mono">{withdrawData.cpf}</span>
+                      <span className="text-white/50 font-mono">{withdrawData.cpf}</span>
                     </div>
-                    <div className="h-px bg-white/5 my-2" />
+                    <div className="h-px bg-[#ccff00]/10 my-2" />
                     <div className="flex justify-between items-baseline">
                       <span className="text-white/40 text-sm">Total</span>
-                      <span className="text-2xl font-bold text-white">R$ {withdrawData.amount}</span>
+                      <span className="text-2xl font-bold text-[#ccff00]">R$ {withdrawData.amount}</span>
                     </div>
                   </div>
                 </div>
@@ -838,7 +839,7 @@ export default function ReferralPage() {
                   setWithdrawError("")
                   setWithdrawStep(s => s + 1)
                 }}
-                className="flex-1 h-12 bg-white hover:bg-white/90 text-black font-semibold rounded-xl transition-all"
+                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl transition-all"
               >
                 Continuar
               </Button>
