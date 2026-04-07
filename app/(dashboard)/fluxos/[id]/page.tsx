@@ -4560,7 +4560,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "payments" && (
             <div className="space-y-6">
               {/* Header Card */}
-              <Card className="border-border/50">
+              <Card className="border border-border bg-card">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
@@ -4574,28 +4574,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </CardContent>
               </Card>
 
-              {/* 1. Confirmacao do Plano */}
+              {/* 1. Mensagem do PIX Gerado */}
               <div className="space-y-4">
-                <h3 className="font-semibold">1. Confirmacao do Plano (antes do PIX)</h3>
-                <Card className="border-border/50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Mostrar Plano Antes do PIX</p>
-                        <p className="text-sm text-muted-foreground">Exibe detalhes do plano antes de gerar o codigo PIX</p>
-                      </div>
-                      <Switch
-                        checked={showPlanBeforePix}
-                        onCheckedChange={(checked) => { setShowPlanBeforePix(checked); setHasChanges(true) }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* 2. Mensagem do PIX Gerado */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">2. Mensagem do PIX Gerado</h3>
+                <h3 className="font-semibold">1. Mensagem do PIX Gerado</h3>
 
                 {/* Mensagem Personalizada */}
                 <div className="space-y-2">
@@ -4604,32 +4585,32 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     value={pixGeneratedMessage}
                     onChange={(e) => { setPixGeneratedMessage(e.target.value); setHasChanges(true) }}
                     rows={6}
-                    className="bg-secondary/50 border-border/50 font-mono text-sm"
+                    className="bg-card border border-border font-mono text-sm"
                   />
                   <p className="text-xs text-muted-foreground text-right">{pixGeneratedMessage.length}/4000 caracteres</p>
                 </div>
 
                 {/* Variaveis */}
-                <Card className="border-border/50 bg-secondary/10">
+                <Card className="border border-border bg-card">
                   <CardContent className="pt-4">
                     <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                     <div className="flex flex-wrap gap-2">
                       {["{nome}"].map((v) => (
-                        <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
+                        <span key={v} className="px-3 py-1 rounded-full bg-muted text-sm text-foreground border border-border">{v}</span>
                       ))}
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* 3. Configuracoes do QR Code e Codigo PIX */}
+              {/* 2. Configuracoes do QR Code e Codigo PIX */}
               <div className="space-y-4">
-                <h3 className="font-semibold">3. Configuracoes do QR Code e Codigo PIX</h3>
+                <h3 className="font-semibold">2. Configuracoes do QR Code e Codigo PIX</h3>
                 
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Exibicao do QR Code</Label>
                   <Select value={qrCodeDisplay} onValueChange={(v) => { setQrCodeDisplay(v); setHasChanges(true) }}>
-                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                    <SelectTrigger className="bg-card border border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -4644,7 +4625,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Formato do Codigo PIX</Label>
                   <Select value={pixCodeFormat} onValueChange={(v) => { setPixCodeFormat(v); setHasChanges(true) }}>
-                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                    <SelectTrigger className="bg-card border border-border">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -4654,7 +4635,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </Select>
                 </div>
 
-                <Card className="border-border/50">
+                <Card className="border border-border bg-card">
                   <CardContent className="pt-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -4669,7 +4650,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <Input
                         value={messageBeforeCode}
                         onChange={(e) => { setMessageBeforeCode(e.target.value); setHasChanges(true) }}
-                        className="bg-secondary/50"
+                        className="bg-card border border-border"
                       />
                       <p className="text-xs text-muted-foreground">Aparece logo antes do codigo PIX copiavel</p>
                     </div>
@@ -4677,12 +4658,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
               </div>
 
-              {/* 4. Botao Verificar Status */}
+              {/* 3. Botao Verificar Status */}
               <div className="space-y-4">
-                <h3 className="font-semibold">4. Botao Verificar Status</h3>
+                <h3 className="font-semibold">3. Botao Verificar Status</h3>
                 <div className="space-y-2">
                   <Label className="text-muted-foreground">Texto do Botao</Label>
-                  <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                  <div className="flex items-center gap-2 rounded-lg bg-card p-3 border border-border">
                     <Check className="h-4 w-4 text-emerald-500" />
                     <Input
                       value={verifyStatusButtonText}
@@ -4693,8 +4674,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* 5. Mensagem de Pagamento Aprovado */}
-              <Card className="border-border/50">
+              {/* 4. Mensagem de Pagamento Aprovado */}
+              <Card className="border border-border bg-card">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -4711,7 +4692,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <Label className="text-muted-foreground">Midias (opcional - ate 3)</Label>
                     <div className="flex gap-3 flex-wrap">
                       {approvedMedias.map((media, index) => (
-                        <div key={index} className="relative w-24 h-24 rounded-lg border border-border/50 overflow-hidden group">
+                        <div key={index} className="relative w-24 h-24 rounded-lg border border-border overflow-hidden group">
                           {media.match(/\.(mp4|webm|mov)$/i) ? (
                             <video src={media} className="w-full h-full object-cover" />
                           ) : (
@@ -4729,7 +4710,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                       ))}
                       {approvedMedias.length < 3 && (
-                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors">
+                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors">
                           {uploadingApprovedMedia ? (
                             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                           ) : (
@@ -4802,31 +4783,31 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       value={approvedMessage}
                       onChange={(e) => { setApprovedMessage(e.target.value); setHasChanges(true) }}
                       rows={5}
-                      className="bg-secondary/50 border-border/50 font-mono text-sm"
+                      className="bg-card border border-border font-mono text-sm"
                     />
                     <p className="text-xs text-muted-foreground text-right">{approvedMessage.length}/4000 caracteres</p>
                   </div>
 
                   {/* Variaveis */}
-                  <Card className="border-border/50 bg-secondary/10">
+                  <Card className="border border-border bg-muted/50">
                     <CardContent className="pt-4">
                       <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                       <div className="flex flex-wrap gap-2">
                         {["{nome}"].map((v) => (
-                          <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
+                          <span key={v} className="px-3 py-1 rounded-full bg-background text-sm text-foreground border border-border">{v}</span>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Botao de Acesso ao Entregavel */}
-                  <div className="border-t border-border/50 pt-4 space-y-4">
+                  <div className="border-t border-border pt-4 space-y-4">
                     <p className="font-semibold">Botao de Acessar Conteudo (Entregavel)</p>
                     <p className="text-sm text-muted-foreground">Este botao aparece apos o pagamento aprovado e libera o acesso ao conteudo configurado nos Entregaveis.</p>
                     
                     <div className="space-y-2">
                       <Label className="text-muted-foreground">Texto do Botao</Label>
-                      <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                      <div className="flex items-center gap-2 rounded-lg bg-card p-3 border border-border">
                         <Gift className="h-4 w-4 text-orange-500" />
                         <Input
                           value={accessButtonText}
@@ -4842,7 +4823,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         value={accessButtonUrl}
                         onChange={(e) => { setAccessButtonUrl(e.target.value); setHasChanges(true) }}
                         placeholder="https://exemplo.com/conteudo ou deixe vazio para usar Entregaveis"
-                        className="bg-secondary/50"
+                        className="bg-card border border-border"
                       />
                       <p className="text-xs text-muted-foreground">Se preenchido, sobrescreve o entregavel configurado. Deixe vazio para usar os Entregaveis do fluxo.</p>
                     </div>
