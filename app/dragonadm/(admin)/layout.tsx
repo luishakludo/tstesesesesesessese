@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Sparkles,
   Zap,
+  Home,
 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -290,6 +291,19 @@ export default function DragonAdmLayout({
 
           {/* Right Side */}
           <div className="flex items-center gap-4 ml-auto">
+            {/* Voltar ao Dashboard Button */}
+            <Link
+              href="/dashboard"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-white transition-all duration-200 hover:scale-105"
+              style={{ 
+                background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.2))',
+                border: '1px solid rgba(149, 228, 104, 0.3)'
+              }}
+            >
+              <Home className="w-4 h-4 text-[#95e468]" />
+              <span className="text-xs font-medium">Voltar ao Dashboard</span>
+            </Link>
+
             {/* Status Indicator */}
             <div 
               className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full"
