@@ -10,7 +10,7 @@ import { NoBotSelected } from "@/components/no-bot-selected"
 import { useBots } from "@/lib/bot-context"
 import {
   Users, Crown, Search, TrendingUp, Clock, X,
-  ArrowDown, Calendar, Activity, ChevronRight, Loader2, RefreshCw,
+  ArrowDown, Calendar, Activity, ChevronRight, Loader2, RefreshCw, Star,
 } from "lucide-react"
 import Image from "next/image"
 
@@ -25,6 +25,9 @@ interface BotUserData {
   iniciadoEm: string
   ultimaAtividade: string
   etapa: number
+  isVip: boolean
+  vipSince: string | null
+  vipExpiresAt: string | null
 }
 
 interface KPIsData {
@@ -46,7 +49,7 @@ interface ApiResponse {
   users: BotUserData[]
 }
 
-type FilterType = "todos" | "assinantes" | "nao_assinantes" | "expirando"
+type FilterType = "todos" | "assinantes" | "nao_assinantes" | "expirando" | "vip"
 
 // --- Dragon Icon (inline, works like lucide icon) ---
 function DragonIconInline({ className }: { className?: string }) {
@@ -217,7 +220,7 @@ function UserDetailDrawer({ user, onClose, funnel }: {
           </button>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 flex items-center gap-2">
           <Badge
             variant="outline"
             className={`rounded-lg px-3 py-1 text-xs font-semibold ${
@@ -228,6 +231,15 @@ function UserDetailDrawer({ user, onClose, funnel }: {
           >
             {user.assinante ? "Assinante Ativo" : "Nao Assinante"}
           </Badge>
+          {user.isVip && (
+            <Badge
+              variant="outline"
+              className="rounded-lg px-3 py-1 text-xs font-semibold bg-amber-500/10 text-amber-500 border-amber-500/20 flex items-center gap-1"
+            >
+              <Star className="h-3 w-3 fill-amber-500" />
+              VIP
+            </Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -267,6 +279,29 @@ function UserDetailDrawer({ user, onClose, funnel }: {
             </span>
           </div>
         </div>
+
+        {user.isVip && (
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+              <span className="text-sm font-semibold text-amber-500">Status VIP</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">VIP desde</span>
+                <p className="text-sm font-medium text-foreground mt-0.5">
+                  {user.vipSince ? new Date(user.vipSince).toLocaleDateString("pt-BR") : "--"}
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Expira em</span>
+                <p className="text-sm font-medium text-foreground mt-0.5">
+                  {user.vipExpiresAt ? new Date(user.vipExpiresAt).toLocaleDateString("pt-BR") : "Vitalicio"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-secondary/50 rounded-xl p-4">
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Posicao no Funil</span>
@@ -341,6 +376,7 @@ export default function UsersPage() {
   const assinantes = allUsers.filter((u) => u.assinante)
   const naoAssinantes = allUsers.filter((u) => !u.assinante)
   const expirando = assinantes.filter((u) => u.diasRestantes <= 7 && u.diasRestantes > 0)
+  const vipUsers = allUsers.filter((u) => u.isVip)
 
   const filtrados = allUsers.filter((u) => {
     const matchBusca =
@@ -351,12 +387,14 @@ export default function UsersPage() {
       case "assinantes": return u.assinante
       case "nao_assinantes": return !u.assinante
       case "expirando": return u.assinante && u.diasRestantes <= 7 && u.diasRestantes > 0
+      case "vip": return u.isVip
       default: return true
     }
   })
 
   const filterTabs = [
     { key: "todos" as FilterType, label: "Todos", count: allUsers.length },
+    { key: "vip" as FilterType, label: "VIP", count: vipUsers.length },
     { key: "assinantes" as FilterType, label: "Assinantes", count: assinantes.length },
     { key: "nao_assinantes" as FilterType, label: "Gratuitos", count: naoAssinantes.length },
     { key: "expirando" as FilterType, label: "Expirando", count: expirando.length },
@@ -503,6 +541,12 @@ export default function UsersPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-foreground truncate">{user.nome}</span>
+                          {user.isVip && (
+                            <Badge variant="outline" className="rounded-md border-amber-500/30 text-amber-500 bg-amber-500/10 text-[9px] px-1.5 py-0 flex items-center gap-1">
+                              <Star className="h-2.5 w-2.5 fill-amber-500" />
+                              VIP
+                            </Badge>
+                          )}
                           <span className="text-xs text-muted-foreground hidden sm:inline">{user.telegram}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
