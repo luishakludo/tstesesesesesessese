@@ -153,6 +153,17 @@ export default function RemarketingPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [importBotId, setImportBotId] = useState<string | null>(null)
+  const [importMode, setImportMode] = useState<"text" | "file">("text")
+  const [importText, setImportText] = useState("")
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{
+    success?: boolean
+    imported?: number
+    duplicates?: number
+    skipped?: number
+    parseErrors?: string[]
+    error?: string
+  } | null>(null)
   
   // Create campaign states
   const [createStep, setCreateStep] = useState(1)
@@ -270,6 +281,53 @@ export default function RemarketingPage() {
     } catch (error) {
       toast({ title: "Erro", description: "Nao foi possivel apagar os dados.", variant: "destructive" })
     }
+  }
+
+  const handleImportUsers = async () => {
+    if (!importBotId || !importText.trim()) {
+      toast({ title: "Erro", description: "Selecione um bot e insira os dados", variant: "destructive" })
+      return
+    }
+
+    setImporting(true)
+    setImportResult(null)
+
+    try {
+      const res = await fetch("/api/remarketing/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          botId: importBotId,
+          textData: importText,
+          mode: importMode
+        })
+      })
+
+      const data = await res.json()
+      setImportResult(data)
+
+      if (data.success) {
+        toast({ 
+          title: "Importacao concluida!", 
+          description: `${data.imported} usuarios importados com sucesso` 
+        })
+        mutateAllUsers()
+      } else if (data.error) {
+        toast({ title: "Erro", description: data.error, variant: "destructive" })
+      }
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao importar usuarios", variant: "destructive" })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const resetImportModal = () => {
+    setShowImportModal(false)
+    setImportBotId(null)
+    setImportText("")
+    setImportMode("text")
+    setImportResult(null)
   }
 
   const handleExportUsers = (botId: string, audienceId?: string) => {
@@ -921,43 +979,167 @@ export default function RemarketingPage() {
       </Dialog>
 
       {/* Import Modal */}
-      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
-        <DialogContent className="sm:max-w-md bg-[#1c1c1e] border-[#2a2a2e] p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-white">Importar Lista</h2>
-            <button onClick={() => setShowImportModal(false)} className="w-8 h-8 rounded-lg hover:bg-[#2a2a2e] flex items-center justify-center">
-              <X className="h-4 w-4 text-gray-400" />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="text-xs font-medium text-gray-400 mb-2 block">Selecione o Bot</label>
-              <select
-                value={importBotId || ""}
-                onChange={(e) => setImportBotId(e.target.value)}
-                className="w-full h-11 px-4 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white focus:outline-none focus:border-[#bfff00]/50"
-              >
-                <option value="">Escolha um bot</option>
-                {bots.map(bot => (
-                  <option key={bot.id} value={bot.id}>{bot.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="border-2 border-dashed border-[#2a2a2e] rounded-xl p-8 text-center">
-              <Upload className="h-8 w-8 text-gray-500 mx-auto mb-3" />
-              <p className="text-sm font-medium text-white mb-1">Arraste um arquivo CSV</p>
-              <p className="text-xs text-gray-500 mb-3">ou clique para selecionar</p>
-              <input type="file" accept=".csv" className="hidden" />
-              <button className="px-4 py-2 rounded-lg bg-[#2a2a2e] text-gray-400 hover:text-white transition-colors text-sm">
-                Selecionar Arquivo
+      <Dialog open={showImportModal} onOpenChange={(open) => !open && resetImportModal()}>
+        <DialogContent className="sm:max-w-lg bg-[#1c1c1e] border-[#2a2a2e] p-0">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-white">Importar Usuarios</h2>
+              <button onClick={resetImportModal} className="w-8 h-8 rounded-lg hover:bg-[#2a2a2e] flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-400" />
               </button>
             </div>
+            <p className="text-sm text-gray-500 mb-6">Importe usuarios via texto ou planilha Excel</p>
             
-            <p className="text-xs text-gray-500">
-              O CSV deve ter colunas: telegram_user_id, first_name, username (opcional)
-            </p>
+            <div className="space-y-4">
+              {/* Bot Selection */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-2 block">Selecione o Bot</label>
+                <select
+                  value={importBotId || ""}
+                  onChange={(e) => setImportBotId(e.target.value)}
+                  className="w-full h-11 px-4 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white focus:outline-none focus:border-[#bfff00]/50"
+                >
+                  <option value="">Escolha um bot</option>
+                  {bots.map(bot => (
+                    <option key={bot.id} value={bot.id}>{bot.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Mode Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setImportMode("text")}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    importMode === "text"
+                      ? "bg-[#bfff00] text-black"
+                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  Colar Texto
+                </button>
+                <button
+                  onClick={() => setImportMode("file")}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    importMode === "file"
+                      ? "bg-[#bfff00] text-black"
+                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload Arquivo
+                </button>
+              </div>
+
+              {/* Text Mode */}
+              {importMode === "text" && (
+                <div>
+                  <label className="text-xs font-medium text-gray-400 mb-2 block">
+                    Cole os dados (uma linha por usuario)
+                  </label>
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder={"Joao Silva,joao@email.com,11999999999\nMaria Santos,maria@email.com,21988888888\nPedro Costa,pedro@email.com"}
+                    rows={6}
+                    className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Formato: <span className="text-gray-400">nome,email,telefone</span> (telefone opcional)
+                  </p>
+                </div>
+              )}
+
+              {/* File Mode */}
+              {importMode === "file" && (
+                <div className="border-2 border-dashed border-[#2a2a2e] rounded-xl p-8 text-center hover:border-[#bfff00]/30 transition-colors">
+                  <Upload className="h-10 w-10 text-gray-500 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-white mb-1">Arraste um arquivo .xlsx ou .csv</p>
+                  <p className="text-xs text-gray-500 mb-4">ou clique para selecionar</p>
+                  <input 
+                    type="file" 
+                    accept=".xlsx,.csv" 
+                    className="hidden" 
+                    id="import-file"
+                    onChange={(e) => {
+                      // TODO: Handle file upload
+                      toast({ title: "Em breve", description: "Upload de arquivo sera implementado em breve" })
+                    }}
+                  />
+                  <label 
+                    htmlFor="import-file"
+                    className="inline-flex px-4 py-2 rounded-lg bg-[#2a2a2e] text-gray-400 hover:text-white transition-colors text-sm cursor-pointer"
+                  >
+                    Selecionar Arquivo
+                  </label>
+                </div>
+              )}
+
+              {/* Import Result */}
+              {importResult && (
+                <div className={`p-4 rounded-xl ${importResult.success ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                  {importResult.success ? (
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-emerald-400">Importacao concluida!</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {importResult.imported} importados
+                          {importResult.skipped ? ` • ${importResult.skipped} ja existiam` : ""}
+                          {importResult.duplicates ? ` • ${importResult.duplicates} duplicados` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-400">{importResult.error || "Erro na importacao"}</p>
+                        {importResult.parseErrors && importResult.parseErrors.length > 0 && (
+                          <ul className="text-xs text-gray-400 mt-2 space-y-1">
+                            {importResult.parseErrors.slice(0, 5).map((err, i) => (
+                              <li key={i}>• {err}</li>
+                            ))}
+                            {importResult.parseErrors.length > 5 && (
+                              <li>• e mais {importResult.parseErrors.length - 5} erros...</li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={resetImportModal}
+                  className="flex-1 h-11 rounded-xl border border-[#2a2a2e] text-gray-400 hover:text-white hover:border-[#bfff00]/30 transition-colors text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleImportUsers}
+                  disabled={!importBotId || (importMode === "text" && !importText.trim()) || importing}
+                  className="flex-1 h-11 rounded-xl bg-[#bfff00] text-black font-bold text-sm hover:bg-[#a8e600] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {importing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Importar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
