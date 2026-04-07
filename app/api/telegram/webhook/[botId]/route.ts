@@ -241,12 +241,162 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
     const callbackData = callbackQuery?.data as string | null
     const callbackQueryId = callbackQuery?.id as string | null
     
-    // 3.1 Handle callback queries
-    if (callbackQuery && callbackData && callbackQueryId) {
-      console.log("[v0] Callback recebido:", callbackData, "- isOrderBump:", callbackData.startsWith("ob_"))
+// 3.1 Handle callback queries
+  if (callbackQuery && callbackData && callbackQueryId) {
+  console.log("[v0] Callback recebido:", callbackData, "- isOrderBump:", callbackData.startsWith("ob_"))
+  
+  // ========== ACCESS DELIVERABLE CALLBACK ==========
+  if (callbackData === "access_deliverable") {
+    console.log("[v0] Access Deliverable Callback - chatId:", chatId, "botUuid:", botUuid)
+    
+    // Confirmar callback
+    await answerCallback(botToken, callbackQueryId, "Liberando acesso...")
+    
+    // Buscar flow para pegar o entregavel
+    const flowForDelivery = await getActiveFlowForBot(supabase, botUuid)
+    
+    if (flowForDelivery) {
+      const flowConfig = (flowForDelivery.config as Record<string, unknown>) || {}
+      console.log("[v0] Sending delivery from access_deliverable callback")
       
-      // Handle "ver_planos" - show plans as buttons
-      if (callbackData === "ver_planos") {
+      // Buscar nome do usuario
+      let userName = "Cliente"
+      try {
+        const { data: userData } = await supabase
+          .from("bot_users")
+          .select("first_name")
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+          .single()
+        if (userData?.first_name) {
+          userName = userData.first_name
+        }
+      } catch { /* ignore */ }
+      
+      // Enviar mensagem antes da entrega
+      await sendTelegramMessage(
+        botToken,
+        chatId,
+        `${userName}, aqui esta seu acesso:`
+      )
+      
+      // Usar funcao de entrega existente (definida no webhook do mercadopago - precisamos importar/chamar inline)
+      // Verificar se tem mainDeliverableId configurado
+      const mainDeliverableId = flowConfig.mainDeliverableId as string | undefined
+      const deliverables = flowConfig.deliverables as Array<{
+        id: string
+        name: string
+        type: "media" | "vip_group" | "link"
+        medias?: string[]
+        link?: string
+        linkText?: string
+        vipGroupChatId?: string
+        vipGroupName?: string
+      }> | undefined
+      
+      let deliverableSent = false
+      
+      // Se tiver mainDeliverableId, usar esse entregavel
+      if (mainDeliverableId && deliverables) {
+        const mainDeliverable = deliverables.find(d => d.id === mainDeliverableId)
+        if (mainDeliverable) {
+          console.log("[v0] Sending main deliverable:", mainDeliverable.name, mainDeliverable.type)
+          
+          if (mainDeliverable.type === "media" && mainDeliverable.medias && mainDeliverable.medias.length > 0) {
+            for (const mediaUrl of mainDeliverable.medias) {
+              if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+                await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+              } else {
+                await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+              }
+            }
+            await sendTelegramMessage(botToken, chatId, "Obrigado pela compra! Seu conteudo foi liberado acima.")
+            deliverableSent = true
+          } else if (mainDeliverable.type === "link" && mainDeliverable.link) {
+            const buttonText = mainDeliverable.linkText || "Acessar conteudo"
+            const keyboard = {
+              inline_keyboard: [[{ text: buttonText, url: mainDeliverable.link }]]
+            }
+            await sendTelegramMessage(botToken, chatId, "Clique no botao abaixo para acessar:", keyboard)
+            deliverableSent = true
+          } else if (mainDeliverable.type === "vip_group" && mainDeliverable.vipGroupChatId) {
+            // Criar link de convite
+            try {
+              const inviteRes = await fetch(`https://api.telegram.org/bot${botToken}/createChatInviteLink`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  chat_id: mainDeliverable.vipGroupChatId,
+                  member_limit: 1,
+                  name: `VIP Access - ${Date.now()}`,
+                }),
+              })
+              const inviteData = await inviteRes.json()
+              if (inviteData.ok && inviteData.result?.invite_link) {
+                const groupName = mainDeliverable.vipGroupName || "Grupo VIP"
+                const keyboard = {
+                  inline_keyboard: [[{ text: `Entrar no ${groupName}`, url: inviteData.result.invite_link }]]
+                }
+                await sendTelegramMessage(
+                  botToken,
+                  chatId,
+                  `Seu acesso ao <b>${groupName}</b> foi liberado.\n\n<i>Este link e unico e pode ser usado apenas uma vez.</i>`,
+                  keyboard
+                )
+                deliverableSent = true
+              }
+            } catch (inviteError) {
+              console.error("[v0] Error creating invite link:", inviteError)
+            }
+          }
+        }
+      }
+      
+      // Fallback para delivery antigo se nao conseguiu enviar
+      if (!deliverableSent) {
+        const delivery = flowConfig.delivery as {
+          type?: string
+          medias?: string[]
+          link?: string
+          linkText?: string
+          vipGroupId?: string
+          vipGroupName?: string
+        } | undefined
+        
+        if (delivery) {
+          if (delivery.medias && delivery.medias.length > 0) {
+            for (const mediaUrl of delivery.medias) {
+              if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+                await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+              } else {
+                await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+              }
+            }
+          }
+          
+          if (delivery.link) {
+            const buttonText = delivery.linkText || "Acessar conteudo"
+            const keyboard = {
+              inline_keyboard: [[{ text: buttonText, url: delivery.link }]]
+            }
+            await sendTelegramMessage(botToken, chatId, "Clique no botao abaixo:", keyboard)
+          } else if (!delivery.medias || delivery.medias.length === 0) {
+            await sendTelegramMessage(botToken, chatId, "Seu acesso foi liberado!")
+          }
+        } else {
+          await sendTelegramMessage(botToken, chatId, "Seu acesso foi liberado! Obrigado pela compra.")
+        }
+      }
+    } else {
+      await sendTelegramMessage(botToken, chatId, "Seu acesso foi liberado!")
+    }
+    
+    return
+  }
+  // ========== FIM ACCESS DELIVERABLE ==========
+  
+  // Handle "ver_planos" - show plans as buttons
+  if (callbackData === "ver_planos") {
         // Answer callback
         await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
           method: "POST",

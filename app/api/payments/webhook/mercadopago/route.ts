@@ -458,15 +458,8 @@ export async function POST(request: NextRequest) {
               
               console.log(`[DOWNSELL] Cancelled pending downsells for user ${payment.telegram_user_id}`)
 
-              // Enviar mensagem de confirmacao
-              await sendTelegramMessage(
-                bot.token,
-                chatId,
-                `<b>Pagamento Aprovado!</b>\n\nSeu pagamento de R$ ${payment.amount.toFixed(2).replace(".", ",")} foi confirmado.\nObrigado pela sua compra!`
-              )
-
               // Se for pagamento do produto principal ou order bump, verificar se tem upsell
-              if (payment.product_type === "main_product" || payment.product_type === "order_bump") {
+              if (payment.product_type === "main_product" || payment.product_type === "order_bump" || payment.product_type === "plan" || payment.product_type === "plan_order_bump" || payment.product_type === "pack" || payment.product_type === "pack_order_bump") {
                 // Buscar fluxo vinculado ao bot
                 let flowId: string | null = null
                 
@@ -506,11 +499,77 @@ export async function POST(request: NextRequest) {
                   const flowConfig = flowData?.config as Record<string, any> | null
                   const upsellConfig = flowConfig?.upsell
                   const upsellSequences = upsellConfig?.sequences || []
+                  const paymentMessages = flowConfig?.paymentMessages as {
+                    approvedMessage?: string
+                    approvedMedias?: string[]
+                    accessButtonText?: string
+                    accessButtonUrl?: string
+                  } | undefined
 
                   console.log(`[v0] Flow ${flowId} config keys:`, Object.keys(flowConfig || {}))
                   console.log(`[v0] mainDeliverableId:`, flowConfig?.mainDeliverableId)
                   console.log(`[v0] deliverables count:`, flowConfig?.deliverables?.length || 0)
+                  console.log(`[v0] paymentMessages:`, !!paymentMessages)
                   console.log(`[v0] UPSELL: Flow ${flowId} has ${upsellSequences.length} upsell sequences, enabled: ${upsellConfig?.enabled}`)
+
+                  // Buscar nome do usuario para variavel {nome}
+                  let userName = "Cliente"
+                  try {
+                    const { data: userData } = await supabase
+                      .from("bot_users")
+                      .select("first_name, last_name")
+                      .eq("bot_id", bot.id)
+                      .eq("telegram_user_id", String(chatId))
+                      .single()
+                    if (userData?.first_name) {
+                      userName = userData.first_name
+                    }
+                  } catch { /* ignore */ }
+
+                  // Enviar midias de pagamento aprovado (se configurado)
+                  if (paymentMessages?.approvedMedias && paymentMessages.approvedMedias.length > 0) {
+                    console.log(`[v0] Sending ${paymentMessages.approvedMedias.length} approved medias`)
+                    for (const mediaUrl of paymentMessages.approvedMedias) {
+                      if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+                        await sendTelegramVideo(bot.token, chatId, mediaUrl, "")
+                      } else {
+                        await sendTelegramPhoto(bot.token, chatId, mediaUrl, "")
+                      }
+                      await sleep(500)
+                    }
+                  }
+
+                  // Enviar mensagem de pagamento aprovado personalizada
+                  const defaultApprovedMsg = `<b>Pagamento Aprovado!</b>\n\nParabens ${userName}! Seu pagamento foi confirmado.\n\nVoce ja tem acesso ao conteudo!`
+                  let approvedMsg = paymentMessages?.approvedMessage || defaultApprovedMsg
+                  // Substituir variavel {nome}
+                  approvedMsg = approvedMsg.replace(/\{nome\}/gi, userName)
+
+                  // Construir botao de acesso
+                  const accessButtonText = paymentMessages?.accessButtonText || "Acessar Conteudo"
+                  const accessButtonUrl = paymentMessages?.accessButtonUrl
+
+                  if (accessButtonUrl) {
+                    // Tem URL de acesso configurado - enviar com botao de link
+                    await sendTelegramMessage(
+                      bot.token,
+                      chatId,
+                      approvedMsg,
+                      {
+                        inline_keyboard: [[{ text: accessButtonText, url: accessButtonUrl }]]
+                      }
+                    )
+                  } else {
+                    // Sem URL especifica - usar callback para acionar entregavel
+                    await sendTelegramMessage(
+                      bot.token,
+                      chatId,
+                      approvedMsg,
+                      {
+                        inline_keyboard: [[{ text: accessButtonText, callback_data: "access_deliverable" }]]
+                      }
+                    )
+                  }
 
                   // SEMPRE enviar entregavel inicial primeiro (produto principal)
                   console.log(`[v0] DELIVERY: Enviando entregavel inicial para usuario ${chatId}`)
