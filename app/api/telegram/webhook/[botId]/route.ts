@@ -850,7 +850,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
       
       // ========== ORDER BUMP CALLBACKS ==========
       if (callbackData.startsWith("ob_accept_") || callbackData.startsWith("ob_decline_")) {
-        console.log("[v0] Order Bump Callback recebido:", callbackData, "botUuid:", botUuid, "telegramUserId:", telegramUserId)
+        console.log("[v0] =======================================================")
+        console.log("[v0] ORDER BUMP CALLBACK INICIANDO")
+        console.log("[v0] callbackData:", callbackData)
+        console.log("[v0] botUuid:", botUuid, "telegramUserId:", telegramUserId, "chatId:", chatId)
+        console.log("[v0] =======================================================")
         
         // Answer callback query imediatamente
         await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
@@ -1019,7 +1023,16 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           }
           
           // Save payment
-          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment)
+          console.log("[v0] =======================================================")
+          console.log("[v0] SALVANDO PAYMENT DO ORDER BUMP")
+          console.log("[v0] user_id:", botDataOB.user_id)
+          console.log("[v0] bot_id:", botUuid)
+          console.log("[v0] amount:", totalAmount)
+          console.log("[v0] flow_id:", flowIdForPayment)
+          console.log("[v0] product_name:", description)
+          console.log("[v0] product_type:", productType)
+          console.log("[v0] external_payment_id:", pixResultOB.paymentId)
+          console.log("[v0] =======================================================")
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: botDataOB.user_id,
@@ -1040,9 +1053,17 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             updated_at: new Date().toISOString()
           })
           if (obPaymentError) {
-            console.error("[v0] Error saving OB payment:", obPaymentError)
+            console.error("[v0] =======================================================")
+            console.error("[v0] ERRO AO SALVAR PAYMENT DO ORDER BUMP!")
+            console.error("[v0] Error code:", obPaymentError.code)
+            console.error("[v0] Error message:", obPaymentError.message)
+            console.error("[v0] Error details:", obPaymentError.details)
+            console.error("[v0] Error hint:", obPaymentError.hint)
+            console.error("[v0] =======================================================")
           } else {
-            console.log("[v0] OB payment saved successfully")
+            console.log("[v0] =======================================================")
+            console.log("[v0] PAYMENT DO ORDER BUMP SALVO COM SUCESSO!")
+            console.log("[v0] =======================================================")
           }
           
         } catch (pixError) {
