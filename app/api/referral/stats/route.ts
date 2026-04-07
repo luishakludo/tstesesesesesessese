@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
 
     // O saldo ajustado pelo admin
     const affiliateBalanceAdjustment = Number(userData?.affiliate_balance_adjustment) || 0
+    console.log("[v0] Stats - userData:", userData)
+    console.log("[v0] Stats - affiliateBalanceAdjustment:", affiliateBalanceAdjustment)
 
     // Buscar total de saques para calcular saldo disponivel
     const { data: withdrawsData } = await supabase
@@ -43,9 +45,12 @@ export async function GET(req: NextRequest) {
       .eq("status", "approved")
 
     const totalWithdrawn = withdrawsData?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
+    console.log("[v0] Stats - withdrawsData:", withdrawsData)
+    console.log("[v0] Stats - totalWithdrawn:", totalWithdrawn)
 
     // Saldo disponivel = ajuste do admin - saques
     const totalEarnings = affiliateBalanceAdjustment - totalWithdrawn
+    console.log("[v0] Stats - totalEarnings (final):", totalEarnings)
 
     return NextResponse.json({
       total_referrals: totalReferrals,

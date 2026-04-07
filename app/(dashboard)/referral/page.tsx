@@ -102,6 +102,10 @@ export default function ReferralPage() {
   const totalEarnings = statsData?.total_earnings ?? 0
   const referrals: ReferralUser[] = referralsData?.referrals ?? []
 
+  // Debug log para verificar valor de totalEarnings
+  console.log("[v0] Referral page - statsData:", statsData)
+  console.log("[v0] Referral page - totalEarnings:", totalEarnings)
+
   const referralLink = coupon && origin
     ? `${origin}/b/${coupon.coupon_code}`
     : ""
@@ -207,17 +211,20 @@ export default function ReferralPage() {
   }
 
   const handleWithdrawSubmit = async () => {
-    if (!userId) return
-    
-    const amount = parseFloat(withdrawData.amount.replace(",", "."))
-    if (isNaN(amount) || amount <= 0) {
-      setWithdrawError("Valor invalido")
-      return
-    }
-    if (amount > totalEarnings) {
-      setWithdrawError("Saldo insuficiente")
-      return
-    }
+  if (!userId) return
+  
+  const amount = parseFloat(withdrawData.amount.replace(",", "."))
+  console.log("[v0] handleWithdrawSubmit - amount:", amount, "totalEarnings:", totalEarnings)
+  
+  if (isNaN(amount) || amount <= 0) {
+  setWithdrawError("Valor invalido")
+  return
+  }
+  if (amount > totalEarnings) {
+  console.log("[v0] Saldo insuficiente - amount:", amount, "> totalEarnings:", totalEarnings)
+  setWithdrawError("Saldo insuficiente")
+  return
+  }
     if (amount < 10) {
       setWithdrawError("Valor minimo de R$ 10,00")
       return
