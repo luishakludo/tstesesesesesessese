@@ -863,8 +863,12 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const parts = callbackData.replace("ob_accept_", "").replace("ob_decline_", "").split("_")
         console.log("[v0] Order Bump parts:", parts, "isAccept:", isAccept)
         
-        // Buscar metadata do order bump salvo no estado
-        const { data: userState, error: stateError } = await supabase
+        // Buscar metadata do order bump salvo no estado - PRIMEIRO SEM filtro de status
+        let userState = null
+        let stateError = null
+        
+        // Tenta primeiro com status waiting_order_bump
+        const { data: stateWithStatus, error: errWithStatus } = await supabase
           .from("user_flow_state")
           .select("metadata, flow_id")
           .eq("bot_id", botUuid)
@@ -873,6 +877,25 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .order("updated_at", { ascending: false })
           .limit(1)
           .single()
+        
+        if (stateWithStatus) {
+          userState = stateWithStatus
+          stateError = errWithStatus
+        } else {
+          // Fallback: buscar qualquer estado recente do usuario (pode ter sido sobrescrito)
+          const { data: stateAny, error: errAny } = await supabase
+            .from("user_flow_state")
+            .select("metadata, flow_id")
+            .eq("bot_id", botUuid)
+            .eq("telegram_user_id", String(telegramUserId))
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .single()
+          
+          userState = stateAny
+          stateError = errAny
+          console.log("[v0] Order Bump - Using fallback state (no status filter)")
+        }
         
         console.log("[v0] Order Bump userState:", userState, "error:", stateError)
         
@@ -987,19 +1010,28 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           const sourceType = metadata?.type === "pack" ? "pack" : "plan"
           const productType = isAccept ? `${sourceType}_order_bump` : sourceType
           
+          // Buscar flow_id se nao veio do state
+          let flowIdForPayment = userState?.flow_id
+          if (!flowIdForPayment) {
+            const flowForPayment = await getActiveFlowForBot(supabase, botUuid)
+            flowIdForPayment = flowForPayment?.id
+            console.log("[v0] Order Bump - flow_id from fallback:", flowIdForPayment)
+          }
+          
           // Save payment
-          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount)
+          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment)
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: botDataOB.user_id,
-            flow_id: userState?.flow_id,
+            flow_id: flowIdForPayment,
             amount: totalAmount,
             status: "pending",
             payment_method: "pix",
             gateway: "mercadopago",
             external_payment_id: pixResultOB.paymentId,
-            pix_code: pixResultOB.copyPaste,
-            qr_code: pixResultOB.qrCodeBase64,
+            copy_paste: pixResultOB.copyPaste,
+            qr_code: pixResultOB.qrCode,
+            qr_code_url: pixResultOB.qrCodeUrl,
             telegram_user_id: String(telegramUserId),
             telegram_chat_id: String(chatId),
             product_name: description,
@@ -1547,6 +1579,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               status: "waiting_order_bump",
               current_node_position: 0,
               metadata: {
+                type: "plan",
                 order_bump_name: orderBumpInicial.name || "Order Bump",
                 order_bump_price: orderBumpInicial.price,
                 main_amount: planPrice,
