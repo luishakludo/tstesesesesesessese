@@ -19,14 +19,8 @@ import {
   RefreshCw,
   Wallet,
 } from "lucide-react"
-import { createClient } from "@supabase/supabase-js"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface Withdraw {
   id: string
@@ -57,26 +51,20 @@ export default function SaquesAfiliadosPage() {
   const fetchWithdraws = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from("referral_withdraws")
-        .select(`
-          *,
-          user:users!user_id(name, email)
-        `)
-        .order("created_at", { ascending: false })
+      const response = await fetch("/api/dragonadm/withdraws")
+      const data = await response.json()
 
-      if (filter !== "all") {
-        query = query.eq("status", filter)
-      }
-
-      const { data, error } = await query
-
-      if (error) {
-        console.error("Error fetching withdraws:", error)
+      if (!response.ok) {
+        console.error("Error fetching withdraws:", data.error)
         return
       }
 
-      setWithdraws(data || [])
+      let filteredData = data.withdraws || []
+      if (filter !== "all") {
+        filteredData = filteredData.filter((w: Withdraw) => w.status === filter)
+      }
+
+      setWithdraws(filteredData)
     } catch (err) {
       console.error("Error:", err)
     } finally {
@@ -93,16 +81,20 @@ export default function SaquesAfiliadosPage() {
     
     setProcessing(true)
     try {
-      const { error } = await supabase
-        .from("referral_withdraws")
-        .update({
+      const response = await fetch("/api/dragonadm/withdraws", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedWithdraw.id,
           status,
           admin_notes: adminNotes || null,
-          processed_at: new Date().toISOString(),
-        })
-        .eq("id", selectedWithdraw.id)
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error)
+      }
 
       toast.success(
         status === "approved" ? "Saque aprovado!" :

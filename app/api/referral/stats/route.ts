@@ -28,36 +28,55 @@ export async function GET(req: NextRequest) {
       .eq("id", userId)
       .single()
 
-    if (userError) {
-      console.error("[v0] Error fetching user balance:", userError.message)
+    if (userError && userError.code !== "PGRST116") {
+      // PGRST116 = no rows returned (usuario novo sem ajuste ainda)
+      console.error("Error fetching user balance:", userError.message)
     }
 
-    // O saldo ajustado pelo admin
-    const affiliateBalanceAdjustment = Number(userData?.affiliate_balance_adjustment) || 0
-    console.log("[v0] Stats - userData:", userData)
-    console.log("[v0] Stats - affiliateBalanceAdjustment:", affiliateBalanceAdjustment)
+    // GANHOS TOTAIS = valor que o admin definiu (fixo, nunca muda com saques)
+    const totalEarnings = Number(userData?.affiliate_balance_adjustment) || 0
 
-    // Buscar total de saques para calcular saldo disponivel
-    const { data: withdrawsData } = await supabase
+    // Buscar saques APROVADOS (ja foram pagos)
+    const { data: approvedWithdraws } = await supabase
       .from("referral_withdraws")
       .select("amount")
       .eq("user_id", userId)
       .eq("status", "approved")
 
-    const totalWithdrawn = withdrawsData?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
-    console.log("[v0] Stats - withdrawsData:", withdrawsData)
-    console.log("[v0] Stats - totalWithdrawn:", totalWithdrawn)
+    // Buscar saques PAGOS
+    const { data: paidWithdraws } = await supabase
+      .from("referral_withdraws")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("status", "paid")
 
-    // Saldo disponivel = ajuste do admin - saques
-    const totalEarnings = affiliateBalanceAdjustment - totalWithdrawn
-    console.log("[v0] Stats - totalEarnings (final):", totalEarnings)
+    // Buscar saques PENDENTES (reservados, aguardando aprovacao)
+    const { data: pendingWithdraws } = await supabase
+      .from("referral_withdraws")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("status", "pending")
+
+    const totalApproved = approvedWithdraws?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
+    const totalPaid = paidWithdraws?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
+    const totalPending = pendingWithdraws?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
+    
+    // Total sacado = aprovados + pagos
+    const totalWithdrawn = totalApproved + totalPaid
+
+    // SALDO DISPONIVEL = ganhos totais - saques (aprovados + pagos + pendentes)
+    const availableBalance = totalEarnings - totalWithdrawn - totalPending
 
     return NextResponse.json({
       total_referrals: totalReferrals,
-      total_sales: 0, // Por enquanto nao tem vendas
+      total_sales: 0,
+      // Ganhos totais (fixo, definido pelo admin)
       total_earnings: totalEarnings,
-      affiliate_balance_adjustment: affiliateBalanceAdjustment,
+      // Saldo disponivel para saque (desconta saques e pendentes)
+      available_balance: availableBalance,
+      // Totais detalhados
       total_withdrawn: totalWithdrawn,
+      total_pending: totalPending,
     })
   } catch (err) {
     console.error("[v0] Stats GET error:", err)

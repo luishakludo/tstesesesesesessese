@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
-import { Loader2, ExternalLink, ArrowRight, CheckCircle2, Wallet, User, CreditCard, Key } from "lucide-react"
+import { Loader2, ExternalLink, ArrowRight, CheckCircle2, Wallet, User, CreditCard, Key, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import useSWR from "swr"
@@ -58,6 +58,7 @@ export default function ReferralPage() {
   })
   const [isWithdrawing, setIsWithdrawing] = useState(false)
   const [withdrawError, setWithdrawError] = useState("")
+  const [showWithdrawHistory, setShowWithdrawHistory] = useState(false)
 
   useEffect(() => {
     setOrigin(window.location.origin)
@@ -73,7 +74,7 @@ export default function ReferralPage() {
       },
     }
   )
-  const { data: statsData } = useSWR(
+  const { data: statsData, mutate: mutateStats } = useSWR(
     userId ? `/api/referral/stats?userId=${userId}` : null,
     fetcher,
     {
@@ -96,15 +97,22 @@ export default function ReferralPage() {
     }
   )
 
+  // Buscar histórico de saques do usuário
+  const { data: withdrawsData, mutate: mutateWithdraws } = useSWR(
+    userId ? `/api/referral/withdraw?userId=${userId}` : null,
+    fetcher
+  )
+
   const coupon = couponData?.coupon ?? null
   const totalReferrals = statsData?.total_referrals ?? 0
   const totalSales = statsData?.total_sales ?? 0
+  // Ganhos totais (valor fixo definido pelo admin)
   const totalEarnings = statsData?.total_earnings ?? 0
+  // Saldo disponível (desconta saques aprovados e pendentes)
+  const availableBalance = statsData?.available_balance ?? 0
+  const totalPending = statsData?.total_pending ?? 0
   const referrals: ReferralUser[] = referralsData?.referrals ?? []
-
-  // Debug log para verificar valor de totalEarnings
-  console.log("[v0] Referral page - statsData:", statsData)
-  console.log("[v0] Referral page - totalEarnings:", totalEarnings)
+  const withdrawHistory = withdrawsData?.withdraws ?? []
 
   const referralLink = coupon && origin
     ? `${origin}/b/${coupon.coupon_code}`
@@ -214,14 +222,11 @@ export default function ReferralPage() {
   if (!userId) return
   
   const amount = parseFloat(withdrawData.amount.replace(",", "."))
-  console.log("[v0] handleWithdrawSubmit - amount:", amount, "totalEarnings:", totalEarnings)
-  
   if (isNaN(amount) || amount <= 0) {
   setWithdrawError("Valor invalido")
   return
   }
-  if (amount > totalEarnings) {
-  console.log("[v0] Saldo insuficiente - amount:", amount, "> totalEarnings:", totalEarnings)
+  if (amount > availableBalance) {
   setWithdrawError("Saldo insuficiente")
   return
   }
@@ -253,13 +258,16 @@ export default function ReferralPage() {
         return
       }
 
-      toast.success("Saque solicitado com sucesso!")
-      setShowWithdrawModal(false)
-    } catch {
-      setWithdrawError("Erro ao solicitar saque")
-    } finally {
-      setIsWithdrawing(false)
-    }
+  toast.success("Saque solicitado com sucesso!")
+  setShowWithdrawModal(false)
+  // Atualizar dados
+  mutateStats()
+  mutateWithdraws()
+  } catch {
+  setWithdrawError("Erro ao solicitar saque")
+  } finally {
+  setIsWithdrawing(false)
+  }
   }
 
   return (
@@ -288,22 +296,43 @@ export default function ReferralPage() {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-muted-foreground text-xs uppercase tracking-widest font-semibold">Ganhos Totais</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={openWithdrawModal}
-                        disabled={totalEarnings < 10}
-                        className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4 disabled:opacity-50"
-                      >
-                        Sacar
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setShowWithdrawHistory(true)}
+                          className="text-muted-foreground hover:text-foreground font-medium rounded-xl px-3"
+                        >
+                          Historico
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={openWithdrawModal}
+                          disabled={availableBalance < 10}
+                          className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-4 disabled:opacity-50"
+                        >
+                          Sacar
+                        </Button>
+                      </div>
                     </div>
                     <div className="flex items-baseline gap-2 flex-wrap">
                       <span className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter">
                         R$ {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
-                      {totalEarnings > 0 && (
-                        <span className="text-accent text-xs font-bold bg-accent/10 px-2 py-1 rounded-full">+12.5%</span>
+                    </div>
+                    {/* Saldo Disponivel */}
+                    <div className="mt-3 p-3 rounded-xl bg-background/5 dark:bg-white/5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground text-xs">Saldo Disponivel</span>
+                        <span className="text-lg font-bold text-accent">
+                          R$ {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      {totalPending > 0 && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          R$ {totalPending.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} em saques pendentes
+                        </p>
                       )}
                     </div>
                   </div>
@@ -691,11 +720,11 @@ export default function ReferralPage() {
                   <div className="absolute inset-0 bg-gradient-to-br from-[#ccff00]/10 via-[#ccff00]/5 to-transparent" />
                   <div className="absolute inset-0 border border-[#ccff00]/20 rounded-2xl" />
                   <div className="relative p-6 text-center">
-                    <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Disponivel para saque</p>
+                    <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Saldo Disponivel</p>
                     <div className="flex items-baseline justify-center gap-1">
                       <span className="text-[#ccff00]/60 text-lg font-medium">R$</span>
                       <span className="text-5xl font-black text-[#ccff00] tabular-nums">
-                        {totalEarnings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="mt-4 flex items-center justify-center gap-1.5">
@@ -711,7 +740,7 @@ export default function ReferralPage() {
                     <label className="text-xs text-white/50 font-medium">Valor do saque</label>
                     <button 
                       type="button"
-                      onClick={() => setWithdrawData({ ...withdrawData, amount: totalEarnings.toFixed(2).replace(".", ",") })}
+                      onClick={() => setWithdrawData({ ...withdrawData, amount: availableBalance.toFixed(2).replace(".", ",") })}
                       className="text-[10px] text-[#ccff00] hover:text-[#ccff00]/80 font-medium transition-colors"
                     >
                       Sacar tudo
@@ -830,7 +859,7 @@ export default function ReferralPage() {
                       setWithdrawError("Valor minimo de R$ 10,00")
                       return
                     }
-                    if (amount > totalEarnings) {
+                    if (amount > availableBalance) {
                       setWithdrawError("Saldo insuficiente")
                       return
                     }
@@ -863,6 +892,74 @@ export default function ReferralPage() {
                 )}
               </Button>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdraw History Modal */}
+      <Dialog open={showWithdrawHistory} onOpenChange={setShowWithdrawHistory}>
+        <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
+          <div className="px-6 pt-6 pb-4 border-b border-white/5">
+            <h3 className="text-xl font-bold text-white">Historico de Saques</h3>
+            <p className="text-sm text-white/40 mt-1">Acompanhe o status das suas solicitacoes</p>
+          </div>
+
+          <div className="max-h-[400px] overflow-y-auto">
+            {withdrawHistory.length === 0 ? (
+              <div className="py-12 text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
+                  <Clock className="w-8 h-8 text-white/20" />
+                </div>
+                <p className="text-white/40 text-sm">Nenhum saque solicitado</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {withdrawHistory.map((withdraw: { id: string; amount: number; status: string; created_at: string; pix_key: string }) => (
+                  <div key={withdraw.id} className="p-4 hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-bold text-white">
+                          R$ {Number(withdraw.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </p>
+                        <p className="text-xs text-white/40 mt-0.5">
+                          {new Date(withdraw.created_at).toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                        <p className="text-[10px] text-white/30 mt-1">PIX: {withdraw.pix_key}</p>
+                      </div>
+                      <span 
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-xs font-medium",
+                          withdraw.status === "pending" && "bg-yellow-500/10 text-yellow-400",
+                          withdraw.status === "approved" && "bg-blue-500/10 text-blue-400",
+                          withdraw.status === "paid" && "bg-[#ccff00]/10 text-[#ccff00]",
+                          withdraw.status === "rejected" && "bg-red-500/10 text-red-400"
+                        )}
+                      >
+                        {withdraw.status === "pending" && "Pendente"}
+                        {withdraw.status === "approved" && "Aprovado"}
+                        {withdraw.status === "paid" && "Pago"}
+                        {withdraw.status === "rejected" && "Rejeitado"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 border-t border-white/5">
+            <Button
+              onClick={() => setShowWithdrawHistory(false)}
+              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl"
+            >
+              Fechar
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
