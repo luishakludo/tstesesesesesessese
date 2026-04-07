@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 
     // Buscar total de saques para calcular saldo disponivel
     const { data: withdrawsData } = await supabase
-      .from("affiliate_withdraws")
+      .from("referral_withdraws")
       .select("amount")
       .eq("user_id", userId)
       .eq("status", "approved")

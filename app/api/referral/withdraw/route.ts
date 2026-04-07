@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar saques aprovados
     const { data: approvedWithdraws } = await supabase
-      .from("affiliate_withdraws")
+      .from("referral_withdraws")
       .select("amount")
       .eq("user_id", userId)
       .eq("status", "approved")
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Buscar saques pendentes
     const { data: pendingWithdraws } = await supabase
-      .from("affiliate_withdraws")
+      .from("referral_withdraws")
       .select("amount")
       .eq("user_id", userId)
       .eq("status", "pending")
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     // Criar solicitacao de saque como PENDING
     const { data, error } = await supabase
-      .from("affiliate_withdraws")
+      .from("referral_withdraws")
       .insert({
         user_id: userId,
         amount,
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
   }
 
   const { data, error } = await supabase
-    .from("affiliate_withdraws")
+    .from("referral_withdraws")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
