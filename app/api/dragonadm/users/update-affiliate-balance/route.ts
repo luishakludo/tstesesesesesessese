@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, amount, type, reason } = await request.json()
+    const { userId, amount, type } = await request.json()
 
     if (!userId || amount === undefined || !type) {
       return NextResponse.json({ error: "Dados incompletos" }, { status: 400 })
@@ -14,10 +14,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Valor invalido" }, { status: 400 })
     }
 
-    // Verificar se usuario existe
+    // Buscar usuario atual com saldo de ajuste
     const { data: user, error: userError } = await supabaseAdmin
       .from("users")
-      .select("id")
+      .select("id, affiliate_balance_adjustment")
       .eq("id", userId)
       .single()
 
@@ -25,63 +25,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Usuario nao encontrado" }, { status: 404 })
     }
 
-    // Calcular saldo atual baseado em referrals e withdraws
-    const { data: referrals } = await supabaseAdmin
-      .from("referrals")
-      .select("commission_amount")
-      .eq("referrer_id", userId)
-    
+    // Buscar saques aprovados
     const { data: withdraws } = await supabaseAdmin
       .from("referral_withdraws")
-      .select("amount, status")
+      .select("amount")
       .eq("user_id", userId)
       .in("status", ["approved", "paid"])
     
-    const totalEarnings = referrals?.reduce((acc, r) => acc + (Number(r.commission_amount) || 0), 0) || 0
     const totalWithdrawn = withdraws?.reduce((acc, w) => acc + (Number(w.amount) || 0), 0) || 0
-    const currentBalance = totalEarnings - totalWithdrawn
+    const currentAdjustment = Number(user.affiliate_balance_adjustment) || 0
+    const currentBalance = currentAdjustment - totalWithdrawn
 
-    let adjustmentAmount = 0
+    let newAdjustment = currentAdjustment
 
     if (type === "set") {
-      // Para definir um valor especifico, calcular a diferenca
-      adjustmentAmount = numAmount - currentBalance
+      // Para definir um saldo especifico: novoSaldo = novoAjuste - totalSacado
+      // novoAjuste = novoSaldo + totalSacado
+      newAdjustment = numAmount + totalWithdrawn
     } else if (type === "add") {
-      adjustmentAmount = numAmount
+      newAdjustment = currentAdjustment + numAmount
     } else if (type === "subtract") {
-      adjustmentAmount = -numAmount
+      newAdjustment = currentAdjustment - numAmount
     } else {
       return NextResponse.json({ error: "Tipo de operacao invalido" }, { status: 400 })
     }
 
-    // Inserir ajuste na tabela referrals como uma comissao de ajuste manual
-    if (adjustmentAmount !== 0) {
-      const { error: insertError } = await supabaseAdmin
-        .from("referrals")
-        .insert({
-          referrer_id: userId,
-          referred_id: userId, // auto-referencia para ajuste manual
-          commission_amount: adjustmentAmount,
-          status: "admin_adjustment",
-          created_at: new Date().toISOString(),
-        })
+    // Atualizar o campo affiliate_balance_adjustment na tabela users
+    const { error: updateError } = await supabaseAdmin
+      .from("users")
+      .update({ affiliate_balance_adjustment: newAdjustment })
+      .eq("id", userId)
 
-      if (insertError) {
-        console.error("[v0] Error inserting adjustment:", insertError)
-        return NextResponse.json({ error: "Erro ao ajustar saldo: " + insertError.message }, { status: 500 })
-      }
+    if (updateError) {
+      return NextResponse.json({ error: "Erro ao atualizar: " + updateError.message }, { status: 500 })
     }
 
-    const newBalance = currentBalance + adjustmentAmount
+    const newBalance = newAdjustment - totalWithdrawn
 
     return NextResponse.json({ 
       success: true, 
       previousBalance: currentBalance,
       newBalance: newBalance,
-      adjustment: adjustmentAmount
+      adjustment: newAdjustment - currentAdjustment
     })
   } catch (error) {
-    console.error("[v0] Error updating affiliate balance:", error)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })
   }
 }
