@@ -499,8 +499,9 @@ Clique no botao abaixo para renovar com desconto especial!`)
   const [vipAutoAdd, setVipAutoAdd] = useState(true)
   const [vipAutoRemoveOnExpire, setVipAutoRemoveOnExpire] = useState(true)
 
-  // Stats (placeholder)
-  const [stats] = useState({ leads: 0, vips: 0, revenue: 0 })
+  // Stats reais do fluxo
+  const [stats, setStats] = useState({ leads: 0, vips: 0, revenue: 0 })
+  const [loadingStats, setLoadingStats] = useState(false)
 
   // Delete flow
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -761,6 +762,78 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
       fetchConversions()
     }
   }, [flowBots, conversionsPeriod, fetchConversions])
+
+  // Fetch flow stats (leads, vips, revenue) from all bots in this flow
+  const fetchFlowStats = useCallback(async () => {
+    if (flowBots.length === 0) {
+      setStats({ leads: 0, vips: 0, revenue: 0 })
+      return
+    }
+    
+    setLoadingStats(true)
+    
+    try {
+      const botIds = flowBots.map(fb => fb.bot_id)
+      
+      // Buscar usuarios unicos (leads) e pagamentos de todos os bots do fluxo
+      let totalLeads = 0
+      let totalVips = 0
+      let totalRevenue = 0
+      const uniqueLeadIds = new Set<string>()
+      const uniqueVipIds = new Set<string>()
+      
+      for (const botId of botIds) {
+        // Buscar usuarios do bot (leads = quem deu start)
+        const usersRes = await fetch(`/api/bots/${botId}/users`)
+        const usersData = await usersRes.json()
+        
+        if (usersData?.users) {
+          // Adicionar telegram_user_id ao set para contar unicos
+          usersData.users.forEach((u: { telegram_user_id: string; payment_status?: string }) => {
+            uniqueLeadIds.add(u.telegram_user_id)
+            // VIPs = quem pagou pelo menos uma vez
+            if (u.payment_status === "paid" || u.payment_status === "approved") {
+              uniqueVipIds.add(u.telegram_user_id)
+            }
+          })
+        }
+        
+        // Buscar pagamentos aprovados do bot (receita)
+        const paymentsRes = await fetch(`/api/payments/list?botId=${botId}&limit=1000`)
+        const paymentsData = await paymentsRes.json()
+        
+        if (paymentsData?.payments) {
+          paymentsData.payments.forEach((p: { status: string; amount: number; telegram_user_id?: string }) => {
+            if (p.status === "approved" || p.status === "paid") {
+              totalRevenue += Number(p.amount) || 0
+              // Tambem adicionar ao VIPs pelo pagamento
+              if (p.telegram_user_id) {
+                uniqueVipIds.add(p.telegram_user_id)
+              }
+            }
+          })
+        }
+      }
+      
+      totalLeads = uniqueLeadIds.size
+      totalVips = uniqueVipIds.size
+      
+      setStats({
+        leads: totalLeads,
+        vips: totalVips,
+        revenue: totalRevenue
+      })
+    } catch (error) {
+      console.error("Error fetching flow stats:", error)
+    } finally {
+      setLoadingStats(false)
+    }
+  }, [flowBots])
+  
+  // Reload stats when bots change
+  useEffect(() => {
+    fetchFlowStats()
+  }, [flowBots, fetchFlowStats])
 
   // Adjust selected hours when notification count changes
   useEffect(() => {
@@ -1648,21 +1721,27 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs uppercase tracking-wide text-muted-foreground">Leads</span>
                       </div>
-                      <p className="text-2xl font-bold">{stats.leads}</p>
+                      <p className="text-2xl font-bold">
+                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : stats.leads}
+                      </p>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-secondary/30">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Crown className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs uppercase tracking-wide text-muted-foreground">VIPs</span>
                       </div>
-                      <p className="text-2xl font-bold">{stats.vips}</p>
+                      <p className="text-2xl font-bold">
+                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : stats.vips}
+                      </p>
                     </div>
                     <div className="text-center p-4 rounded-xl bg-secondary/30">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                         <span className="text-xs uppercase tracking-wide text-muted-foreground">Receita</span>
                       </div>
-                      <p className="text-2xl font-bold">R$ {stats.revenue.toFixed(2)}</p>
+                      <p className="text-2xl font-bold">
+                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : `R$ ${stats.revenue.toFixed(2)}`}
+                      </p>
                     </div>
                   </div>
                 </CardContent>
