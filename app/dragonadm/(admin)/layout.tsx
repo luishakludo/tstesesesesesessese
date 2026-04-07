@@ -293,7 +293,7 @@ export default function DragonAdmLayout({
           <div className="flex items-center gap-4 ml-auto">
             {/* Voltar ao Dashboard Button */}
             <Link
-              href="/dashboard"
+              href="/"
               className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-white transition-all duration-200 hover:scale-105"
               style={{ 
                 background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(149, 228, 104, 0.2))',
