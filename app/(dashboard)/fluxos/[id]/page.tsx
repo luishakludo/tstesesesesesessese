@@ -75,13 +75,13 @@ interface FlowConfig {
   welcomeMedias?: string[]
   ctaButtonText?: string
   redirectButton?: {
-    enabled: boolean
-    text: string
-    url: string
+  enabled: boolean
+  text: string
+  url: string
   }
   secondaryMessage?: {
-    enabled: boolean
-    message: string
+  enabled: boolean
+  message: string
   }
   plans?: FlowPlan[]
   upsell?: UpsellConfig
@@ -94,7 +94,21 @@ interface FlowConfig {
   // Entregaveis reutilizaveis
   deliverables?: Deliverable[]
   mainDeliverableId?: string
-}
+  // Payment Messages Config
+  paymentMessages?: {
+    pixGeneratedMessage?: string
+    messageBeforeCode?: string
+    showPlanBeforePix?: boolean
+    qrCodeDisplay?: string
+    pixCodeFormat?: string
+    showCopyButton?: boolean
+    verifyStatusButtonText?: string
+    approvedMessage?: string
+    approvedMedias?: string[]
+    accessButtonText?: string
+    accessButtonUrl?: string
+  }
+  }
 
 interface PlanOrderBump {
   id: string
@@ -417,16 +431,16 @@ export default function FlowEditorPage() {
   const [pixCodeFormat, setPixCodeFormat] = useState("monospace")
   const [showCopyButton, setShowCopyButton] = useState(true)
   const [messageBeforeCode, setMessageBeforeCode] = useState("Copie o codigo abaixo:")
-  const [messageBeforeButtons, setMessageBeforeButtons] = useState("Apos efetuar o pagamento, clique no botao abaixo")
   const [verifyStatusButtonText, setVerifyStatusButtonText] = useState("Verificar Status")
-  const [socialProofEnabled, setSocialProofEnabled] = useState(false)
-  const [approvedMedia, setApprovedMedia] = useState("")
+  const [approvedMedias, setApprovedMedias] = useState<string[]>([])
   const [approvedMessage, setApprovedMessage] = useState(`<b>Pagamento Aprovado!</b>
 
-Parabens {nome}! Seu pagamento do plano <b>{plano}</b> no valor de <b>{valor}</b> foi confirmado.
+Parabens {nome}! Seu pagamento foi confirmado.
 
 Voce ja tem acesso ao conteudo!`)
   const [accessButtonText, setAccessButtonText] = useState("Acessar Conteudo")
+  const [accessButtonUrl, setAccessButtonUrl] = useState("")
+  const [uploadingApprovedMedia, setUploadingApprovedMedia] = useState(false)
 
   // Renewal System
   const [renewalDeliveryEnabled, setRenewalDeliveryEnabled] = useState(false)
@@ -598,6 +612,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
     if (config.delivery.type) {
       setShowDeliveryConfig(true)
     }
+  }
+
+  // Load payment messages config
+  if (config.paymentMessages) {
+    setPixGeneratedMessage(config.paymentMessages.pixGeneratedMessage || pixGeneratedMessage)
+    setMessageBeforeCode(config.paymentMessages.messageBeforeCode || messageBeforeCode)
+    setShowPlanBeforePix(config.paymentMessages.showPlanBeforePix || false)
+    setQrCodeDisplay(config.paymentMessages.qrCodeDisplay || "image")
+    setPixCodeFormat(config.paymentMessages.pixCodeFormat || "monospace")
+    setShowCopyButton(config.paymentMessages.showCopyButton !== false)
+    setVerifyStatusButtonText(config.paymentMessages.verifyStatusButtonText || "Verificar Status")
+    setApprovedMessage(config.paymentMessages.approvedMessage || approvedMessage)
+    setApprovedMedias(config.paymentMessages.approvedMedias || [])
+    setAccessButtonText(config.paymentMessages.accessButtonText || "Acessar Conteudo")
+    setAccessButtonUrl(config.paymentMessages.accessButtonUrl || "")
   }
 
     setIsLoading(false)
@@ -914,6 +943,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
       // Entregaveis
       deliverables,
       mainDeliverableId,
+      // Payment Messages
+      paymentMessages: {
+        pixGeneratedMessage,
+        messageBeforeCode,
+        showPlanBeforePix,
+        qrCodeDisplay,
+        pixCodeFormat,
+        showCopyButton,
+        verifyStatusButtonText,
+        approvedMessage,
+        approvedMedias,
+        accessButtonText,
+        accessButtonUrl,
+      },
     }
 
     const updatePayload = {
@@ -4523,10 +4566,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
                       <DollarSign className="h-5 w-5 text-accent" />
                     </div>
-                    <span className="font-semibold text-lg">Mensagem de Pagamento Gerado</span>
+                    <span className="font-semibold text-lg">Configuracoes de Pagamento</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Personalize a mensagem enviada quando o PIX e gerado
+                    Configure as mensagens enviadas durante o processo de pagamento PIX
                   </p>
                 </CardContent>
               </Card>
@@ -4553,15 +4596,6 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               {/* 2. Mensagem do PIX Gerado */}
               <div className="space-y-4">
                 <h3 className="font-semibold">2. Mensagem do PIX Gerado</h3>
-                
-                {/* Midia */}
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Midia (opcional)</Label>
-                  <div className="w-32 h-28 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent/50 transition-colors">
-                    <Plus className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground mt-1">Adicionar midia</span>
-                  </div>
-                </div>
 
                 {/* Mensagem Personalizada */}
                 <div className="space-y-2">
@@ -4580,7 +4614,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   <CardContent className="pt-4">
                     <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                     <div className="flex flex-wrap gap-2">
-                      {["{nome}", "{plano}", "{valor}", "{qr_code}", "{saudacao}", "{uf}"].map((v) => (
+                      {["{nome}"].map((v) => (
                         <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
                       ))}
                     </div>
@@ -4643,22 +4677,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
               </div>
 
-              {/* 4. Textos dos Botoes */}
+              {/* 4. Botao Verificar Status */}
               <div className="space-y-4">
-                <h3 className="font-semibold">4. Textos dos Botoes</h3>
-
+                <h3 className="font-semibold">4. Botao Verificar Status</h3>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Mensagem Antes dos Botoes</Label>
-                  <Input
-                    value={messageBeforeButtons}
-                    onChange={(e) => { setMessageBeforeButtons(e.target.value); setHasChanges(true) }}
-                    className="bg-secondary/50"
-                  />
-                  <p className="text-xs text-muted-foreground">Aparece antes dos botoes de verificar status e QR Code</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Botao Verificar Status</Label>
+                  <Label className="text-muted-foreground">Texto do Botao</Label>
                   <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
                     <Check className="h-4 w-4 text-emerald-500" />
                     <Input
@@ -4670,25 +4693,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Prova Social */}
-              <Card className="border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/50">
-                        <Users className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">Prova Social</p>
-                        <p className="text-sm text-muted-foreground">Mensagem enviada apos o PIX ser gerado — edita sequencialmente entre as mensagens configuradas</p>
-                      </div>
-                    </div>
-                    <Switch checked={socialProofEnabled} onCheckedChange={(c) => { setSocialProofEnabled(c); setHasChanges(true) }} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Mensagem de Pagamento Aprovado */}
+              {/* 5. Mensagem de Pagamento Aprovado */}
               <Card className="border-border/50">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4701,13 +4706,93 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                   </div>
 
-                  {/* Midia */}
+                  {/* Midias - ate 3 */}
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Midia (opcional)</Label>
-                    <div className="w-32 h-28 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 transition-colors">
-                      <Plus className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground mt-1">Adicionar midia</span>
+                    <Label className="text-muted-foreground">Midias (opcional - ate 3)</Label>
+                    <div className="flex gap-3 flex-wrap">
+                      {approvedMedias.map((media, index) => (
+                        <div key={index} className="relative w-24 h-24 rounded-lg border border-border/50 overflow-hidden group">
+                          {media.match(/\.(mp4|webm|mov)$/i) ? (
+                            <video src={media} className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={media} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
+                          )}
+                          <button
+                            onClick={() => {
+                              setApprovedMedias(approvedMedias.filter((_, i) => i !== index))
+                              setHasChanges(true)
+                            }}
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          >
+                            <Trash2 className="h-5 w-5 text-white" />
+                          </button>
+                        </div>
+                      ))}
+                      {approvedMedias.length < 3 && (
+                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors">
+                          {uploadingApprovedMedia ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                          ) : (
+                            <>
+                              <Plus className="h-6 w-6 text-muted-foreground mb-1" />
+                              <span className="text-xs text-muted-foreground">Adicionar</span>
+                              <span className="text-xs text-muted-foreground">({approvedMedias.length}/3)</span>
+                            </>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (!file || !flow) return
+                              
+                              setUploadingApprovedMedia(true)
+                              
+                              try {
+                                const fileExt = file.name.split('.').pop()
+                                const fileName = `${flow.id}/approved_${Date.now()}.${fileExt}`
+                                
+                                const { error } = await supabase.storage
+                                  .from('flow-medias')
+                                  .upload(fileName, file, {
+                                    cacheControl: '3600',
+                                    upsert: false
+                                  })
+                                
+                                if (error) {
+                                  toast({
+                                    title: "Erro",
+                                    description: "Falha no upload: " + error.message,
+                                    variant: "destructive",
+                                  })
+                                  return
+                                }
+                                
+                                const { data: urlData } = supabase.storage
+                                  .from('flow-medias')
+                                  .getPublicUrl(fileName)
+                                
+                                setApprovedMedias([...approvedMedias, urlData.publicUrl])
+                                setHasChanges(true)
+                              } catch (err) {
+                                console.error('Upload failed:', err)
+                                toast({
+                                  title: "Erro",
+                                  description: "Erro ao fazer upload",
+                                  variant: "destructive",
+                                })
+                              } finally {
+                                setUploadingApprovedMedia(false)
+                              }
+                              
+                              e.target.value = ""
+                            }}
+                          />
+                        </label>
+                      )}
                     </div>
+                    <p className="text-xs text-muted-foreground">Imagens ou videos enviados junto com a mensagem de aprovacao</p>
                   </div>
 
                   {/* Mensagem */}
@@ -4727,26 +4812,40 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <CardContent className="pt-4">
                       <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                       <div className="flex flex-wrap gap-2">
-                        {["{nome}", "{plano}", "{valor}", "{saudacao}", "{uf}"].map((v) => (
+                        {["{nome}"].map((v) => (
                           <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Botao de Acesso */}
-                  <div className="border-t border-border/50 pt-4 space-y-2">
-                    <p className="font-semibold">Botao de Acesso</p>
-                    <Label className="text-muted-foreground">Texto do Botao de Acesso</Label>
-                    <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
-                      <Gift className="h-4 w-4 text-orange-500" />
-                      <Input
-                        value={accessButtonText}
-                        onChange={(e) => { setAccessButtonText(e.target.value); setHasChanges(true) }}
-                        className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
-                      />
+                  {/* Botao de Acesso ao Entregavel */}
+                  <div className="border-t border-border/50 pt-4 space-y-4">
+                    <p className="font-semibold">Botao de Acessar Conteudo (Entregavel)</p>
+                    <p className="text-sm text-muted-foreground">Este botao aparece apos o pagamento aprovado e libera o acesso ao conteudo configurado nos Entregaveis.</p>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Texto do Botao</Label>
+                      <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                        <Gift className="h-4 w-4 text-orange-500" />
+                        <Input
+                          value={accessButtonText}
+                          onChange={(e) => { setAccessButtonText(e.target.value); setHasChanges(true) }}
+                          className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+                        />
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">Texto exibido no botao que libera acesso ao conteudo</p>
+
+                    <div className="space-y-2">
+                      <Label className="text-muted-foreground">Link do Entregavel (opcional)</Label>
+                      <Input
+                        value={accessButtonUrl}
+                        onChange={(e) => { setAccessButtonUrl(e.target.value); setHasChanges(true) }}
+                        placeholder="https://exemplo.com/conteudo ou deixe vazio para usar Entregaveis"
+                        className="bg-secondary/50"
+                      />
+                      <p className="text-xs text-muted-foreground">Se preenchido, sobrescreve o entregavel configurado. Deixe vazio para usar os Entregaveis do fluxo.</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
