@@ -501,17 +501,17 @@ export default function ReferralPage() {
                     </thead>
                     <tbody className="divide-y divide-white/5">
                       {/* Mostrar usuarios reais */}
-                      {referrals.slice(0, 5).map((ref) => (
+                      {referrals.slice(0, 3).map((ref) => (
                         <tr key={ref.id} onClick={() => setSelectedUser(ref)} className="cursor-pointer hover:bg-white/[0.02] transition-colors">
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-2.5">
                             <div className="flex flex-col">
-                              <span className="font-bold text-white">{ref.name}</span>
+                              <span className="font-bold text-white text-xs">{ref.name}</span>
                               <span className="text-[10px] text-gray-400">{formatDate(ref.referral_date)}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-4">
+                          <td className="px-4 py-2.5">
                             <span className={cn(
-                              "px-2 py-1 rounded-full text-[10px] font-bold",
+                              "px-2 py-0.5 rounded-full text-[10px] font-bold",
                               ref.banned 
                                 ? "bg-red-500/10 text-red-400" 
                                 : "bg-[#ccff00]/20 text-[#ccff00]"
@@ -519,15 +519,15 @@ export default function ReferralPage() {
                               {ref.banned ? "Inativo" : "Ativo"}
                             </span>
                           </td>
-                          <td className="px-4 py-4 text-right">
-                            <span className="font-bold text-white">R$ 0,10</span>
+                          <td className="px-4 py-2.5 text-right">
+                            <span className="font-bold text-white text-xs">R$ 0,10</span>
                           </td>
                         </tr>
                       ))}
-                      {/* Preencher linhas vazias para manter altura fixa (5 linhas total) */}
-                      {Array.from({ length: Math.max(0, 5 - referrals.length) }).map((_, index) => (
-                        <tr key={`empty-${index}`} className="h-[60px]">
-                          <td colSpan={3} className="px-4 py-4 text-center">
+                      {/* Preencher linhas vazias para manter altura fixa (3 linhas total) */}
+                      {Array.from({ length: Math.max(0, 3 - referrals.length) }).map((_, index) => (
+                        <tr key={`empty-${index}`} className="h-[44px]">
+                          <td colSpan={3} className="px-4 py-2 text-center">
                             {index === 0 && referrals.length === 0 ? (
                               <div className="flex items-center justify-center gap-2">
                                 <svg viewBox="0 0 24 24" className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -538,8 +538,6 @@ export default function ReferralPage() {
                                 </svg>
                                 <span className="text-gray-500 text-xs">Compartilhe e atraia mais amigos!</span>
                               </div>
-                            ) : index === Math.floor((5 - referrals.length) / 2) && referrals.length > 0 ? (
-                              <span className="text-gray-600 text-xs">Atraia mais amigos e ganhe mais!</span>
                             ) : (
                               <span className="text-gray-700/30 text-xs">---</span>
                             )}
@@ -553,55 +551,55 @@ export default function ReferralPage() {
             </section>
 
             {/* Program Steps */}
-            <section className="space-y-4 lg:flex-1">
+            <section className="space-y-3 lg:flex-1">
               <h3 className="text-sm font-semibold text-[#666666] uppercase tracking-wider">Como funciona</h3>
-              <div className="bg-[#16181d] rounded-3xl p-8 border border-white/5 lg:h-[calc(100%-2rem)]">
-                <div className="grid grid-cols-3 gap-8 lg:h-full lg:items-center">
+              <div className="bg-[#16181d] rounded-3xl p-5 border border-white/5">
+                <div className="grid grid-cols-3 gap-4 items-center">
                   {/* Step 1 */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#ccff00] flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.3)]">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#1A1A1A]" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="relative mb-2">
+                      <div className="w-11 h-11 rounded-xl bg-[#ccff00] flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#1A1A1A]" fill="none" stroke="currentColor" strokeWidth="2">
                           <line x1="22" y1="2" x2="11" y2="13"/>
                           <polygon points="22 2 15 22 11 13 2 9 22 2"/>
                         </svg>
                       </div>
-                      <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#ccff00] text-[#1A1A1A] rounded-full text-xs font-bold flex items-center justify-center shadow-sm">1</span>
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ccff00] text-[#1A1A1A] rounded-full text-[10px] font-bold flex items-center justify-center shadow-sm">1</span>
                     </div>
-                    <p className="text-sm font-bold text-white mb-1">Compartilhe</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">Envie seu link exclusivo</p>
+                    <p className="text-xs font-bold text-white mb-0.5">Compartilhe</p>
+                    <p className="text-[10px] text-gray-400 leading-tight">Envie seu link exclusivo</p>
                   </div>
 
                   {/* Step 2 */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#1f2128] border border-[#ccff00]/30 flex items-center justify-center">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#ccff00]" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="relative mb-2">
+                      <div className="w-11 h-11 rounded-xl bg-[#1f2128] border border-[#ccff00]/30 flex items-center justify-center">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#ccff00]" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                           <circle cx="9" cy="7" r="4"/>
                           <line x1="19" y1="8" x2="19" y2="14"/>
                           <line x1="22" y1="11" x2="16" y2="11"/>
                         </svg>
                       </div>
-                      <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#ccff00] text-[#1A1A1A] rounded-full text-xs font-bold flex items-center justify-center shadow-sm">2</span>
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ccff00] text-[#1A1A1A] rounded-full text-[10px] font-bold flex items-center justify-center shadow-sm">2</span>
                     </div>
-                    <p className="text-sm font-bold text-white mb-1">Cadastro</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">Amigo se cadastra e assina</p>
+                    <p className="text-xs font-bold text-white mb-0.5">Cadastro</p>
+                    <p className="text-[10px] text-gray-400 leading-tight">Amigo se cadastra e assina</p>
                   </div>
 
                   {/* Step 3 */}
                   <div className="flex flex-col items-center text-center">
-                    <div className="relative mb-4">
-                      <div className="w-14 h-14 rounded-2xl bg-[#ccff00] flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.3)]">
-                        <svg viewBox="0 0 24 24" className="w-6 h-6 text-[#1A1A1A]" fill="none" stroke="currentColor" strokeWidth="2">
+                    <div className="relative mb-2">
+                      <div className="w-11 h-11 rounded-xl bg-[#ccff00] flex items-center justify-center shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+                        <svg viewBox="0 0 24 24" className="w-5 h-5 text-[#1A1A1A]" fill="none" stroke="currentColor" strokeWidth="2">
                           <line x1="12" y1="1" x2="12" y2="23"/>
                           <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                         </svg>
                       </div>
-                      <span className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-[#ccff00] text-[#1A1A1A] rounded-full text-xs font-bold flex items-center justify-center shadow-sm">3</span>
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#ccff00] text-[#1A1A1A] rounded-full text-[10px] font-bold flex items-center justify-center shadow-sm">3</span>
                     </div>
-                    <p className="text-sm font-bold text-white mb-1">Receba</p>
-                    <p className="text-xs text-gray-400 leading-relaxed">Ganhe sua comissao</p>
+                    <p className="text-xs font-bold text-white mb-0.5">Receba</p>
+                    <p className="text-[10px] text-gray-400 leading-tight">Ganhe sua comissao</p>
                   </div>
                 </div>
               </div>
