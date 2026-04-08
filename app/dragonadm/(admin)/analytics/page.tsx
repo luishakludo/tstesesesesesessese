@@ -1,169 +1,209 @@
 "use client"
 
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { BarChart3, TrendingUp, Users, Bot, Activity, ArrowUpRight } from "lucide-react"
+import { useEffect, useState } from "react"
+import { TrendingUp, Users, Bot, CreditCard, DollarSign, Calendar } from "lucide-react"
+
+interface AnalyticsData {
+  totalUsers: number
+  activeUsers: number
+  bannedUsers: number
+  totalBots: number
+  activeBots: number
+  totalPayments: number
+  pendingPayments: number
+  totalRevenue: number
+  // Dados por periodo
+  usersThisMonth: number
+  usersLastMonth: number
+  revenueThisMonth: number
+  revenueLastMonth: number
+  botsThisMonth: number
+  botsLastMonth: number
+}
 
 export default function AnalyticsPage() {
-  const stats = [
-    { icon: TrendingUp, label: "Crescimento", value: "--", color: "#95e468", bg: "rgba(149, 228, 104, 0.1)" },
-    { icon: Users, label: "Usuarios Novos", value: "--", color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
-    { icon: Bot, label: "Bots Criados", value: "--", color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
-    { icon: BarChart3, label: "Conversoes", value: "--", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+  const [data, setData] = useState<AnalyticsData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d")
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      try {
+        const res = await fetch(`/api/dragonadm/analytics?period=${period}`)
+        if (res.ok) {
+          const json = await res.json()
+          setData(json)
+        }
+      } catch (error) {
+        console.error("Erro ao carregar analytics:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadAnalytics()
+  }, [period])
+
+  const calcGrowth = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0
+    return Math.round(((current - previous) / previous) * 100)
+  }
+
+  const metrics = [
+    {
+      label: "Usuarios Total",
+      value: data?.totalUsers || 0,
+      icon: Users,
+      growth: calcGrowth(data?.usersThisMonth || 0, data?.usersLastMonth || 0),
+    },
+    {
+      label: "Novos este mes",
+      value: data?.usersThisMonth || 0,
+      icon: TrendingUp,
+      growth: calcGrowth(data?.usersThisMonth || 0, data?.usersLastMonth || 0),
+    },
+    {
+      label: "Bots Criados",
+      value: data?.totalBots || 0,
+      icon: Bot,
+      growth: calcGrowth(data?.botsThisMonth || 0, data?.botsLastMonth || 0),
+    },
+    {
+      label: "Bots Ativos",
+      value: data?.activeBots || 0,
+      icon: Bot,
+      highlight: true,
+    },
+    {
+      label: "Pagamentos",
+      value: data?.totalPayments || 0,
+      icon: CreditCard,
+    },
+    {
+      label: "Pendentes",
+      value: data?.pendingPayments || 0,
+      icon: CreditCard,
+    },
+    {
+      label: "Receita Total",
+      value: `R$ ${(data?.totalRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      highlight: true,
+    },
+    {
+      label: "Receita este mes",
+      value: `R$ ${(data?.revenueThisMonth || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      growth: calcGrowth(data?.revenueThisMonth || 0, data?.revenueLastMonth || 0),
+    },
   ]
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-6 lg:p-8 space-y-8">
-        {/* Header */}
-        <div className="pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center gap-3 mb-2">
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ 
-                background: 'linear-gradient(135deg, rgba(149, 228, 104, 0.2), rgba(34, 197, 94, 0.1))',
-                border: '1px solid rgba(149, 228, 104, 0.2)'
-              }}
+    <div className="p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Analytics</h1>
+        <div className="flex items-center gap-2">
+          {(["7d", "30d", "90d"] as const).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                period === p
+                  ? "bg-[#95e468] text-black"
+                  : "bg-white/5 text-[#888] hover:text-white"
+              }`}
             >
-              <TrendingUp className="w-5 h-5 text-[#95e468]" />
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">Analytics</h1>
-          </div>
-          <p className="text-[#666666] text-sm">
-            Metricas e estatisticas do sistema
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat, i) => (
-            <div
-              key={i}
-              className="group rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
-              style={{
-                background: '#0f0f0f',
-                border: '1px solid rgba(255,255,255,0.06)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = `${stat.color}30`
-                e.currentTarget.style.boxShadow = `0 0 25px ${stat.color}15`
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: stat.bg }}
-                >
-                  <stat.icon className="h-6 w-6" style={{ color: stat.color }} />
-                </div>
-                <div 
-                  className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                  style={{ background: 'rgba(102, 102, 102, 0.1)', color: '#666666' }}
-                >
-                  <ArrowUpRight className="w-3 h-3" />
-                  --%
-                </div>
-              </div>
-              <p className="text-3xl font-bold text-white mb-1">{stat.value}</p>
-              <p className="text-sm text-[#666666]">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Charts Section */}
-        <div 
-          className="rounded-2xl overflow-hidden"
-          style={{ 
-            background: '#0f0f0f',
-            border: '1px solid rgba(255,255,255,0.06)'
-          }}
-        >
-          <div 
-            className="px-6 py-5 flex items-center gap-3"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <div 
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: 'rgba(139, 92, 246, 0.1)' }}
-            >
-              <BarChart3 className="w-5 h-5 text-[#8b5cf6]" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-white">Graficos e Metricas</h2>
-              <p className="text-xs text-[#666666]">Visualizacao detalhada dos dados</p>
-            </div>
-          </div>
-          <div className="p-6">
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div 
-                className="w-24 h-24 rounded-3xl flex items-center justify-center mb-6"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(255,255,255,0.06)'
-                }}
-              >
-                <BarChart3 className="h-12 w-12 text-[#444444]" />
-              </div>
-              <h3 className="text-xl font-semibold text-[#666666] mb-2">
-                Em Desenvolvimento
-              </h3>
-              <p className="text-sm text-[#444444] max-w-sm">
-                Graficos e metricas detalhadas estarao disponiveis em breve
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Insights */}
-        <div className="grid gap-5 sm:grid-cols-2">
-          {[
-            { 
-              title: "Tendencia de Crescimento", 
-              description: "Analise de usuarios e receita ao longo do tempo",
-              icon: TrendingUp,
-              color: "#22c55e"
-            },
-            { 
-              title: "Engajamento de Usuarios", 
-              description: "Metricas de uso e retencao de usuarios",
-              icon: Activity,
-              color: "#3b82f6"
-            },
-          ].map((card, i) => (
-            <div
-              key={i}
-              className="group rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
-              style={{
-                background: '#0f0f0f',
-                border: '1px solid rgba(255,255,255,0.06)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = `${card.color}30`
-                e.currentTarget.style.boxShadow = `0 0 25px ${card.color}15`
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            >
-              <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: `${card.color}15` }}
-              >
-                <card.icon className="h-6 w-6" style={{ color: card.color }} />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">{card.title}</h3>
-              <p className="text-sm text-[#666666]">{card.description}</p>
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                <span className="text-xs text-[#444444]">Em breve</span>
-              </div>
-            </div>
+              {p === "7d" ? "7 dias" : p === "30d" ? "30 dias" : "90 dias"}
+            </button>
           ))}
         </div>
       </div>
-    </ScrollArea>
+
+      {/* Metrics Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {metrics.map((metric, i) => (
+          <div
+            key={i}
+            className={`rounded-xl p-5 border transition-all hover:border-[#95e468]/30 ${
+              metric.highlight ? "bg-[#95e468]/5 border-[#95e468]/20" : "bg-[#111] border-white/5"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                metric.highlight ? "bg-[#95e468]/20" : "bg-white/5"
+              }`}>
+                <metric.icon className={`h-5 w-5 ${metric.highlight ? "text-[#95e468]" : "text-white/60"}`} />
+              </div>
+              {metric.growth !== undefined && (
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                  metric.growth >= 0 ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                }`}>
+                  {metric.growth >= 0 ? "+" : ""}{metric.growth}%
+                </span>
+              )}
+            </div>
+            <p className={`text-2xl font-bold mb-1 ${metric.highlight ? "text-[#95e468]" : "text-white"}`}>
+              {isLoading ? "..." : metric.value}
+            </p>
+            <p className="text-sm text-[#666]">{metric.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="rounded-xl p-5 bg-[#111] border border-white/5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-[#95e468]/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-[#95e468]" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Usuarios</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Total</span>
+              <span className="text-sm font-medium text-white">{data?.totalUsers || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Ativos</span>
+              <span className="text-sm font-medium text-green-500">{data?.activeUsers || 0}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Banidos</span>
+              <span className="text-sm font-medium text-red-500">{data?.bannedUsers || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-5 bg-[#111] border border-white/5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-[#95e468]/10 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-[#95e468]" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">Receita</h3>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Total</span>
+              <span className="text-sm font-medium text-white">
+                R$ {(data?.totalRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Este mes</span>
+              <span className="text-sm font-medium text-[#95e468]">
+                R$ {(data?.revenueThisMonth || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-[#888]">Mes anterior</span>
+              <span className="text-sm font-medium text-[#666]">
+                R$ {(data?.revenueLastMonth || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }

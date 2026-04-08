@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Users,
   Bot,
@@ -10,9 +9,7 @@ import {
   Activity,
   DollarSign,
   ArrowUpRight,
-  ArrowDownRight,
   Zap,
-  Sparkles,
 } from "lucide-react"
 
 interface DashboardStats {
@@ -49,306 +46,79 @@ export default function DragonAdmDashboardPage() {
   }, [])
 
   const statCards = [
-    {
-      title: "Total Usuarios",
-      value: stats?.totalUsers || 0,
-      icon: Users,
-      iconColor: "#3b82f6",
-      bgGradient: "linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05))",
-      trend: "+12%",
-      trendUp: true,
-    },
-    {
-      title: "Usuarios Ativos",
-      value: stats?.activeUsers || 0,
-      icon: Activity,
-      iconColor: "#22c55e",
-      bgGradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05))",
-      trend: "+8%",
-      trendUp: true,
-    },
-    {
-      title: "Usuarios Banidos",
-      value: stats?.bannedUsers || 0,
-      icon: Users,
-      iconColor: "#ef4444",
-      bgGradient: "linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05))",
-      trend: "-2%",
-      trendUp: false,
-    },
-    {
-      title: "Total de Bots",
-      value: stats?.totalBots || 0,
-      icon: Bot,
-      iconColor: "#8b5cf6",
-      bgGradient: "linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05))",
-      trend: "+15%",
-      trendUp: true,
-    },
-    {
-      title: "Bots Ativos",
-      value: stats?.activeBots || 0,
-      icon: Zap,
-      iconColor: "#95e468",
-      bgGradient: "linear-gradient(135deg, rgba(149, 228, 104, 0.15), rgba(149, 228, 104, 0.05))",
-      trend: "+20%",
-      trendUp: true,
-    },
-    {
-      title: "Total Pagamentos",
-      value: stats?.totalPayments || 0,
-      icon: CreditCard,
-      iconColor: "#f59e0b",
-      bgGradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05))",
-      trend: "+5%",
-      trendUp: true,
-    },
-    {
-      title: "Receita Total",
+    { title: "Total Usuarios", value: stats?.totalUsers || 0, icon: Users },
+    { title: "Usuarios Ativos", value: stats?.activeUsers || 0, icon: Activity },
+    { title: "Banidos", value: stats?.bannedUsers || 0, icon: Users },
+    { title: "Total Bots", value: stats?.totalBots || 0, icon: Bot },
+    { title: "Bots Ativos", value: stats?.activeBots || 0, icon: Zap, highlight: true },
+    { title: "Pagamentos", value: stats?.totalPayments || 0, icon: CreditCard },
+    { 
+      title: "Receita Total", 
       value: `R$ ${(stats?.totalRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      iconColor: "#22c55e",
-      bgGradient: "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(149, 228, 104, 0.1))",
-      trend: "+18%",
-      trendUp: true,
-      highlight: true,
+      highlight: true
     },
-    {
-      title: "Pendentes",
-      value: stats?.pendingPayments || 0,
-      icon: TrendingUp,
-      iconColor: "#f59e0b",
-      bgGradient: "linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05))",
-      trend: "3 novos",
-      trendUp: true,
-    },
+    { title: "Pendentes", value: stats?.pendingPayments || 0, icon: TrendingUp },
   ]
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="p-6 lg:p-8 space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-6" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(149, 228, 104, 0.2), rgba(139, 92, 246, 0.1))',
-                  border: '1px solid rgba(149, 228, 104, 0.2)'
-                }}
-              >
-                <Sparkles className="w-5 h-5 text-[#95e468]" />
-              </div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">Dashboard</h1>
-            </div>
-            <p className="text-[#666666] text-sm">
-              Visao geral completa do sistema Dragon
-            </p>
-          </div>
-          <div 
-            className="flex items-center gap-2 px-4 py-2 rounded-full self-start"
-            style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}
-          >
-            <div className="w-2 h-2 rounded-full bg-[#22c55e] admin-pulse" />
-            <span className="text-xs text-[#22c55e] font-medium">Atualizado agora</span>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((stat, index) => (
-            <div
-              key={index}
-              className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1"
-              style={{
-                background: stat.highlight 
-                  ? 'linear-gradient(145deg, #0f0f0f 0%, #111111 100%)'
-                  : '#0f0f0f',
-                border: stat.highlight 
-                  ? '1px solid rgba(149, 228, 104, 0.2)' 
-                  : '1px solid rgba(255,255,255,0.06)',
-                boxShadow: stat.highlight 
-                  ? '0 0 30px rgba(149, 228, 104, 0.1)' 
-                  : 'none'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(149, 228, 104, 0.3)'
-                e.currentTarget.style.boxShadow = '0 0 30px rgba(149, 228, 104, 0.15)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = stat.highlight 
-                  ? 'rgba(149, 228, 104, 0.2)' 
-                  : 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.boxShadow = stat.highlight 
-                  ? '0 0 30px rgba(149, 228, 104, 0.1)' 
-                  : 'none'
-              }}
-            >
-              {/* Top highlight line */}
-              <div 
-                className="absolute top-0 left-4 right-4 h-px"
-                style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)' }}
-              />
-              
-              {/* Glow effect on hover */}
-              <div 
-                className="absolute top-0 right-0 w-32 h-32 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                style={{ 
-                  background: `radial-gradient(circle, ${stat.iconColor}15 0%, transparent 70%)`,
-                }}
-              />
-
-              <div className="flex items-start justify-between mb-4 relative z-10">
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                  style={{ 
-                    background: stat.bgGradient,
-                    border: `1px solid ${stat.iconColor}20`
-                  }}
-                >
-                  <stat.icon className="h-6 w-6" style={{ color: stat.iconColor }} />
-                </div>
-                
-                {stat.trend && (
-                  <div 
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                    style={{ 
-                      background: stat.trendUp ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      color: stat.trendUp ? '#22c55e' : '#ef4444'
-                    }}
-                  >
-                    {stat.trendUp ? (
-                      <ArrowUpRight className="w-3 h-3" />
-                    ) : (
-                      <ArrowDownRight className="w-3 h-3" />
-                    )}
-                    {stat.trend}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative z-10">
-                <p 
-                  className="text-3xl font-bold text-white mb-1 tracking-tight"
-                  style={stat.highlight ? {
-                    background: 'linear-gradient(135deg, #95e468, #22c55e)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent'
-                  } : {}}
-                >
-                  {isLoading ? (
-                    <span className="inline-block w-20 h-8 rounded-lg admin-skeleton" />
-                  ) : (
-                    stat.value
-                  )}
-                </p>
-                <p className="text-sm text-[#666666]">{stat.title}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Activity Section */}
-        <div 
-          className="rounded-2xl overflow-hidden"
-          style={{ 
-            background: '#0f0f0f',
-            border: '1px solid rgba(255,255,255,0.06)'
-          }}
-        >
-          {/* Card Header */}
-          <div 
-            className="px-6 py-5 flex items-center justify-between"
-            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-          >
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(139, 92, 246, 0.1)' }}
-              >
-                <Activity className="w-5 h-5 text-[#8b5cf6]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-semibold text-white">Atividade Recente</h2>
-                <p className="text-xs text-[#666666]">Ultimas acoes do sistema</p>
-              </div>
-            </div>
-            <button 
-              className="px-4 py-2 rounded-xl text-sm font-medium text-[#a1a1a1] transition-all duration-200 hover:text-white"
-              style={{ 
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)'
-              }}
-            >
-              Ver Todas
-            </button>
-          </div>
-
-          {/* Card Content */}
-          <div className="p-6">
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div 
-                className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6"
-                style={{ 
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))',
-                  border: '1px solid rgba(255,255,255,0.06)'
-                }}
-              >
-                <Activity className="h-10 w-10 text-[#444444]" />
-              </div>
-              <h3 className="text-lg font-medium text-[#666666] mb-2">
-                Nenhuma atividade recente
-              </h3>
-              <p className="text-sm text-[#444444] max-w-sm">
-                As atividades do sistema aparacerao aqui em tempo real
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid gap-5 sm:grid-cols-3">
-          {[
-            { icon: Users, label: "Gerenciar Usuarios", href: "/dragonadm/users", color: "#3b82f6" },
-            { icon: Bot, label: "Visualizar Bots", href: "/dragonadm/bots", color: "#8b5cf6" },
-            { icon: CreditCard, label: "Ver Pagamentos", href: "/dragonadm/payments", color: "#f59e0b" },
-          ].map((action, i) => (
-            <a
-              key={i}
-              href={action.href}
-              className="group relative rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 flex items-center gap-4"
-              style={{
-                background: '#0f0f0f',
-                border: '1px solid rgba(255,255,255,0.06)'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = `${action.color}40`
-                e.currentTarget.style.boxShadow = `0 0 30px ${action.color}20`
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
-                e.currentTarget.style.boxShadow = 'none'
-              }}
-            >
-              <div 
-                className="w-14 h-14 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                style={{ 
-                  background: `linear-gradient(135deg, ${action.color}20, ${action.color}10)`,
-                  border: `1px solid ${action.color}30`
-                }}
-              >
-                <action.icon className="h-7 w-7" style={{ color: action.color }} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-white mb-1">{action.label}</h3>
-                <p className="text-xs text-[#666666]">Clique para acessar</p>
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-[#444444] ml-auto transition-all duration-300 group-hover:text-white group-hover:translate-x-1 group-hover:-translate-y-1" />
-            </a>
-          ))}
+    <div className="p-6 lg:p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#95e468]/10">
+          <div className="w-2 h-2 rounded-full bg-[#95e468]" />
+          <span className="text-xs text-[#95e468]">Atualizado</span>
         </div>
       </div>
-    </ScrollArea>
+
+      {/* Stats Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {statCards.map((stat, index) => (
+          <div
+            key={index}
+            className={`rounded-xl p-5 border transition-all hover:border-[#95e468]/30 ${
+              stat.highlight ? 'bg-[#95e468]/5 border-[#95e468]/20' : 'bg-[#111] border-white/5'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                stat.highlight ? 'bg-[#95e468]/20' : 'bg-white/5'
+              }`}>
+                <stat.icon className={`h-5 w-5 ${stat.highlight ? 'text-[#95e468]' : 'text-white/60'}`} />
+              </div>
+            </div>
+            <p className={`text-2xl font-bold mb-1 ${stat.highlight ? 'text-[#95e468]' : 'text-white'}`}>
+              {isLoading ? '...' : stat.value}
+            </p>
+            <p className="text-sm text-[#666]">{stat.title}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
+          { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
+          { icon: CreditCard, label: "Pagamentos", href: "/dragonadm/payments" },
+        ].map((action, i) => (
+          <a
+            key={i}
+            href={action.href}
+            className="group rounded-xl p-4 bg-[#111] border border-white/5 hover:border-[#95e468]/30 transition-all flex items-center gap-4"
+          >
+            <div className="w-12 h-12 rounded-lg bg-[#95e468]/10 flex items-center justify-center group-hover:bg-[#95e468]/20 transition-colors">
+              <action.icon className="h-6 w-6 text-[#95e468]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-white">{action.label}</h3>
+              <p className="text-xs text-[#666]">Gerenciar</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-[#444] ml-auto group-hover:text-[#95e468] transition-colors" />
+          </a>
+        ))}
+      </div>
+    </div>
   )
 }
