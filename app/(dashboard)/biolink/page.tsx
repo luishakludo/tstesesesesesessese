@@ -29,25 +29,21 @@ const pageTypes = [
   {
     id: "presell" as const,
     name: "Presell",
-    description: "Pagina...",
     image: "/images/presell-icon.png",
   },
   {
     id: "conversion" as const,
     name: "Privacy",
-    description: "Pagina...",
-    image: "/images/privacy-icon.jpg",
+    image: "/images/privacy-icon.png",
   },
   {
     id: "dragonbio" as const,
     name: "Dragon Bio",
-    description: "Sua...",
     image: "/images/dragonbio-icon.png",
   },
   {
     id: "checkout" as const,
     name: "Checkout",
-    description: "Pagina...",
     image: "/images/checkout-icon.png",
   },
 ]
@@ -419,13 +415,11 @@ export default function BioLinkPage() {
               <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden">
-                      <img 
-                        src="/images/seus-sites-icon.png" 
-                        alt="Seus Sites"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <svg viewBox="0 0 24 24" className="w-8 h-8 text-accent" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="2" y1="12" x2="22" y2="12" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                    </svg>
                     <div>
                       <h3 className="text-background dark:text-foreground font-semibold">Seus Sites</h3>
                       <p className="text-muted-foreground text-xs">Performance geral</p>
@@ -516,12 +510,9 @@ export default function BioLinkPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#1A1A1A] mb-0.5 group-hover:text-[#111] transition-colors">
+                        <h3 className="font-semibold text-base text-[#1A1A1A] group-hover:text-[#111] transition-colors">
                           {type.name}
                         </h3>
-                        <p className="text-xs text-[#666666] line-clamp-1">
-                          {type.description}
-                        </p>
                       </div>
                       <div className="w-9 h-9 rounded-lg bg-[#f3f4f6] flex items-center justify-center group-hover:bg-[#ccff00] transition-colors flex-shrink-0">
                         {creating ? (
