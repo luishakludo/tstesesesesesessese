@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
@@ -99,22 +100,16 @@ export function DashboardSidebar({ onNavigate, defaultCollapsed = false }: Dashb
 
         {/* Logo */}
         <div className="flex items-center justify-center pt-6 pb-4 px-4">
-          {collapsed ? (
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 text-accent-foreground" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-              </svg>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent">
-                <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 text-accent-foreground" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                </svg>
-              </div>
-              <span className="text-lg font-bold text-foreground tracking-tight">Dragon</span>
-            </div>
-          )}
+          <Image
+            src="/images/logo-dragon.png"
+            alt="Dragon"
+            width={160}
+            height={45}
+            className={cn(
+              "object-contain",
+              collapsed ? "h-8 w-8" : "h-9 w-auto max-w-[160px]"
+            )}
+          />
         </div>
 
         {/* User Profile + Bot Switcher */}

@@ -419,12 +419,10 @@ export default function BioLinkPage() {
               <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden">
-                      <img 
-                        src="/images/seus-sites-icon.png" 
-                        alt="Seus Sites"
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-accent/80 flex items-center justify-center shadow-lg">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 text-black" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                      </svg>
                     </div>
                     <div>
                       <h3 className="text-background dark:text-foreground font-semibold">Seus Sites</h3>
