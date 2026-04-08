@@ -813,13 +813,15 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 user_id: botDataPack.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
-                telegram_username: from?.username || null,
-                telegram_first_name: from?.first_name || null,
+                telegram_username: userUsername || null,
+                telegram_first_name: userFirstName || null,
+                telegram_last_name: userLastName || null,
                 amount: packPrice,
                 status: "pending",
                 payment_method: "pix",
                 gateway: "mercadopago",
                 external_payment_id: String(pixData.id),
+                description: `Pagamento - ${packName}`,
                 product_name: packName,
                 product_type: "pack",
                 qr_code_url: qrCodeUrl,
@@ -1019,7 +1021,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           }
           
           // Save payment
-          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment)
+          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment, "productType:", productType)
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: botDataOB.user_id,
@@ -1028,12 +1030,16 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             status: "pending",
             payment_method: "pix",
             gateway: "mercadopago",
-            external_payment_id: pixResultOB.paymentId,
+            external_payment_id: String(pixResultOB.paymentId),
             copy_paste: pixResultOB.copyPaste,
             qr_code: pixResultOB.qrCode,
             qr_code_url: pixResultOB.qrCodeUrl,
             telegram_user_id: String(telegramUserId),
             telegram_chat_id: String(chatId),
+            telegram_username: userUsername || null,
+            telegram_first_name: userFirstName || null,
+            telegram_last_name: userLastName || null,
+            description: `Pagamento - ${description}`,
             product_name: description,
             product_type: productType,
             created_at: new Date().toISOString(),
@@ -1152,10 +1158,16 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 user_id: botOwner?.user_id,
                 bot_id: botUuid,
                 telegram_user_id: String(telegramUserId),
+                telegram_username: userUsername || null,
+                telegram_first_name: userFirstName || null,
+                telegram_last_name: userLastName || null,
                 amount: upsellPrice,
                 status: "pending",
                 payment_method: "pix",
+                gateway: "mercadopago",
                 external_payment_id: String(pixData.id),
+                description: `Pagamento - ${upsellName}`,
+                product_name: upsellName,
                 product_type: "upsell",
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -1369,23 +1381,28 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   await sendTelegramMessage(botToken, chatId, `<code>${pixResult.copyPaste}</code>`)
                   
                   // Salvar pagamento
-                  console.log("[v0] Saving downsell payment - user_id:", botData?.user_id, "bot_id:", botUuid, "amount:", price)
-                  const { error: downsellPaymentError } = await supabase.from("payments").insert({
-                    user_id: botData?.user_id,
-                    bot_id: botUuid,
-                    telegram_user_id: String(telegramUserId),
-                    telegram_username: from?.username || null,
-                    telegram_first_name: from?.first_name || null,
-                    gateway: gateway.gateway_name || "mercadopago",
-                    external_payment_id: pixResult.paymentId,
-                    amount: price,
-                    description: `Downsell - Oferta Especial`,
-                    qr_code: pixResult.qrCode,
-                    qr_code_url: pixResult.qrCodeUrl,
-                    copy_paste: pixResult.copyPaste,
-                    status: "pending",
-                    product_type: "downsell"
-                  })
+              console.log("[v0] Saving downsell payment - user_id:", botData?.user_id, "bot_id:", botUuid, "amount:", price)
+              const { error: downsellPaymentError } = await supabase.from("payments").insert({
+                user_id: botData?.user_id,
+                bot_id: botUuid,
+                telegram_user_id: String(telegramUserId),
+                telegram_username: userUsername || null,
+                telegram_first_name: userFirstName || null,
+                telegram_last_name: userLastName || null,
+                payment_method: "pix",
+                gateway: gateway.gateway_name || "mercadopago",
+                external_payment_id: String(pixResult.paymentId),
+                amount: price,
+                description: `Downsell - Oferta Especial`,
+                product_name: "Oferta Especial",
+                qr_code: pixResult.qrCode,
+                qr_code_url: pixResult.qrCodeUrl,
+                copy_paste: pixResult.copyPaste,
+                status: "pending",
+                product_type: "downsell",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
                   if (downsellPaymentError) {
                     console.error("[v0] Error saving downsell payment:", downsellPaymentError)
                   } else {
@@ -1693,17 +1710,22 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             user_id: botData?.user_id,
             bot_id: botUuid,
             telegram_user_id: String(telegramUserId),
-            telegram_username: from?.username || null,
-            telegram_first_name: from?.first_name || null,
-            telegram_last_name: from?.last_name || null,
+            telegram_username: userUsername || null,
+            telegram_first_name: userFirstName || null,
+            telegram_last_name: userLastName || null,
+            payment_method: "pix",
             gateway: gateway.gateway_name || "mercadopago",
-            external_payment_id: pixResult.paymentId,
+            external_payment_id: String(pixResult.paymentId),
             amount: planPrice,
             description: `Pagamento - ${planName}`,
+            product_name: planName,
+            product_type: "plan",
             qr_code: pixResult.qrCode,
             qr_code_url: pixResult.qrCodeUrl,
             copy_paste: pixResult.copyPaste,
             status: "pending",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
           }).select().single()
           
           if (savePlanError) {

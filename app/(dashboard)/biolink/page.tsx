@@ -408,321 +408,252 @@ export default function BioLinkPage() {
     <>
       
       <ScrollArea className="flex-1">
-        <div className="p-4 md:p-8 bg-[#f4f5f7] min-h-full">
-          <div className="max-w-5xl mx-auto">
+        <div className="min-h-full bg-[#f3f4f6] text-[#1A1A1A] pb-8">
+          <div className="w-full max-w-md mx-auto px-4 sm:px-6 lg:max-w-5xl space-y-6 pt-6">
+            
+            {/* Hero Section - Sempre igual */}
+            <section className="text-center space-y-2 lg:text-left">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-[#1A1A1A] text-balance">
+                Dragon Sites
+              </h2>
+              <p className="text-[#666666] text-sm max-w-xs mx-auto lg:mx-0 lg:max-w-md">
+                Crie paginas de alta conversao em minutos. Presells, checkouts e links na bio.
+              </p>
+            </section>
+
+            {/* Stats Hero Card - Sempre igual */}
+            <div className="relative overflow-hidden rounded-[24px] p-6 sm:p-8 bg-foreground dark:bg-card text-background dark:text-foreground">
+              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[80%] h-20 bg-accent opacity-20 blur-[40px] rounded-full pointer-events-none"></div>
+              <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-background dark:text-foreground font-semibold">Seus Sites</h3>
+                      <p className="text-muted-foreground text-xs">Performance geral</p>
+                    </div>
+                  </div>
+                  <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
+                    <DialogTrigger asChild>
+                      <Button className="bg-accent hover:bg-accent/90 text-black font-bold border-0 rounded-xl px-5" disabled={creating}>
+                        {creating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Criando...
+                          </>
+                        ) : (
+                          "Criar Site"
+                        )}
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-card border-[#EEEEEE] sm:max-w-lg rounded-[24px]">
+                      <DialogHeader>
+                        <DialogTitle className="text-foreground text-center">
+                          Escolha o tipo de pagina
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground text-center">
+                          Selecione o modelo ideal para seu objetivo
+                        </p>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-3 pt-4">
+                        {pageTypes.map((type) => (
+                          <button
+                            key={type.id}
+                            onClick={() => handleSelectType(type.id)}
+                            disabled={creating}
+                            className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#EEEEEE] bg-white hover:border-[#ccff00] hover:shadow-md transition-all text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
+                              {type.id === "presell" && (
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                </svg>
+                              )}
+                              {type.id === "conversion" && (
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <circle cx="12" cy="12" r="10"/>
+                                  <circle cx="12" cy="12" r="2"/>
+                                </svg>
+                              )}
+                              {type.id === "dragonbio" && (
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                </svg>
+                              )}
+                              {type.id === "checkout" && (
+                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <circle cx="9" cy="21" r="1"/>
+                                  <circle cx="20" cy="21" r="1"/>
+                                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                                </svg>
+                              )}
+                            </div>
+                            <div>
+                              <h3 className="text-sm font-semibold text-foreground mb-0.5">
+                                {type.name}
+                              </h3>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {type.description}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-background/10 dark:border-border">
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">Paginas Ativas</p>
+                    <p className="text-xl lg:text-2xl font-bold">{totalPages}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-[10px] uppercase tracking-wider mb-1">Visitas Totais</p>
+                    <p className="text-xl lg:text-2xl font-bold">{totalVisitas.toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             {!hasPages ? (
-              /* Estado Vazio - Layout Inovador */
-              <div className="flex flex-col gap-8">
+              /* Estado Vazio - Escolha de tipo */
+              <div className="space-y-4 lg:bg-white lg:rounded-[24px] lg:p-6 lg:shadow-sm lg:border lg:border-[#EEEEEE]">
+                <label className="text-xs font-semibold text-[#666666] uppercase tracking-wider">Escolha um tipo de pagina</label>
                 
-                {/* Hero Module - Card Principal Escuro */}
-                <div className="bg-foreground dark:bg-card rounded-[28px] p-8 md:p-10 relative overflow-hidden">
-                  {/* Glows decorativos */}
-                  <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#a3e635] opacity-10 blur-[80px] rounded-full pointer-events-none"></div>
-                  <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-500 opacity-5 blur-[60px] rounded-full pointer-events-none"></div>
-                  
-                  <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-                    {/* Texto e CTA */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-[#a3e635] flex items-center justify-center">
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-black" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                          </svg>
-                        </div>
-                        <span className="text-[#a3e635] text-xs font-bold uppercase tracking-wider">Dragon Sites</span>
-                      </div>
-                      
-                      <h1 className="text-2xl md:text-3xl font-bold text-background dark:text-foreground mb-3">
-                        Crie paginas de alta conversao
-                      </h1>
-                      <p className="text-muted-foreground text-sm md:text-base max-w-md">
-                        Construa presells, paginas de vendas, checkouts e links na bio em minutos. Tudo otimizado para converter.
-                      </p>
-                    </div>
-                    
-                    {/* Stats Preview - Mini Widgets */}
-                    <div className="flex gap-3">
-                      <div className="bg-[#1c1c1c] rounded-2xl p-4 border border-white/5 min-w-[100px]">
-                        <div className="text-2xl font-bold text-background dark:text-foreground mb-1">0</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Paginas</div>
-                      </div>
-                      <div className="bg-[#1c1c1c] rounded-2xl p-4 border border-white/5 min-w-[100px]">
-                        <div className="text-2xl font-bold text-background dark:text-foreground mb-1">0</div>
-                        <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Visitas</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section Title */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-lg font-semibold text-foreground">Escolha um tipo de pagina</h2>
-                    <p className="text-sm text-muted-foreground">Selecione o modelo ideal para seu objetivo</p>
-                  </div>
-                </div>
-
-                {/* Grid de Tipos - Cards Horizontais */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {pageTypes.map((type) => (
                     <button 
                       key={type.id}
                       onClick={() => handleSelectType(type.id)}
                       disabled={creating}
-                      className="group bg-card rounded-[20px] p-5 border border-border hover:border-gray-200 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     >
-                      {/* Icon com gradiente */}
-                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.gradient} flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
                         {type.id === "presell" && (
-                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="16" y1="13" x2="8" y2="13"/>
-                            <line x1="16" y1="17" x2="8" y2="17"/>
                           </svg>
                         )}
                         {type.id === "conversion" && (
-                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="10"/>
-                            <circle cx="12" cy="12" r="6"/>
                             <circle cx="12" cy="12" r="2"/>
                           </svg>
                         )}
                         {type.id === "dragonbio" && (
-                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
                           </svg>
                         )}
                         {type.id === "checkout" && (
-                          <svg viewBox="0 0 24 24" className="w-6 h-6 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
+                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="9" cy="21" r="1"/>
                             <circle cx="20" cy="21" r="1"/>
                             <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
                           </svg>
                         )}
                       </div>
-                      
-                      {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground mb-1 group-hover:text-[#111] transition-colors">
+                        <h3 className="font-semibold text-[#1A1A1A] mb-0.5 group-hover:text-[#111] transition-colors">
                           {type.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground line-clamp-1">
+                        <p className="text-xs text-[#666666] line-clamp-1">
                           {type.description}
                         </p>
                       </div>
-                      
-                      {/* Arrow or Loading */}
-                      <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center group-hover:bg-foreground dark:bg-card transition-colors flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-[#f3f4f6] flex items-center justify-center group-hover:bg-[#ccff00] transition-colors flex-shrink-0">
                         {creating ? (
-                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                          <Loader2 className="w-4 h-4 animate-spin text-[#666666]" />
                         ) : (
-                          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-background dark:text-foreground transition-colors" />
+                          <ArrowRight className="w-4 h-4 text-[#666666] group-hover:text-[#1A1A1A] transition-colors" />
                         )}
                       </div>
                     </button>
                   ))}
                 </div>
-
-                {/* Tip Module - Footer */}
-                <div className="flex items-start gap-3 text-muted-foreground mt-4">
-                  <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg viewBox="0 0 24 24" className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10"/>
-                      <path d="M12 16v-4M12 8h.01"/>
-                    </svg>
-                  </div>
-                  <p className="text-sm">
-                    <span className="text-gray-600 font-medium">Dica:</span> Comece com uma pagina de Presell para aquecer seus leads antes de enviar para a oferta principal.
-                  </p>
-                </div>
+                
+                <p className="text-xs text-[#666666] text-center lg:text-left">
+                  Dica: Comece com uma pagina de Presell para aquecer seus leads antes de enviar para a oferta principal.
+                </p>
               </div>
             ) : (
-              /* Estado Com Paginas */
-              <div className="flex flex-col gap-6">
+              /* Estado Com Paginas - Lista */
+              <section className="space-y-4 lg:bg-white lg:rounded-[24px] lg:p-6 lg:shadow-sm lg:border lg:border-[#EEEEEE]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#666666] uppercase tracking-wider">Suas Paginas</label>
+                  <span className="text-xs text-[#666666]">{totalPages} {totalPages === 1 ? 'pagina' : 'paginas'}</span>
+                </div>
                 
-                {/* Hero Stats Module */}
-                <div className="bg-foreground dark:bg-card rounded-[28px] p-6 md:p-8 relative overflow-hidden">
-                  <div className="absolute -top-20 -right-20 w-60 h-60 bg-[#a3e635] opacity-10 blur-[80px] rounded-full pointer-events-none"></div>
-                  
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#a3e635] flex items-center justify-center">
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-black" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                          </svg>
+                <div className="flex flex-col gap-3">
+                  {dragonBioSites.map((site) => {
+                    const pageType = getPageTypeFromSite(site)
+                    const typeConfig = getPageTypeConfig(pageType)
+                    return (
+                      <div key={site.id} className="bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-md transition-all flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${typeConfig.gradient} flex items-center justify-center shadow-sm`}>
+                            {typeConfig.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <h4 className="font-medium text-[#1A1A1A]">{site.nome}</h4>
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${site.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-[#666666]'}`}>
+                                {site.published ? 'Publicado' : 'Rascunho'}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[#666666]">/s/{site.slug} • {site.views || 0} visitas</p>
+                          </div>
                         </div>
-                        <div>
-                          <h2 className="text-background dark:text-foreground font-semibold">Seus Dragon Sites</h2>
-                          <p className="text-muted-foreground text-xs">Performance geral das suas paginas</p>
-                        </div>
-                      </div>
-                      
-                      <Dialog open={dialogOpen} onOpenChange={handleDialogChange}>
-                        <DialogTrigger asChild>
-                          <Button className="bg-[#a3e635] text-black hover:bg-[#b4f04a] rounded-xl h-10 px-5 font-semibold" disabled={creating}>
-                            {creating ? (
-                              <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Criando...
-                              </>
-                            ) : (
-                              "Criar Site"
-                            )}
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEditPage(site)}
+                            className="h-9 px-3 rounded-lg bg-[#f3f4f6] text-[#1A1A1A] hover:bg-[#ccff00] hover:text-[#1A1A1A]"
+                          >
+                            <Edit3 className="w-4 h-4 mr-2" />
+                            Editar
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-card border-gray-200 sm:max-w-lg rounded-[24px]">
-                          <DialogHeader>
-                            <DialogTitle className="text-foreground text-center">
-                              Escolha o tipo de pagina
-                            </DialogTitle>
-                            <p className="text-sm text-muted-foreground text-center">
-                              Selecione o modelo ideal para seu objetivo
-                            </p>
-                          </DialogHeader>
-                          <div className="grid grid-cols-2 gap-3 pt-4">
-                            {pageTypes.map((type) => (
-                              <button
-                                key={type.id}
-                                onClick={() => handleSelectType(type.id)}
-                                disabled={creating}
-                                className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-border bg-muted/50 hover:bg-card hover:border-gray-200 hover:shadow-md transition-all text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-lg bg-[#f3f4f6] text-[#666666] hover:bg-gray-200 hover:text-[#1A1A1A]"
                               >
-                                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
-                                  {type.id === "presell" && (
-                                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                    </svg>
-                                  )}
-                                  {type.id === "conversion" && (
-                                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <circle cx="12" cy="12" r="10"/>
-                                      <circle cx="12" cy="12" r="2"/>
-                                    </svg>
-                                  )}
-                                  {type.id === "dragonbio" && (
-                                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                    </svg>
-                                  )}
-                                  {type.id === "checkout" && (
-                                    <svg viewBox="0 0 24 24" className="w-5 h-5 text-background dark:text-foreground" fill="none" stroke="currentColor" strokeWidth="2">
-                                      <circle cx="9" cy="21" r="1"/>
-                                      <circle cx="20" cy="21" r="1"/>
-                                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                                    </svg>
-                                  )}
-                                </div>
-                                <div>
-                                  <h3 className="text-sm font-semibold text-foreground mb-0.5">
-                                    {type.name}
-                                  </h3>
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {type.description}
-                                  </p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#1c1c1c] rounded-2xl p-4 border border-white/5">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
-                          <div className="w-2 h-2 rounded-full bg-[#a3e635]"></div>
-                          Paginas Ativas
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem onClick={() => handleCopyLink(site.slug)}>
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copiar Link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => window.open(`/s/${site.slug}`, '_blank')}>
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Abrir Pagina
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleDeletePage(site.id)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <div className="text-2xl font-bold text-background dark:text-foreground">{totalPages}</div>
                       </div>
-                      <div className="bg-[#1c1c1c] rounded-2xl p-4 border border-white/5">
-                        <div className="flex items-center gap-2 text-muted-foreground text-xs mb-2">
-                          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                          Visitas Totais
-                        </div>
-                        <div className="text-2xl font-bold text-background dark:text-foreground">{totalVisitas.toLocaleString('pt-BR')}</div>
-                      </div>
-                    </div>
-                  </div>
+                    )
+                  })}
                 </div>
-
-                {/* Pages List */}
-                <div className="bg-card rounded-[24px] border border-border">
-                  <div className="p-5 border-b border-border">
-                    <h3 className="font-semibold text-foreground">Suas Paginas</h3>
-                  </div>
-                  <div className="divide-y divide-gray-50">
-                    {dragonBioSites.map((site) => {
-                      const pageType = getPageTypeFromSite(site)
-                      const typeConfig = getPageTypeConfig(pageType)
-                      return (
-                        <div key={site.id} className="p-5 flex items-center justify-between hover:bg-muted/50 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${typeConfig.gradient} flex items-center justify-center shadow-sm`}>
-                              {typeConfig.icon}
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <h4 className="font-medium text-foreground">{site.nome}</h4>
-                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${site.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-muted-foreground'}`}>
-                                  {site.published ? 'Publicado' : 'Rascunho'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-muted-foreground">/s/{site.slug} • {site.views || 0} visitas</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleEditPage(site)}
-                              className="h-9 px-3 rounded-lg bg-muted text-gray-600 hover:bg-gray-100 hover:text-foreground"
-                            >
-                              <Edit3 className="w-4 h-4 mr-2" />
-                              Editar
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 rounded-lg bg-muted text-muted-foreground hover:bg-gray-100 hover:text-gray-600"
-                                >
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem onClick={() => handleCopyLink(site.slug)}>
-                                  <Copy className="w-4 h-4 mr-2" />
-                                  Copiar Link
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => window.open(`/s/${site.slug}`, '_blank')}>
-                                  <ExternalLink className="w-4 h-4 mr-2" />
-                                  Abrir Pagina
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeletePage(site.id)}
-                                  className="text-red-600 focus:text-red-600"
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Excluir
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
+              </section>
             )}
           </div>
         </div>
@@ -730,7 +661,7 @@ export default function BioLinkPage() {
 
       {/* Dialog de Selecao de Tipo de Presell */}
       <Dialog open={presellDialogOpen} onOpenChange={setPresellDialogOpen}>
-        <DialogContent className="bg-card border-gray-200 sm:max-w-lg rounded-[24px]">
+        <DialogContent className="bg-card border-[#EEEEEE] sm:max-w-lg rounded-[24px]">
           <DialogHeader>
             <DialogTitle className="text-foreground text-center">
               Escolha o tipo de Presell
@@ -745,7 +676,7 @@ export default function BioLinkPage() {
             <button 
               onClick={() => handleSelectPresellType("age-verification")}
               disabled={creating}
-              className="group bg-card rounded-[16px] p-4 border border-border hover:border-orange-300 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2">
@@ -753,21 +684,21 @@ export default function BioLinkPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-orange-600 transition-colors">
+                <h3 className="font-semibold text-foreground mb-0.5">
                   Verificacao de Idade
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Pagina +18 com botoes de confirmacao
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-orange-500 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
 
             {/* Pagina de Obrigado */}
             <button 
               onClick={() => handleSelectPresellType("thank-you")}
               disabled={creating}
-              className="group bg-card rounded-[16px] p-4 border border-border hover:border-green-300 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -775,21 +706,21 @@ export default function BioLinkPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-green-600 transition-colors">
+                <h3 className="font-semibold text-foreground mb-0.5">
                   Pagina de Obrigado
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Thank you page com mensagem de sucesso
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-green-500 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
 
             {/* Redirecionamento */}
             <button 
               onClick={() => handleSelectPresellType("redirect")}
               disabled={creating}
-              className="group bg-card rounded-[16px] p-4 border border-border hover:border-blue-300 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2">
@@ -799,14 +730,14 @@ export default function BioLinkPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-blue-600 transition-colors">
+                <h3 className="font-semibold text-foreground mb-0.5">
                   Redirecionamento
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Pagina com redirect automatico
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
           </div>
 
@@ -821,7 +752,7 @@ export default function BioLinkPage() {
 
       {/* Dialog de Selecao de Tipo de Checkout */}
       <Dialog open={checkoutDialogOpen} onOpenChange={setCheckoutDialogOpen}>
-        <DialogContent className="bg-card border-gray-200 sm:max-w-lg rounded-[24px]">
+        <DialogContent className="bg-card border-[#EEEEEE] sm:max-w-lg rounded-[24px]">
           <DialogHeader>
             <DialogTitle className="text-foreground text-center">
               Escolha o tipo de Checkout
@@ -836,7 +767,7 @@ export default function BioLinkPage() {
             <button 
               onClick={() => handleSelectCheckoutType("direto")}
               disabled={creating}
-              className="group bg-card rounded-[16px] p-4 border border-border hover:border-emerald-300 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2">
@@ -845,21 +776,21 @@ export default function BioLinkPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-emerald-600 transition-colors">
+                <h3 className="font-semibold text-foreground mb-0.5">
                   Checkout Direto
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   QR Code PIX direto, sem formulario
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
 
             {/* Checkout Normal */}
             <button 
               onClick={() => handleSelectCheckoutType("normal")}
               disabled={creating}
-              className="group bg-card rounded-[16px] p-4 border border-border hover:border-blue-300 hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                 <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2">
@@ -870,14 +801,14 @@ export default function BioLinkPage() {
                 </svg>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-foreground mb-0.5 group-hover:text-blue-600 transition-colors">
+                <h3 className="font-semibold text-foreground mb-0.5">
                   Checkout com Formulario
                 </h3>
                 <p className="text-xs text-muted-foreground">
                   Coleta dados (email, nome, CPF) antes do PIX
                 </p>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+              <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </button>
           </div>
 

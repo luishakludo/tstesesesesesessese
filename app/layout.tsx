@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { AuthProvider } from "@/lib/auth-context"
 import { ThemeProvider } from "@/components/theme-provider"
+import { SupportChat } from "@/components/support-chat"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
@@ -32,6 +33,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             {children}
+            <SupportChat />
           </AuthProvider>
         </ThemeProvider>
       </body>
