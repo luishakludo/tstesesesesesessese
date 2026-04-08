@@ -303,6 +303,7 @@ export default function UsersManagementPage() {
             </div>
           )}
         </div>
+      </div>
 
       {/* User Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
