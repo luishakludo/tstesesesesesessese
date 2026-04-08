@@ -109,6 +109,20 @@ export default function CampaignsPage() {
   
   const [deleting, setDeleting] = useState<string | null>(null)
   const [activating, setActivating] = useState<string | null>(null)
+  
+  // Import Modal State
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importBotId, setImportBotId] = useState<string | null>(null)
+  const [importText, setImportText] = useState("")
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{
+    success: boolean
+    imported?: number
+    skipped?: number
+    duplicates?: number
+    error?: string
+    parseErrors?: string[]
+  } | null>(null)
 
   const fetchCampaigns = useCallback(async () => {
     if (!selectedBot) return
@@ -183,6 +197,43 @@ export default function CampaignsPage() {
     setNewName("")
     setSelectedAudience(null)
     setStep(1)
+  }
+
+  const handleImportUsers = async () => {
+    if (!importBotId || !importText.trim()) return
+
+    setImporting(true)
+    setImportResult(null)
+
+    try {
+      const res = await fetch("/api/remarketing/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          botId: importBotId,
+          textData: importText
+        })
+      })
+
+      const data = await res.json()
+      setImportResult(data)
+
+      if (data.success && importBotId) {
+        // Refresh users for this bot
+        fetchBotUsers(importBotId)
+      }
+    } catch {
+      setImportResult({ success: false, error: "Falha ao importar usuarios" })
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const resetImportModal = () => {
+    setShowImportModal(false)
+    setImportBotId(null)
+    setImportText("")
+    setImportResult(null)
   }
 
   const getAudience = (id: string) => AUDIENCES.find(a => a.id === id) || AUDIENCES[0]
@@ -619,6 +670,10 @@ export default function CampaignsPage() {
                                     Exportar CSV
                                   </button>
                                   <button
+                                    onClick={() => {
+                                      setImportBotId(bot.id)
+                                      setShowImportModal(true)
+                                    }}
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                                   >
                                     <Upload className="h-4 w-4" />
@@ -799,6 +854,97 @@ export default function CampaignsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Modal */}
+      <Dialog open={showImportModal} onOpenChange={(open) => !open && resetImportModal()}>
+        <DialogContent className="sm:max-w-lg bg-[#1c1c1e] border-[#2a2a2e] p-0">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-bold text-white">Importar Usuarios</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-6">Importe chat IDs do Telegram para remarketing</p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-2 block">
+                  Cole os Chat IDs dos usuarios
+                </label>
+                <textarea
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder={"123456789, 987654321, 456789123\n\nou um por linha:\n123456789\n987654321\n456789123"}
+                  rows={8}
+                  className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Aceita IDs separados por <span className="text-gray-400">virgula</span> ou <span className="text-gray-400">um por linha</span>
+                </p>
+              </div>
+
+              {importResult && (
+                <div className={`p-4 rounded-xl ${importResult.success ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
+                  {importResult.success ? (
+                    <div className="flex items-start gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-emerald-400">Importacao concluida!</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {importResult.imported} importados
+                          {importResult.skipped ? ` - ${importResult.skipped} ja existiam` : ""}
+                          {importResult.duplicates ? ` - ${importResult.duplicates} duplicados` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3">
+                      <UserX className="h-5 w-5 text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-red-400">{importResult.error || "Erro na importacao"}</p>
+                        {importResult.parseErrors && importResult.parseErrors.length > 0 && (
+                          <ul className="text-xs text-gray-400 mt-2 space-y-1">
+                            {importResult.parseErrors.slice(0, 5).map((err: string, i: number) => (
+                              <li key={i}>- {err}</li>
+                            ))}
+                            {importResult.parseErrors.length > 5 && (
+                              <li>- e mais {importResult.parseErrors.length - 5} erros...</li>
+                            )}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={resetImportModal}
+                  className="flex-1 h-11 rounded-xl border border-[#2a2a2e] text-gray-400 hover:text-white hover:border-[#bfff00]/30 transition-colors text-sm font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleImportUsers}
+                  disabled={!importText.trim() || importing}
+                  className="flex-1 h-11 rounded-xl bg-[#bfff00] text-black font-bold text-sm hover:bg-[#a8e600] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {importing ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      Importar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -672,10 +672,8 @@ export default function RemarketingPage() {
                                 </button>
                                 <button
                                   onClick={() => {
-                                    console.log("[v0] Importar clicked, bot.id:", bot.id)
                                     setImportBotId(bot.id)
                                     setShowImportModal(true)
-                                    console.log("[v0] Modal should be open now")
                                   }}
                                   className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2a2a2e] text-gray-400 hover:text-white transition-colors text-xs"
                                 >
