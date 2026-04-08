@@ -29,25 +29,21 @@ const pageTypes = [
   {
     id: "presell" as const,
     name: "Presell",
-    description: "Pagina...",
     image: "/images/presell-icon.png",
   },
   {
     id: "conversion" as const,
     name: "Privacy",
-    description: "Pagina...",
-    image: "/images/privacy-icon.jpg",
+    image: "/images/privacy-icon.png",
   },
   {
     id: "dragonbio" as const,
     name: "Dragon Bio",
-    description: "Sua...",
     image: "/images/dragonbio-icon.png",
   },
   {
     id: "checkout" as const,
     name: "Checkout",
-    description: "Pagina...",
     image: "/images/checkout-icon.png",
   },
 ]
@@ -461,21 +457,16 @@ export default function BioLinkPage() {
                             disabled={creating}
                             className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#EEEEEE] bg-white hover:border-[#ccff00] hover:shadow-md transition-all text-center disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
+                            <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
                               <img 
                                 src={type.image} 
                                 alt={type.name}
                                 className="w-full h-full object-cover"
                               />
                             </div>
-                            <div>
-                              <h3 className="text-sm font-semibold text-foreground mb-0.5">
-                                {type.name}
-                              </h3>
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {type.description}
-                              </p>
-                            </div>
+                            <h3 className="text-base font-bold text-foreground">
+                              {type.name}
+                            </h3>
                           </button>
                         ))}
                       </div>
@@ -508,21 +499,16 @@ export default function BioLinkPage() {
                       disabled={creating}
                       className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     >
-                      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                      <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
                         <img 
                           src={type.image} 
                           alt={type.name}
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#1A1A1A] mb-0.5 group-hover:text-[#111] transition-colors">
-                          {type.name}
-                        </h3>
-                        <p className="text-xs text-[#666666] line-clamp-1">
-                          {type.description}
-                        </p>
-                      </div>
+                      <h3 className="flex-1 text-lg font-bold text-[#1A1A1A] group-hover:text-[#111] transition-colors">
+                        {type.name}
+                      </h3>
                       <div className="w-9 h-9 rounded-lg bg-[#f3f4f6] flex items-center justify-center group-hover:bg-[#ccff00] transition-colors flex-shrink-0">
                         {creating ? (
                           <Loader2 className="w-4 h-4 animate-spin text-[#666666]" />
