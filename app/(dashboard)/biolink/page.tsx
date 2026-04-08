@@ -29,25 +29,21 @@ const pageTypes = [
   {
     id: "presell" as const,
     name: "Presell",
-    description: "Pagina...",
     image: "/images/presell-icon.png",
   },
   {
     id: "conversion" as const,
     name: "Privacy",
-    description: "Pagina...",
     image: "/images/privacy-icon.png",
   },
   {
     id: "dragonbio" as const,
     name: "Dragon Bio",
-    description: "Sua...",
     image: "/images/dragonbio-icon.png",
   },
   {
     id: "checkout" as const,
     name: "Checkout",
-    description: "Pagina...",
     image: "/images/checkout-icon.png",
   },
 ]
@@ -516,12 +512,9 @@ export default function BioLinkPage() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#1A1A1A] mb-0.5 group-hover:text-[#111] transition-colors">
+                        <h3 className="font-semibold text-base text-[#1A1A1A] group-hover:text-[#111] transition-colors">
                           {type.name}
                         </h3>
-                        <p className="text-xs text-[#666666] line-clamp-1">
-                          {type.description}
-                        </p>
                       </div>
                       <div className="w-9 h-9 rounded-lg bg-[#f3f4f6] flex items-center justify-center group-hover:bg-[#ccff00] transition-colors flex-shrink-0">
                         {creating ? (
