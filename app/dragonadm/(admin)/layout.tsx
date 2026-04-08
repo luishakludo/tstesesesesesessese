@@ -15,7 +15,6 @@ import {
   Menu,
   X,
   DollarSign,
-  MessageSquare,
   FileText,
   TrendingUp,
   Zap,
@@ -54,7 +53,6 @@ const menuSections = [
   {
     title: "Sistema",
     items: [
-      { icon: MessageSquare, label: "Suporte", href: "/dragonadm/suporte" },
       { icon: FileText, label: "Termos", href: "/dragonadm/termos" },
       { icon: Settings, label: "Configuracoes", href: "/dragonadm/settings" },
     ]
