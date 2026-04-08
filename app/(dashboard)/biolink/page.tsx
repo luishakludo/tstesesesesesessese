@@ -419,9 +419,11 @@ export default function BioLinkPage() {
               <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-black">
-                      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="currentColor">
-                        <path fill="#00ff00" d="M13 2L3 14h9l-1 8 10-8h-9l1-8z" />
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600">
+                      <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="2" y1="12" x2="22" y2="12" />
+                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                       </svg>
                     </div>
                     <div>
