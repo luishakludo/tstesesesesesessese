@@ -2382,6 +2382,95 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </div>
                 </div>
               </div>
+
+              {/* Opcoes Avancadas - Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Mensagem Secundaria */}
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                  <div className="px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                          <MessageCircle className="h-5 w-5 text-neutral-900" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-neutral-900 text-sm">Mensagem Secundaria</h3>
+                          <p className="text-xs text-neutral-500">Mensagem separada para botoes</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={secondaryMessageEnabled}
+                        onCheckedChange={(checked) => {
+                          setSecondaryMessageEnabled(checked)
+                          setHasChanges(true)
+                        }}
+                        className="data-[state=checked]:bg-[#bfff00]"
+                      />
+                    </div>
+                    {secondaryMessageEnabled && (
+                      <div className="mt-4">
+                        <Textarea
+                          value={secondaryMessage}
+                          onChange={(e) => {
+                            setSecondaryMessage(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="Digite a mensagem secundaria..."
+                          rows={3}
+                          className="bg-neutral-50 border-neutral-200 text-sm focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botao Redirect */}
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                  <div className="px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                          <ExternalLink className="h-5 w-5 text-neutral-900" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-neutral-900 text-sm">Botao Redirect</h3>
+                          <p className="text-xs text-neutral-500">Redireciona para canal</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={redirectButtonEnabled}
+                        onCheckedChange={(checked) => {
+                          setRedirectButtonEnabled(checked)
+                          setHasChanges(true)
+                        }}
+                        className="data-[state=checked]:bg-[#bfff00]"
+                      />
+                    </div>
+                    {redirectButtonEnabled && (
+                      <div className="mt-4 space-y-3">
+                        <Input
+                          value={redirectButtonText}
+                          onChange={(e) => {
+                            setRedirectButtonText(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="Texto do botao"
+                          className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                        <Input
+                          value={redirectButtonUrl}
+                          onChange={(e) => {
+                            setRedirectButtonUrl(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="@canal ou https://t.me/canal"
+                          className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -5884,110 +5973,6 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               )}
             </div>
           )}
-        </div>
-        )}
-
-        {/* Sidebar - Only show for welcome tab */}
-        {activeTab === "welcome" && (
-        <div className="w-80 border-l border-neutral-200 bg-white p-6 overflow-auto">
-          {/* Welcome Tab Sidebar Options */}
-          {activeTab === "welcome" && (
-            <div className="space-y-4">
-              {/* Mensagem Secundaria */}
-              <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-[#bfff00] flex items-center justify-center">
-                        <MessageCircle className="h-4 w-4 text-neutral-900" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-neutral-900">Mensagem Secundaria</p>
-                        <p className="text-xs text-neutral-500">Mensagem separada onde os botoes serao enviados</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={secondaryMessageEnabled}
-                      onCheckedChange={(checked) => {
-                        setSecondaryMessageEnabled(checked)
-                        setHasChanges(true)
-                      }}
-                      className="data-[state=checked]:bg-[#bfff00]"
-                    />
-                  </div>
-                  {secondaryMessageEnabled && (
-                    <div className="mt-4">
-                      <Textarea
-                        value={secondaryMessage}
-                        onChange={(e) => {
-                          setSecondaryMessage(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="Digite a mensagem secundaria..."
-                        rows={3}
-                        className="bg-neutral-50 border-neutral-200 text-sm focus:border-[#bfff00] focus:ring-[#bfff00]"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Botao Redirect */}
-              <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-lg bg-[#bfff00] flex items-center justify-center">
-                        <ExternalLink className="h-4 w-4 text-neutral-900" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-neutral-900">Botao Redirect</p>
-                        <p className="text-xs text-neutral-500">Redireciona para canal de previas</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={redirectButtonEnabled}
-                      onCheckedChange={(checked) => {
-                        setRedirectButtonEnabled(checked)
-                        setHasChanges(true)
-                      }}
-                      className="data-[state=checked]:bg-[#bfff00]"
-                    />
-                  </div>
-                  {redirectButtonEnabled && (
-                    <div className="mt-4 space-y-3">
-                      <Input
-                        value={redirectButtonText}
-                        onChange={(e) => {
-                          setRedirectButtonText(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="Texto do botao"
-                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
-                      />
-                      <Input
-                        value={redirectButtonUrl}
-                        onChange={(e) => {
-                          setRedirectButtonUrl(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="@canal ou https://t.me/canal"
-                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-
-
-
-
-
-
-
         </div>
         )}
       </div>
