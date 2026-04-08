@@ -5894,13 +5894,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "welcome" && (
             <div className="space-y-4">
               {/* Mensagem Secundaria */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
+              <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
                 <CardContent className="pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <MessageCircle className="h-4 w-4 text-purple-400" />
+                      <div className="h-8 w-8 rounded-lg bg-[#bfff00] flex items-center justify-center">
+                        <MessageCircle className="h-4 w-4 text-neutral-900" />
+                      </div>
                       <div>
-                        <p className="font-medium text-sm">Mensagem Secundaria</p>
+                        <p className="font-medium text-sm text-neutral-900">Mensagem Secundaria</p>
                         <p className="text-xs text-neutral-500">Mensagem separada onde os botoes serao enviados</p>
                       </div>
                     </div>
@@ -5910,6 +5912,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         setSecondaryMessageEnabled(checked)
                         setHasChanges(true)
                       }}
+                      className="data-[state=checked]:bg-[#bfff00]"
                     />
                   </div>
                   {secondaryMessageEnabled && (
@@ -5922,7 +5925,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                         placeholder="Digite a mensagem secundaria..."
                         rows={3}
-                        className="bg-secondary/30 border-neutral-200 text-sm"
+                        className="bg-neutral-50 border-neutral-200 text-sm focus:border-[#bfff00] focus:ring-[#bfff00]"
                       />
                     </div>
                   )}
@@ -5930,13 +5933,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Botao Redirect */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
+              <Card className="bg-white border-neutral-200 shadow-sm rounded-xl">
                 <CardContent className="pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <ExternalLink className="h-4 w-4 text-blue-400" />
+                      <div className="h-8 w-8 rounded-lg bg-[#bfff00] flex items-center justify-center">
+                        <ExternalLink className="h-4 w-4 text-neutral-900" />
+                      </div>
                       <div>
-                        <p className="font-medium text-sm">Botao Redirect</p>
+                        <p className="font-medium text-sm text-neutral-900">Botao Redirect</p>
                         <p className="text-xs text-neutral-500">Redireciona para canal de previas</p>
                       </div>
                     </div>
@@ -5946,6 +5951,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         setRedirectButtonEnabled(checked)
                         setHasChanges(true)
                       }}
+                      className="data-[state=checked]:bg-[#bfff00]"
                     />
                   </div>
                   {redirectButtonEnabled && (
@@ -5957,7 +5963,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="Texto do botao"
-                        className="bg-neutral-50 border-neutral-200"
+                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
                       />
                       <Input
                         value={redirectButtonUrl}
@@ -5966,7 +5972,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="@canal ou https://t.me/canal"
-                        className="bg-neutral-50 border-neutral-200"
+                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
                       />
                     </div>
                   )}
