@@ -5861,16 +5861,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
           {/* Entregaveis - Only show in bots tab */}
           {activeTab === "bots" && (
-            <Card className="border-neutral-200 shadow-sm">
+            <Card className="border-neutral-200 shadow-sm bg-white">
               <CardContent className="p-5">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-[#8fb300]" />
+                    <div className="h-8 w-8 rounded-lg bg-[#bfff00] flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-neutral-900" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-sm">Entregaveis</h3>
+                      <h3 className="font-bold text-sm text-neutral-900">Entregaveis</h3>
                       <p className="text-xs text-neutral-500">{deliverables.length} cadastrado{deliverables.length !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
@@ -5888,32 +5888,29 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         setTempDeliverable({ ...del })
                         setDeliverableModalOpen(true)
                       }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all text-left group"
+                      className="w-full flex items-center gap-3 p-3 rounded-lg bg-neutral-50 hover:bg-neutral-100 transition-colors text-left group"
                     >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        del.type === "media" ? "bg-purple-500/15" : 
-                        del.type === "link" ? "bg-blue-500/15" : "bg-amber-500/15"
-                      }`}>
+                      <div className="h-8 w-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0">
                         {del.type === "media" ? (
-                          <ImageIcon className="h-4 w-4 text-purple-500" />
+                          <ImageIcon className="h-4 w-4 text-white" />
                         ) : del.type === "link" ? (
-                          <Link2 className="h-4 w-4 text-blue-500" />
+                          <Link2 className="h-4 w-4 text-white" />
                         ) : (
-                          <Users className="h-4 w-4 text-amber-500" />
+                          <Users className="h-4 w-4 text-white" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{del.name}</p>
-                        <p className="text-xs text-neutral-500">
+                        <p className="font-medium text-sm truncate text-neutral-900">{del.name}</p>
+                        <p className="text-xs text-neutral-400">
                           {del.type === "media" ? "Midia" : del.type === "link" ? "Link" : "Grupo VIP"}
                         </p>
                       </div>
                       {mainDeliverableId === del.id && (
-                        <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-0 text-[10px] px-1.5 py-0.5">
+                        <Badge className="bg-[#bfff00] text-neutral-900 border-0 text-[10px] px-1.5 py-0.5">
                           Principal
                         </Badge>
                       )}
-                      <ChevronRight className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </button>
                   ))}
 
@@ -5938,13 +5935,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       setDeliverableModalOpen(true)
                     }}
                     disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-neutral-200 hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <div className="h-9 w-9 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center group-hover:bg-accent/15 transition-colors shrink-0">
-                      <Plus className="h-4 w-4 text-[#8fb300]" />
+                    <div className="h-8 w-8 rounded-lg bg-neutral-900 flex items-center justify-center shrink-0 group-hover:bg-[#bfff00] transition-colors">
+                      <Plus className="h-4 w-4 text-white group-hover:text-neutral-900" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-sm">Adicionar</p>
+                      <p className="font-medium text-sm text-neutral-900">Adicionar</p>
                       <p className="text-xs text-neutral-500">Midia, Grupo VIP ou Link</p>
                     </div>
                   </button>
@@ -5952,7 +5949,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                 {/* Helper text */}
                 {deliverables.length === 0 && (
-                  <p className="text-center text-xs text-neutral-500 mt-4 px-2">
+                  <p className="text-center text-xs text-neutral-400 mt-4 px-2">
                     Configure o que sera entregue apos o pagamento
                   </p>
                 )}
