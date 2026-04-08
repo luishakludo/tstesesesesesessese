@@ -29,7 +29,6 @@ import {
   MessageSquare,
   Zap,
   AlertTriangle,
-  FileText,
   Copy
 } from "lucide-react"
 import useSWR from "swr"
@@ -153,7 +152,6 @@ export default function RemarketingPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
   const [importBotId, setImportBotId] = useState<string | null>(null)
-  const [importMode, setImportMode] = useState<"text" | "file">("text")
   const [importText, setImportText] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
@@ -285,7 +283,7 @@ export default function RemarketingPage() {
 
   const handleImportUsers = async () => {
     if (!importBotId || !importText.trim()) {
-      toast({ title: "Erro", description: "Selecione um bot e insira os dados", variant: "destructive" })
+      toast({ title: "Erro", description: "Selecione um bot e insira os chat IDs", variant: "destructive" })
       return
     }
 
@@ -298,8 +296,7 @@ export default function RemarketingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           botId: importBotId,
-          textData: importText,
-          mode: importMode
+          textData: importText
         })
       })
 
@@ -326,7 +323,6 @@ export default function RemarketingPage() {
     setShowImportModal(false)
     setImportBotId(null)
     setImportText("")
-    setImportMode("text")
     setImportResult(null)
   }
 
@@ -989,7 +985,7 @@ export default function RemarketingPage() {
                 <X className="h-4 w-4 text-gray-400" />
               </button>
             </div>
-            <p className="text-sm text-gray-500 mb-6">Importe usuarios via texto ou planilha Excel</p>
+            <p className="text-sm text-gray-500 mb-6">Importe chat IDs do Telegram para remarketing</p>
             
             <div className="space-y-4">
               {/* Bot Selection */}
@@ -1007,75 +1003,22 @@ export default function RemarketingPage() {
                 </select>
               </div>
 
-              {/* Mode Toggle */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setImportMode("text")}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    importMode === "text"
-                      ? "bg-[#bfff00] text-black"
-                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
-                  }`}
-                >
-                  <FileText className="h-4 w-4" />
-                  Colar Texto
-                </button>
-                <button
-                  onClick={() => setImportMode("file")}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                    importMode === "file"
-                      ? "bg-[#bfff00] text-black"
-                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
-                  }`}
-                >
-                  <Upload className="h-4 w-4" />
-                  Upload Arquivo
-                </button>
+              {/* Chat IDs Input */}
+              <div>
+                <label className="text-xs font-medium text-gray-400 mb-2 block">
+                  Cole os Chat IDs dos usuarios
+                </label>
+                <textarea
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder={"123456789, 987654321, 456789123\n\nou um por linha:\n123456789\n987654321\n456789123"}
+                  rows={8}
+                  className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Aceita IDs separados por <span className="text-gray-400">virgula</span> ou <span className="text-gray-400">um por linha</span>
+                </p>
               </div>
-
-              {/* Text Mode */}
-              {importMode === "text" && (
-                <div>
-                  <label className="text-xs font-medium text-gray-400 mb-2 block">
-                    Cole os dados (uma linha por usuario)
-                  </label>
-                  <textarea
-                    value={importText}
-                    onChange={(e) => setImportText(e.target.value)}
-                    placeholder={"Joao Silva,joao@email.com,11999999999\nMaria Santos,maria@email.com,21988888888\nPedro Costa,pedro@email.com"}
-                    rows={6}
-                    className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Formato: <span className="text-gray-400">nome,email,telefone</span> (telefone opcional)
-                  </p>
-                </div>
-              )}
-
-              {/* File Mode */}
-              {importMode === "file" && (
-                <div className="border-2 border-dashed border-[#2a2a2e] rounded-xl p-8 text-center hover:border-[#bfff00]/30 transition-colors">
-                  <Upload className="h-10 w-10 text-gray-500 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-white mb-1">Arraste um arquivo .xlsx ou .csv</p>
-                  <p className="text-xs text-gray-500 mb-4">ou clique para selecionar</p>
-                  <input 
-                    type="file" 
-                    accept=".xlsx,.csv" 
-                    className="hidden" 
-                    id="import-file"
-                    onChange={(e) => {
-                      // TODO: Handle file upload
-                      toast({ title: "Em breve", description: "Upload de arquivo sera implementado em breve" })
-                    }}
-                  />
-                  <label 
-                    htmlFor="import-file"
-                    className="inline-flex px-4 py-2 rounded-lg bg-[#2a2a2e] text-gray-400 hover:text-white transition-colors text-sm cursor-pointer"
-                  >
-                    Selecionar Arquivo
-                  </label>
-                </div>
-              )}
 
               {/* Import Result */}
               {importResult && (
@@ -1099,7 +1042,7 @@ export default function RemarketingPage() {
                         <p className="text-sm font-medium text-red-400">{importResult.error || "Erro na importacao"}</p>
                         {importResult.parseErrors && importResult.parseErrors.length > 0 && (
                           <ul className="text-xs text-gray-400 mt-2 space-y-1">
-                            {importResult.parseErrors.slice(0, 5).map((err, i) => (
+                            {importResult.parseErrors.slice(0, 5).map((err: string, i: number) => (
                               <li key={i}>• {err}</li>
                             ))}
                             {importResult.parseErrors.length > 5 && (
@@ -1123,7 +1066,7 @@ export default function RemarketingPage() {
                 </button>
                 <button
                   onClick={handleImportUsers}
-                  disabled={!importBotId || (importMode === "text" && !importText.trim()) || importing}
+                  disabled={!importBotId || !importText.trim() || importing}
                   className="flex-1 h-11 rounded-xl bg-[#bfff00] text-black font-bold text-sm hover:bg-[#a8e600] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {importing ? (

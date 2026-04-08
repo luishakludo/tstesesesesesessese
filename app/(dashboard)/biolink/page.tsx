@@ -29,34 +29,26 @@ const pageTypes = [
   {
     id: "presell" as const,
     name: "Presell",
-    description: "Paginas de pre-venda para aquecer o lead",
-    gradient: "from-orange-500 to-amber-400",
-    iconBg: "bg-orange-500/10",
-    iconColor: "text-orange-500",
+    description: "Pagina...",
+    image: "/images/presell-icon.png",
   },
   {
     id: "conversion" as const,
     name: "Privacy",
-    description: "Pagina estilo perfil para conteudo exclusivo",
-    gradient: "from-orange-400 to-orange-300",
-    iconBg: "bg-orange-400/10",
-    iconColor: "text-orange-400",
+    description: "Pagina...",
+    image: "/images/privacy-icon.jpg",
   },
   {
     id: "dragonbio" as const,
     name: "Dragon Bio",
-    description: "Sua pagina de links na bio",
-    gradient: "from-violet-500 to-purple-400",
-    iconBg: "bg-violet-500/10",
-    iconColor: "text-violet-500",
+    description: "Sua...",
+    image: "/images/dragonbio-icon.png",
   },
   {
     id: "checkout" as const,
     name: "Checkout",
-    description: "Pagina de checkout para vendas",
-    gradient: "from-blue-500 to-cyan-400",
-    iconBg: "bg-blue-500/10",
-    iconColor: "text-blue-500",
+    description: "Pagina...",
+    image: "/images/checkout-icon.png",
   },
 ]
 
@@ -427,11 +419,12 @@ export default function BioLinkPage() {
               <div className="flex flex-col gap-4 sm:gap-6 relative z-10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
-                      <svg viewBox="0 0 24 24" className="w-5 h-5 text-accent" fill="none" stroke="currentColor" strokeWidth="2.5">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                      </svg>
+                    <div className="w-10 h-10 rounded-xl overflow-hidden">
+                      <img 
+                        src="/images/seus-sites-icon.png" 
+                        alt="Seus Sites"
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <h3 className="text-background dark:text-foreground font-semibold">Seus Sites</h3>
@@ -468,30 +461,12 @@ export default function BioLinkPage() {
                             disabled={creating}
                             className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#EEEEEE] bg-white hover:border-[#ccff00] hover:shadow-md transition-all text-center disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform`}>
-                              {type.id === "presell" && (
-                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                </svg>
-                              )}
-                              {type.id === "conversion" && (
-                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <circle cx="12" cy="12" r="10"/>
-                                  <circle cx="12" cy="12" r="2"/>
-                                </svg>
-                              )}
-                              {type.id === "dragonbio" && (
-                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                                </svg>
-                              )}
-                              {type.id === "checkout" && (
-                                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <circle cx="9" cy="21" r="1"/>
-                                  <circle cx="20" cy="21" r="1"/>
-                                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                                </svg>
-                              )}
+                            <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform">
+                              <img 
+                                src={type.image} 
+                                alt={type.name}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                             <div>
                               <h3 className="text-sm font-semibold text-foreground mb-0.5">
@@ -533,31 +508,12 @@ export default function BioLinkPage() {
                       disabled={creating}
                       className="group bg-white rounded-2xl p-4 border border-[#EEEEEE] hover:border-[#ccff00] hover:shadow-lg transition-all duration-300 text-left flex items-center gap-4 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                     >
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${type.gradient} flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform`}>
-                        {type.id === "presell" && (
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                          </svg>
-                        )}
-                        {type.id === "conversion" && (
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <circle cx="12" cy="12" r="2"/>
-                          </svg>
-                        )}
-                        {type.id === "dragonbio" && (
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                          </svg>
-                        )}
-                        {type.id === "checkout" && (
-                          <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="9" cy="21" r="1"/>
-                            <circle cx="20" cy="21" r="1"/>
-                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                          </svg>
-                        )}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+                        <img 
+                          src={type.image} 
+                          alt={type.name}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-[#1A1A1A] mb-0.5 group-hover:text-[#111] transition-colors">

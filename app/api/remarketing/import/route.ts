@@ -2,62 +2,29 @@ import { getSupabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
-interface ImportUser {
-  nome: string
-  email: string
-  telefone?: string
-}
-
-function validateEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-function validatePhone(phone: string): boolean {
-  // Remove all non-numeric characters
-  const cleaned = phone.replace(/\D/g, "")
-  // Brazilian phone: 10-11 digits, International: 8-15 digits
-  return cleaned.length >= 8 && cleaned.length <= 15
-}
-
-function parseTextInput(text: string): { users: ImportUser[], errors: string[] } {
-  const lines = text.trim().split("\n").filter(line => line.trim())
-  const users: ImportUser[] = []
+// Parse chat IDs from text - accepts comma or line separated values
+function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
   const errors: string[] = []
-
-  lines.forEach((line, index) => {
-    const parts = line.split(",").map(p => p.trim())
-    
-    if (parts.length < 2) {
-      errors.push(`Linha ${index + 1}: formato invalido (esperado: nome,email,telefone)`)
-      return
+  
+  // Split by comma or newline, trim whitespace, filter empty
+  const rawIds = text
+    .split(/[,\n]/)
+    .map(id => id.trim())
+    .filter(id => id.length > 0)
+  
+  const chatIds: string[] = []
+  
+  rawIds.forEach((id, index) => {
+    // Chat ID should be numeric (can be negative for groups)
+    const cleaned = id.replace(/\s/g, "")
+    if (/^-?\d+$/.test(cleaned)) {
+      chatIds.push(cleaned)
+    } else {
+      errors.push(`ID invalido na posicao ${index + 1}: "${id}" (deve ser numerico)`)
     }
-
-    const [nome, email, telefone] = parts
-
-    if (!nome || nome.length < 2) {
-      errors.push(`Linha ${index + 1}: nome invalido`)
-      return
-    }
-
-    if (!validateEmail(email)) {
-      errors.push(`Linha ${index + 1}: email invalido (${email})`)
-      return
-    }
-
-    if (telefone && !validatePhone(telefone)) {
-      errors.push(`Linha ${index + 1}: telefone invalido (${telefone})`)
-      return
-    }
-
-    users.push({
-      nome,
-      email: email.toLowerCase(),
-      telefone: telefone || undefined
-    })
   })
-
-  return { users, errors }
+  
+  return { chatIds, errors }
 }
 
 export async function POST(request: Request) {
@@ -78,10 +45,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { botId, textData, mode } = body
+    const { botId, textData } = body
 
     if (!botId) {
       return NextResponse.json({ error: "Bot nao selecionado" }, { status: 400 })
+    }
+
+    if (!textData || !textData.trim()) {
+      return NextResponse.json({ error: "Nenhum ID fornecido" }, { status: 400 })
     }
 
     // Verify bot belongs to user
@@ -95,70 +66,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Bot nao encontrado" }, { status: 404 })
     }
 
-    let usersToImport: ImportUser[] = []
-    let parseErrors: string[] = []
+    // Parse chat IDs from input
+    const { chatIds, errors: parseErrors } = parseChatIds(textData)
 
-    if (mode === "text" && textData) {
-      const result = parseTextInput(textData)
-      usersToImport = result.users
-      parseErrors = result.errors
-    }
-
-    if (usersToImport.length === 0) {
+    if (chatIds.length === 0) {
       return NextResponse.json({ 
-        error: "Nenhum usuario valido para importar",
+        error: "Nenhum ID valido para importar",
         parseErrors 
       }, { status: 400 })
     }
 
-    // Check for duplicates within the import
-    const emailSet = new Set<string>()
-    const uniqueUsers: ImportUser[] = []
-    const duplicates: string[] = []
+    // Remove duplicates from input
+    const uniqueChatIds = [...new Set(chatIds)]
+    const duplicatesInInput = chatIds.length - uniqueChatIds.length
 
-    usersToImport.forEach(u => {
-      if (emailSet.has(u.email)) {
-        duplicates.push(u.email)
-      } else {
-        emailSet.add(u.email)
-        uniqueUsers.push(u)
-      }
-    })
-
-    // Check for existing emails in database
+    // Check for existing chat_ids in database for this bot
     const { data: existingUsers } = await supabase
-      .from("remarketing_users")
-      .select("email")
+      .from("bot_users")
+      .select("chat_id")
       .eq("bot_id", botId)
-      .in("email", uniqueUsers.map(u => u.email))
+      .in("chat_id", uniqueChatIds)
 
-    const existingEmails = new Set((existingUsers || []).map(u => u.email))
-    const newUsers = uniqueUsers.filter(u => !existingEmails.has(u.email))
-    const skippedExisting = uniqueUsers.filter(u => existingEmails.has(u.email))
+    const existingChatIds = new Set((existingUsers || []).map(u => u.chat_id))
+    const newChatIds = uniqueChatIds.filter(id => !existingChatIds.has(id))
+    const skippedExisting = uniqueChatIds.length - newChatIds.length
 
-    if (newUsers.length === 0) {
+    if (newChatIds.length === 0) {
       return NextResponse.json({
-        success: false,
-        error: "Todos os usuarios ja existem",
+        success: true,
         imported: 0,
-        duplicates: duplicates.length,
-        skipped: skippedExisting.length,
-        parseErrors
+        duplicates: duplicatesInInput,
+        skipped: skippedExisting,
+        parseErrors,
+        message: "Todos os IDs ja existem no sistema"
       })
     }
 
-    // Insert new users
+    // Insert new users into bot_users table
     const { data: inserted, error: insertError } = await supabase
-      .from("remarketing_users")
+      .from("bot_users")
       .insert(
-        newUsers.map(u => ({
+        newChatIds.map(chatId => ({
           user_id: user.id,
           bot_id: botId,
-          nome: u.nome,
-          email: u.email,
-          telefone: u.telefone || null,
-          status: "novo",
-          origem: "importacao"
+          chat_id: chatId,
+          first_name: `User ${chatId}`,
+          username: null,
+          payment_status: "nao_pago",
+          funnel_stage: "lead",
+          is_subscriber: false,
+          created_at: new Date().toISOString()
         }))
       )
       .select()
@@ -174,10 +131,10 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       imported: inserted?.length || 0,
-      duplicates: duplicates.length,
-      skipped: skippedExisting.length,
+      duplicates: duplicatesInInput,
+      skipped: skippedExisting,
       parseErrors,
-      total: usersToImport.length
+      total: chatIds.length
     })
 
   } catch (error) {
