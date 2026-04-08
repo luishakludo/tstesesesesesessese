@@ -28,11 +28,7 @@ import {
   Loader2,
   RefreshCw,
   Wallet,
-  DollarSign,
-  Shield,
   Clock,
-  UserPlus,
-  Zap,
 } from "lucide-react"
 
 interface UserBot {
@@ -191,7 +187,7 @@ export default function UsersManagementPage() {
   )
 
   return (
-    <>
+    <div>
       <div className="p-6 lg:p-8 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -572,6 +568,6 @@ export default function UsersManagementPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   )
 }
