@@ -11,7 +11,8 @@ import { useAuth } from "@/lib/auth-context"
 import {
   Plus, Search, MoreVertical, Trash2, Pause, Play, Copy,
   Megaphone, Send, UserX, ShoppingCart, CheckCircle2,
-  RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot
+  RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot,
+  FileText, FileSpreadsheet
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -113,6 +114,7 @@ export default function CampaignsPage() {
   // Import Modal State
   const [showImportModal, setShowImportModal] = useState(false)
   const [importBotId, setImportBotId] = useState<string | null>(null)
+  const [importMode, setImportMode] = useState<"text" | "file">("text")
   const [importText, setImportText] = useState("")
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
@@ -232,8 +234,64 @@ export default function CampaignsPage() {
   const resetImportModal = () => {
     setShowImportModal(false)
     setImportBotId(null)
+    setImportMode("text")
     setImportText("")
     setImportResult(null)
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    
+    if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+      reader.onload = (event) => {
+        const text = event.target?.result as string
+        // Extract numbers from CSV/TXT - assumes chat IDs are in first column or comma separated
+        const ids = text
+          .split(/[\n,;]/)
+          .map(s => s.trim())
+          .filter(s => /^-?\d+$/.test(s))
+          .join(', ')
+        setImportText(ids)
+        setImportMode("text")
+      }
+      reader.readAsText(file)
+    } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      // For Excel files, we need to use a library - show message to use CSV
+      const ids = await parseExcelFile(file)
+      if (ids) {
+        setImportText(ids)
+        setImportMode("text")
+      }
+    }
+  }
+
+  const parseExcelFile = async (file: File): Promise<string | null> => {
+    try {
+      const XLSX = await import('xlsx')
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data)
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+      const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }) as (string | number)[][]
+      
+      // Extract all numeric values (chat IDs) from the first column
+      const ids: string[] = []
+      jsonData.forEach((row) => {
+        if (row && row[0] !== undefined) {
+          const val = String(row[0]).trim()
+          if (/^-?\d+$/.test(val)) {
+            ids.push(val)
+          }
+        }
+      })
+      
+      return ids.join(', ')
+    } catch {
+      setImportResult({ success: false, error: "Erro ao ler arquivo Excel. Tente exportar como CSV." })
+      return null
+    }
   }
 
   const getAudience = (id: string) => AUDIENCES.find(a => a.id === id) || AUDIENCES[0]
@@ -868,21 +926,84 @@ export default function CampaignsPage() {
             <p className="text-sm text-gray-500 mb-6">Importe chat IDs do Telegram para remarketing</p>
             
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-gray-400 mb-2 block">
-                  Cole os Chat IDs dos usuarios
-                </label>
-                <textarea
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  placeholder={"123456789, 987654321, 456789123\n\nou um por linha:\n123456789\n987654321\n456789123"}
-                  rows={8}
-                  className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  Aceita IDs separados por <span className="text-gray-400">virgula</span> ou <span className="text-gray-400">um por linha</span>
-                </p>
+              {/* Mode Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setImportMode("text")}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    importMode === "text"
+                      ? "bg-[#bfff00] text-black"
+                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  Colar Texto
+                </button>
+                <button
+                  onClick={() => setImportMode("file")}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                    importMode === "file"
+                      ? "bg-[#bfff00] text-black"
+                      : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                  }`}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Upload Excel/CSV
+                </button>
               </div>
+
+              {/* Text Mode */}
+              {importMode === "text" && (
+                <div>
+                  <label className="text-xs font-medium text-gray-400 mb-2 block">
+                    Cole os Chat IDs dos usuarios
+                  </label>
+                  <textarea
+                    value={importText}
+                    onChange={(e) => setImportText(e.target.value)}
+                    placeholder={"123456789, 987654321, 456789123\n\nou um por linha:\n123456789\n987654321\n456789123"}
+                    rows={8}
+                    className="w-full px-4 py-3 bg-[#141416] border border-[#2a2a2e] rounded-xl text-white placeholder:text-gray-600 focus:outline-none focus:border-[#bfff00]/50 resize-none font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Aceita IDs separados por <span className="text-gray-400">virgula</span> ou <span className="text-gray-400">um por linha</span>
+                  </p>
+                </div>
+              )}
+
+              {/* File Mode */}
+              {importMode === "file" && (
+                <div>
+                  <label className="text-xs font-medium text-gray-400 mb-2 block">
+                    Selecione um arquivo Excel (.xlsx) ou CSV
+                  </label>
+                  <div className="border-2 border-dashed border-[#2a2a2e] rounded-xl p-6 text-center hover:border-[#bfff00]/30 transition-colors">
+                    <FileSpreadsheet className="h-10 w-10 text-gray-500 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-white mb-1">Arraste um arquivo ou clique para selecionar</p>
+                    <p className="text-xs text-gray-500 mb-4">Suporta .xlsx, .xls, .csv, .txt</p>
+                    <input 
+                      type="file" 
+                      accept=".xlsx,.xls,.csv,.txt" 
+                      className="hidden" 
+                      id="import-file"
+                      onChange={handleFileUpload}
+                    />
+                    <label 
+                      htmlFor="import-file"
+                      className="inline-flex px-4 py-2 rounded-lg bg-[#2a2a2e] text-gray-400 hover:text-white transition-colors text-sm cursor-pointer"
+                    >
+                      Selecionar Arquivo
+                    </label>
+                  </div>
+                  {importText && (
+                    <div className="mt-3 p-3 bg-[#141416] rounded-lg">
+                      <p className="text-xs text-gray-400 mb-1">IDs extraidos do arquivo:</p>
+                      <p className="text-xs text-[#bfff00] font-mono truncate">{importText.slice(0, 100)}{importText.length > 100 ? '...' : ''}</p>
+                      <p className="text-xs text-gray-500 mt-1">{importText.split(',').filter(s => s.trim()).length} IDs encontrados</p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {importResult && (
                 <div className={`p-4 rounded-xl ${importResult.success ? "bg-emerald-500/10 border border-emerald-500/30" : "bg-red-500/10 border border-red-500/30"}`}>
