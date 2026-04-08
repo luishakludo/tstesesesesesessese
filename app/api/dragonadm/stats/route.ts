@@ -1,49 +1,49 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    // Buscar total de usuarios
-    const { count: totalUsers } = await supabase
+    // Buscar total de usuarios (usando admin para bypassar RLS)
+    const { count: totalUsers } = await supabaseAdmin
       .from("profiles")
       .select("*", { count: "exact", head: true })
 
     // Buscar usuarios ativos (nao banidos)
-    const { count: activeUsers } = await supabase
+    const { count: activeUsers } = await supabaseAdmin
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("banned", false)
 
     // Buscar usuarios banidos
-    const { count: bannedUsers } = await supabase
+    const { count: bannedUsers } = await supabaseAdmin
       .from("profiles")
       .select("*", { count: "exact", head: true })
       .eq("banned", true)
 
     // Buscar total de bots
-    const { count: totalBots } = await supabase
+    const { count: totalBots } = await supabaseAdmin
       .from("bots")
       .select("*", { count: "exact", head: true })
 
     // Buscar bots ativos
-    const { count: activeBots } = await supabase
+    const { count: activeBots } = await supabaseAdmin
       .from("bots")
       .select("*", { count: "exact", head: true })
       .eq("is_active", true)
 
     // Buscar total de pagamentos
-    const { count: totalPayments } = await supabase
+    const { count: totalPayments } = await supabaseAdmin
       .from("payments")
       .select("*", { count: "exact", head: true })
 
     // Buscar pagamentos pendentes
-    const { count: pendingPayments } = await supabase
+    const { count: pendingPayments } = await supabaseAdmin
       .from("payments")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending")
 
     // Buscar receita total (pagamentos aprovados)
-    const { data: revenueData } = await supabase
+    const { data: revenueData } = await supabaseAdmin
       .from("payments")
       .select("amount")
       .eq("status", "approved")
