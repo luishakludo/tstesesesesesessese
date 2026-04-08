@@ -48,7 +48,7 @@ const pageTypes = [
     id: "checkout" as const,
     name: "Checkout",
     description: "Pagina...",
-    image: "/images/checkout-icon.jpg",
+    image: "/images/checkout-icon.png",
   },
 ]
 
