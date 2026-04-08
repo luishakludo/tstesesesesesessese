@@ -138,7 +138,7 @@ export default function TermosPage() {
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-white hover:bg-zinc-200 text-zinc-900">
+            <Button onClick={handleSave} disabled={saving} className="bg-[#BFFF00] hover:bg-[#a8e600] text-black">
               {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Salvar Alteracoes
             </Button>
@@ -151,7 +151,7 @@ export default function TermosPage() {
             onClick={() => setActiveTab("terms")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "terms"
-                ? "bg-white text-zinc-900"
+                ? "bg-[#BFFF00] text-black"
                 : "bg-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
@@ -162,7 +162,7 @@ export default function TermosPage() {
             onClick={() => setActiveTab("privacy")}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               activeTab === "privacy"
-                ? "bg-white text-zinc-900"
+                ? "bg-[#BFFF00] text-black"
                 : "bg-zinc-800 text-zinc-400 hover:text-white"
             }`}
           >
@@ -177,7 +177,7 @@ export default function TermosPage() {
             <CardTitle className="text-lg text-white">
               {activeTab === "terms" ? "Secoes dos Termos de Uso" : "Secoes da Politica de Privacidade"}
             </CardTitle>
-            <Button variant="outline" size="sm" onClick={addSection} className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+            <Button size="sm" onClick={addSection} className="bg-[#BFFF00] hover:bg-[#a8e600] text-black border-0">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Secao
             </Button>
@@ -187,7 +187,7 @@ export default function TermosPage() {
               <div className="text-center py-12 text-zinc-400">
                 <FileText className="h-12 w-12 mx-auto mb-4 text-zinc-700" />
                 <p>Nenhuma secao criada</p>
-                <Button variant="outline" size="sm" className="mt-4 border-zinc-700 text-zinc-300 hover:bg-zinc-800" onClick={addSection}>
+                <Button size="sm" className="mt-4 bg-[#BFFF00] hover:bg-[#a8e600] text-black border-0" onClick={addSection}>
                   <Plus className="h-4 w-4 mr-2" />
                   Criar primeira secao
                 </Button>
@@ -273,7 +273,7 @@ export default function TermosPage() {
             </div>
           </ScrollArea>
           <div className="p-5 border-t border-zinc-800">
-            <Button onClick={() => setPreviewOpen(false)} className="w-full bg-white text-zinc-900 hover:bg-zinc-200">
+            <Button onClick={() => setPreviewOpen(false)} className="w-full bg-[#BFFF00] text-black hover:bg-[#a8e600]">
               Fechar Preview
             </Button>
           </div>
