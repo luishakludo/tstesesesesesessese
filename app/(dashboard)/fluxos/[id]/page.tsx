@@ -1698,14 +1698,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
   return (
     <div className="flex h-full flex-col bg-[#f5f5f7]">
-      {/* Header - Clean minimal design */}
-      <div className="bg-white border-b border-neutral-200/60">
+      {/* Header - Clean White Design */}
+      <div className="bg-white border-b border-neutral-200/80 sticky top-0 z-40">
         <div className="max-w-[1200px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-5">
               <button 
                 onClick={() => router.push("/fluxos")}
-                className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-semibold"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Fluxos</span>
@@ -1723,7 +1723,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     }}
                     onBlur={() => setIsEditingName(false)}
                     onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                    className="w-56 h-9 bg-neutral-50 border-neutral-200 text-base font-semibold"
+                    className="w-56 h-9 bg-neutral-50 border-neutral-200 text-neutral-900 text-base font-semibold focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                     autoFocus
                   />
                 ) : (
@@ -1731,8 +1731,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     className="flex items-center gap-2 hover:bg-neutral-100 px-3 py-1.5 rounded-lg transition-colors group"
                     onClick={() => setIsEditingName(true)}
                   >
-                    <h1 className="text-lg font-semibold text-neutral-900">{editName}</h1>
-                    <Pencil className="h-3.5 w-3.5 text-neutral-400 group-hover:text-neutral-600" />
+                    <h1 className="text-lg font-bold text-neutral-900">{editName}</h1>
+                    <Pencil className="h-3.5 w-3.5 text-neutral-400 group-hover:text-[#8fb300]" />
                   </button>
                 )}
               </div>
@@ -1741,7 +1741,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-[0_0_20px_rgba(190,255,0,0.3)] hover:shadow-[0_0_25px_rgba(190,255,0,0.4)] disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_20px_rgba(190,255,0,0.25)] hover:shadow-[0_0_25px_rgba(190,255,0,0.4)] disabled:opacity-50"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1754,10 +1754,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
         </div>
       </div>
 
-      {/* Tabs - Modern pill style */}
-      <div className="bg-white border-b border-neutral-200/60">
+      {/* Tabs - Fixed White Bar */}
+      <div className="bg-white border-b border-neutral-200/80 sticky top-[73px] z-30">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="flex items-center gap-1 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-1 py-2.5 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -1768,12 +1768,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   key={tab.id}
                   onClick={() => !isLocked && setActiveTab(tab.id)}
                   disabled={isLocked}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${
                     isActive
-                      ? "bg-neutral-900 text-white shadow-sm"
+                      ? "bg-neutral-900 text-white"
                       : isLocked
                       ? "text-neutral-300 cursor-not-allowed"
-                      : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
                   }`}
                 >
                   {isLocked ? (
@@ -1804,36 +1804,36 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Bots Tab */}
           {activeTab === "bots" && (
             <div className="space-y-6">
-              {/* Stats Row - Clean horizontal cards */}
+              {/* Stats Row - White cards with colored accents */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-blue-600" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                      <Users className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-500">Leads</span>
+                    <span className="text-sm font-semibold text-neutral-500">Leads</span>
                   </div>
                   <p className="text-3xl font-bold text-neutral-900">
                     {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.leads.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
-                      <Crown className="h-5 w-5 text-amber-600" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <Crown className="h-5 w-5 text-neutral-900" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-500">VIPs</span>
+                    <span className="text-sm font-semibold text-neutral-500">VIPs</span>
                   </div>
                   <p className="text-3xl font-bold text-neutral-900">
                     {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.vips.toLocaleString()}
                   </p>
                 </div>
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 text-emerald-600" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <DollarSign className="h-5 w-5 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-neutral-500">Receita</span>
+                    <span className="text-sm font-semibold text-neutral-500">Receita</span>
                   </div>
                   <p className="text-3xl font-bold text-neutral-900">
                     {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : `R$ ${stats.revenue.toFixed(2)}`}
@@ -1841,20 +1841,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Bots Section */}
+              {/* Bots Section - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-[#8fb300]" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                        <Bot className="h-5 w-5 text-neutral-900" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-neutral-900">Bots Vinculados</h3>
+                        <h3 className="font-bold text-neutral-900">Bots Vinculados</h3>
                         <p className="text-sm text-neutral-500">Gerencie os bots que executam este fluxo</p>
                       </div>
                     </div>
-                    <span className="text-sm font-medium text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">{flowBots.length}/5</span>
+                    <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{flowBots.length}/5</span>
                   </div>
                 </div>
                 
@@ -1862,22 +1862,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   {flowBots.length === 0 ? (
                     <div className="text-center py-10">
                       <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-                        <Bot className="h-8 w-8 text-neutral-300" />
+                        <Bot className="h-8 w-8 text-neutral-400" />
                       </div>
-                      <h4 className="font-semibold text-neutral-900 mb-1">Nenhum bot vinculado</h4>
+                      <h4 className="font-bold text-neutral-900 mb-1">Nenhum bot vinculado</h4>
                       <p className="text-sm text-neutral-500 mb-6">Adicione bots para executar este fluxo</p>
                       
                       {userBots.length === 0 ? (
                         showCreateBotForm ? (
                           <div className="max-w-sm mx-auto space-y-4 text-left">
                             <div className="space-y-2">
-                              <Label htmlFor="bot-token" className="text-neutral-700">Token do Bot</Label>
+                              <Label htmlFor="bot-token" className="text-neutral-700 font-medium">Token do Bot</Label>
                               <Input
                                 id="bot-token"
                                 value={newBotToken}
                                 onChange={(e) => setNewBotToken(e.target.value)}
                                 placeholder="Cole o token do BotFather aqui..."
-                                className="bg-neutral-50 border-neutral-200"
+                                className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                               />
                               <p className="text-xs text-neutral-500">
                                 Obtenha o token no @BotFather do Telegram
@@ -1894,7 +1894,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 Cancelar
                               </button>
                               <button
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors disabled:opacity-50"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors disabled:opacity-50"
                                 onClick={handleCreateBotInline}
                                 disabled={isCreatingBot || !newBotToken.trim()}
                               >
@@ -1905,7 +1905,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </div>
                         ) : (
                           <button
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                             onClick={() => setShowCreateBotForm(true)}
                           >
                             <Plus className="h-4 w-4" />
@@ -1914,7 +1914,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         )
                       ) : (
                         <button
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                           onClick={() => {
                             fetchAvailableBots()
                             setShowAddBotDialog(true)
@@ -1930,7 +1930,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {flowBots.map((fb) => (
                         <div
                           key={fb.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 hover:border-neutral-200 transition-colors"
+                          className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors"
                         >
                           <div className="flex items-center gap-4">
                             {fb.bot?.photo_url ? (
@@ -1940,12 +1940,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 className="h-12 w-12 rounded-xl object-cover"
                               />
                             ) : (
-                              <div className="h-12 w-12 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
+                              <div className="h-12 w-12 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
                                 <Bot className="h-6 w-6 text-[#8fb300]" />
                               </div>
                             )}
                             <div>
-                              <p className="font-semibold text-neutral-900">
+                              <p className="font-bold text-neutral-900">
                                 {fb.bot?.first_name || "Bot"}
                               </p>
                               <p className="text-sm text-neutral-500">
@@ -1966,7 +1966,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <div className="flex gap-3 pt-2">
                           {userBots.length > flowBots.length && (
                             <button
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-600 hover:border-[#BEFF00] hover:text-neutral-900 hover:bg-[#BEFF00]/5 transition-all"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-500 hover:border-[#bfff00]/50 hover:text-neutral-900 hover:bg-[#bfff00]/5 transition-all"
                               onClick={() => {
                                 fetchAvailableBots()
                                 setShowAddBotDialog(true)
@@ -1977,7 +1977,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </button>
                           )}
                           <button
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-600 hover:border-[#BEFF00] hover:text-neutral-900 hover:bg-[#BEFF00]/5 transition-all"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-500 hover:border-[#bfff00]/50 hover:text-neutral-900 hover:bg-[#bfff00]/5 transition-all"
                             onClick={() => setShowCreateBotForm(true)}
                           >
                             <Plus className="h-4 w-4" />
@@ -1989,13 +1989,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {showCreateBotForm && (
                         <div className="p-5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-4 mt-3">
                           <div className="space-y-2">
-                            <Label htmlFor="bot-token-inline" className="text-neutral-700">Token do Bot</Label>
+                            <Label htmlFor="bot-token-inline" className="text-neutral-700 font-medium">Token do Bot</Label>
                             <Input
                               id="bot-token-inline"
                               value={newBotToken}
                               onChange={(e) => setNewBotToken(e.target.value)}
                               placeholder="Cole o token do BotFather aqui..."
-                              className="bg-white border-neutral-200"
+                              className="bg-white border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                             />
                             <p className="text-xs text-neutral-500">
                               Obtenha o token no @BotFather do Telegram
@@ -2012,7 +2012,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               Cancelar
                             </button>
                             <button
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors disabled:opacity-50"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors disabled:opacity-50"
                               onClick={handleCreateBotInline}
                               disabled={isCreatingBot || !newBotToken.trim()}
                             >
@@ -2027,45 +2027,161 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Entregaveis Quick Access */}
+              {/* Entregaveis Quick Access - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                        <Gift className="h-5 w-5 text-purple-600" />
+                      <div className="h-11 w-11 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-neutral-900" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-neutral-900">Entregaveis</h3>
+                        <h3 className="font-bold text-neutral-900">Entregaveis</h3>
                         <p className="text-sm text-neutral-500">{deliverables.length} cadastrados</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setActiveTab("deliverables")}
-                      className="text-sm font-medium text-[#8fb300] hover:text-[#7a9900] transition-colors"
-                    >
-                      Gerenciar
-                    </button>
+                    {deliverables.length > 0 && (
+                      <button 
+                        onClick={() => setActiveTab("deliverables")}
+                        className="text-sm font-bold text-[#8fb300] hover:text-[#7a9900] transition-colors"
+                      >
+                        Gerenciar
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="p-6">
                   {deliverables.length === 0 ? (
-                    <p className="text-sm text-neutral-500 text-center py-4">Nenhum entregavel configurado ainda</p>
+                    <div className="space-y-4">
+                      <p className="text-sm text-neutral-500 text-center">Nenhum entregavel configurado ainda</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Midia",
+                              type: "media",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <ImageIcon className="h-5 w-5 text-neutral-900 group-hover:text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Midia</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Link",
+                              type: "link",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <Link2 className="h-5 w-5 text-neutral-900 group-hover:text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Link</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Grupo VIP",
+                              type: "vip_group",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <Users className="h-5 w-5 text-neutral-900 group-hover:text-white" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Grupo VIP</span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {deliverables.slice(0, 5).map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-700">
-                          {d.type === "media" && <ImageIcon className="h-3.5 w-3.5" />}
-                          {d.type === "link" && <Link2 className="h-3.5 w-3.5" />}
-                          {d.type === "vip_group" && <Users className="h-3.5 w-3.5" />}
-                          {d.name}
-                        </span>
-                      ))}
-                      {deliverables.length > 5 && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
-                          +{deliverables.length - 5} mais
-                        </span>
-                      )}
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {deliverables.slice(0, 5).map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => {
+                              setEditingDeliverable(d)
+                              setDeliverableModalStep("form")
+                              setTempDeliverable({ ...d })
+                              setDeliverableModalOpen(true)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-sm text-neutral-700 font-medium hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all"
+                          >
+                            {d.type === "media" && <ImageIcon className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.type === "link" && <Link2 className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.type === "vip_group" && <Users className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.name}
+                          </button>
+                        ))}
+                        {deliverables.length > 5 && (
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
+                            +{deliverables.length - 5} mais
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingDeliverable(null)
+                          setDeliverableModalStep("select")
+                          setTempDeliverable({
+                            id: `del-${Date.now()}`,
+                            name: `Entregavel ${deliverables.length + 1}`,
+                            type: "media",
+                            medias: [],
+                            link: "",
+                            linkText: "",
+                            vipGroupChatId: "",
+                            vipGroupName: "",
+                            vipAutoAdd: true,
+                            vipAutoRemove: true,
+                          })
+                          setDeliverableModalOpen(true)
+                        }}
+                        disabled={deliverables.length >= 10}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all text-sm font-medium text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar entregavel
+                      </button>
                     </div>
                   )}
                 </div>
@@ -2076,15 +2192,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Welcome Tab */}
           {activeTab === "welcome" && (
             <div className="space-y-6">
-              {/* Midias Section */}
+              {/* Midias Section - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
-                      <ImageIcon className="h-5 w-5 text-purple-600" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                      <ImageIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-neutral-900">Midias</h3>
+                      <h3 className="font-bold text-neutral-900">Midias</h3>
                       <p className="text-sm text-neutral-500">Adicione ate 3 midias para a mensagem de boas-vindas</p>
                     </div>
                   </div>
@@ -2106,7 +2222,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     ))}
                     {welcomeMedias.length < 3 && (
-                      <label className="w-28 h-28 rounded-xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] hover:bg-[#BEFF00]/5 transition-all">
+                      <label className="w-28 h-28 rounded-xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-all">
                         <Plus className="h-6 w-6 text-neutral-400 mb-1" />
                         <span className="text-xs text-neutral-500">{welcomeMedias.length}/3</span>
                         <input
@@ -2160,16 +2276,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Message Section */}
+              {/* Message Section - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
-                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                        <MessageSquare className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-neutral-900">Mensagem de Boas-vindas</h3>
+                        <h3 className="font-bold text-neutral-900">Mensagem de Boas-vindas</h3>
                         <p className="text-sm text-neutral-500">Primeira mensagem enviada ao usuario</p>
                       </div>
                     </div>
@@ -2199,7 +2315,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     }}
                     placeholder="Ola {nome}! Bem-vindo ao @{bot.username}"
                     rows={6}
-                    className="bg-neutral-50 border-neutral-200 font-mono text-sm resize-none"
+                    className="bg-neutral-50 border-neutral-200 font-mono text-sm resize-none focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                   />
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-neutral-400">
@@ -2208,7 +2324,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-neutral-400">Variaveis:</span>
                       <button 
-                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#BEFF00]/20 transition-colors"
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#bfff00]/20 hover:text-[#8fb300] transition-colors"
                         onClick={() => {
                           setWelcomeMessage(welcomeMessage + "{nome}")
                           setHasChanges(true)
@@ -2217,7 +2333,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         {"{nome}"}
                       </button>
                       <button 
-                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#BEFF00]/20 transition-colors"
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#bfff00]/20 hover:text-[#8fb300] transition-colors"
                         onClick={() => {
                           setWelcomeMessage(welcomeMessage + "{username}")
                           setHasChanges(true)
@@ -2230,15 +2346,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* CTA Button Section */}
+              {/* CTA Button Section - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
-                      <ExternalLink className="h-5 w-5 text-[#8fb300]" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <ExternalLink className="h-5 w-5 text-neutral-900" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-neutral-900">Botao de Acao (CTA)</h3>
+                      <h3 className="font-bold text-neutral-900">Botao de Acao (CTA)</h3>
                       <p className="text-sm text-neutral-500">Botao exibido apos a mensagem para ver os planos</p>
                     </div>
                   </div>
@@ -2246,7 +2362,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="p-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-sm text-neutral-600">Texto do Botao</Label>
+                      <Label className="text-sm text-neutral-700 font-medium">Texto do Botao</Label>
                       <Input
                         value={ctaButtonText}
                         onChange={(e) => {
@@ -2254,15 +2370,104 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="Ver Planos"
-                        className="bg-neutral-50 border-neutral-200"
+                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                       />
                     </div>
-                    <div className="flex items-start gap-3 p-4 rounded-xl bg-[#BEFF00]/10 border border-[#BEFF00]/20">
+                    <div className="flex items-start gap-3 p-4 rounded-xl bg-[#bfff00]/10 border border-[#bfff00]/20">
                       <HelpCircle className="h-4 w-4 text-[#8fb300] shrink-0 mt-0.5" />
-                      <p className="text-sm text-neutral-600">
+                      <p className="text-sm text-neutral-700">
                         Este botao sera exibido ao usuario apos a mensagem de boas-vindas para que ele possa ver os planos disponiveis.
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Opcoes Avancadas - Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Mensagem Secundaria */}
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                  <div className="px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                          <MessageCircle className="h-5 w-5 text-neutral-900" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-neutral-900 text-sm">Mensagem Secundaria</h3>
+                          <p className="text-xs text-neutral-500">Mensagem separada para botoes</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={secondaryMessageEnabled}
+                        onCheckedChange={(checked) => {
+                          setSecondaryMessageEnabled(checked)
+                          setHasChanges(true)
+                        }}
+                        className="data-[state=checked]:bg-[#bfff00]"
+                      />
+                    </div>
+                    {secondaryMessageEnabled && (
+                      <div className="mt-4">
+                        <Textarea
+                          value={secondaryMessage}
+                          onChange={(e) => {
+                            setSecondaryMessage(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="Digite a mensagem secundaria..."
+                          rows={3}
+                          className="bg-neutral-50 border-neutral-200 text-sm focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Botao Redirect */}
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                  <div className="px-6 py-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                          <ExternalLink className="h-5 w-5 text-neutral-900" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-neutral-900 text-sm">Botao Redirect</h3>
+                          <p className="text-xs text-neutral-500">Redireciona para canal</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={redirectButtonEnabled}
+                        onCheckedChange={(checked) => {
+                          setRedirectButtonEnabled(checked)
+                          setHasChanges(true)
+                        }}
+                        className="data-[state=checked]:bg-[#bfff00]"
+                      />
+                    </div>
+                    {redirectButtonEnabled && (
+                      <div className="mt-4 space-y-3">
+                        <Input
+                          value={redirectButtonText}
+                          onChange={(e) => {
+                            setRedirectButtonText(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="Texto do botao"
+                          className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                        <Input
+                          value={redirectButtonUrl}
+                          onChange={(e) => {
+                            setRedirectButtonUrl(e.target.value)
+                            setHasChanges(true)
+                          }}
+                          placeholder="@canal ou https://t.me/canal"
+                          className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2272,25 +2477,25 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Plans Tab */}
           {activeTab === "plans" && (
             <div className="space-y-6">
-              {/* Planos de Pagamento */}
+              {/* Planos de Pagamento - White Card */}
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-emerald-600" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <CreditCard className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-neutral-900">Planos de Pagamento</h3>
+                        <h3 className="font-bold text-neutral-900">Planos de Pagamento</h3>
                         <p className="text-sm text-neutral-500">Configure ate 10 planos com entregas personalizadas</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">{plans.length}/10</span>
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{plans.length}/10</span>
                       {plans.length > 0 && plans.length < 10 && (
                         <button
                           onClick={handleAddPlan}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                           Adicionar
@@ -2303,13 +2508,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   {plans.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-                        <CreditCard className="h-8 w-8 text-neutral-300" />
+                        <CreditCard className="h-8 w-8 text-neutral-400" />
                       </div>
-                      <h4 className="font-semibold text-neutral-900 mb-1">Nenhum plano configurado</h4>
+                      <h4 className="font-bold text-neutral-900 mb-1">Nenhum plano configurado</h4>
                       <p className="text-sm text-neutral-500 mb-6">Crie planos para seus clientes comprarem</p>
                       <button
                         onClick={handleAddPlan}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                       >
                         <Plus className="h-4 w-4" />
                         Adicionar Plano
@@ -2732,8 +2937,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Resumo de Entregaveis */}
                 <Card className="border-neutral-200 bg-gradient-to-br from-emerald-500/5 to-transparent">
@@ -5484,104 +5689,105 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Deliverables Tab */}
           {activeTab === "deliverables" && (
             <div className="space-y-6">
-              {/* Header Card */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <Gift className="h-5 w-5 text-[#8fb300]" />
-                      <h2 className="text-lg font-semibold">Entregaveis</h2>
+              {/* Header Card - White */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <Gift className="h-5 w-5 text-neutral-900" />
                     </div>
-                    <Badge variant="secondary" className="text-neutral-500">
-                      {deliverables.length} cadastrados
-                    </Badge>
+                    <div>
+                      <h2 className="text-lg font-bold text-neutral-900">Entregaveis</h2>
+                      <p className="text-sm text-neutral-500">Configure o que sera entregue apos o pagamento</p>
+                    </div>
                   </div>
+                  <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
+                    {deliverables.length}/10
+                  </span>
+                </div>
 
-                  {/* Botao Adicionar */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingDeliverable(null)
-                      setDeliverableModalStep("select")
-                      setTempDeliverable({
-                        id: `del-${Date.now()}`,
-                        name: `Entregavel ${deliverables.length + 1}`,
-                        type: "media",
-                        medias: [],
-                        link: "",
-                        linkText: "",
-                        vipGroupChatId: "",
-                        vipGroupName: "",
-                        vipAutoAdd: true,
-                        vipAutoRemove: true,
-                      })
-                      setDeliverableModalOpen(true)
-                    }}
-                    disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="h-12 w-12 rounded-full bg-[#BEFF00]/10 flex items-center justify-center group-hover:bg-[#BEFF00]/20 transition-colors">
-                      <Plus className="h-5 w-5 text-[#8fb300]" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-semibold">Adicionar Entregavel</p>
-                      <p className="text-sm text-neutral-500">Midia, Grupo VIP ou Link</p>
-                    </div>
-                  </button>
+                {/* Botao Adicionar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingDeliverable(null)
+                    setDeliverableModalStep("select")
+                    setTempDeliverable({
+                      id: `del-${Date.now()}`,
+                      name: `Entregavel ${deliverables.length + 1}`,
+                      type: "media",
+                      medias: [],
+                      link: "",
+                      linkText: "",
+                      vipGroupChatId: "",
+                      vipGroupName: "",
+                      vipAutoAdd: true,
+                      vipAutoRemove: true,
+                    })
+                    setDeliverableModalOpen(true)
+                  }}
+                  disabled={deliverables.length >= 10}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="h-12 w-12 rounded-full bg-[#bfff00]/20 flex items-center justify-center group-hover:bg-[#bfff00]/30 transition-colors">
+                    <Plus className="h-5 w-5 text-[#8fb300]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Adicionar</p>
+                    <p className="text-sm text-neutral-500">Midia, Grupo VIP ou Link</p>
+                  </div>
+                </button>
 
-                  {deliverables.length === 0 && (
-                    <p className="text-center text-sm text-neutral-500 mt-4">
-                      Configure o que sera entregue apos o pagamento ser aprovado
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+                {deliverables.length === 0 && (
+                  <p className="text-center text-xs text-neutral-500 mt-4">
+                    Configure o que sera entregue apos o pagamento
+                  </p>
+                )}
+              </div>
 
-              {/* Entregavel Principal */}
+              {/* Entregavel Principal - White */}
               {deliverables.length > 0 && (
-                <Card className="border-neutral-200 border-[#BEFF00]/30">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
-                          <Crown className="h-4 w-4 text-[#8fb300]" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">Entregavel Principal</p>
-                          <p className="text-xs text-neutral-500">Sera enviado apos a compra inicial</p>
-                        </div>
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-[#bfff00]/30 p-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
+                        <Crown className="h-5 w-5 text-[#8fb300]" />
                       </div>
-                      <Select
-                        value={mainDeliverableId || "none"}
-                        onValueChange={(v) => {
-                          setMainDeliverableId(v === "none" ? "" : v)
-                          setHasChanges(true)
-                        }}
-                      >
-                        <SelectTrigger className="w-52 bg-secondary/50 border-neutral-200">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          {deliverables.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.name} ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div>
+                        <p className="font-bold text-neutral-900 text-sm">Entregavel Principal</p>
+                        <p className="text-xs text-neutral-500">Sera enviado apos a compra inicial</p>
+                      </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <Select
+                      value={mainDeliverableId || "none"}
+                      onValueChange={(v) => {
+                        setMainDeliverableId(v === "none" ? "" : v)
+                        setHasChanges(true)
+                      }}
+                    >
+                      <SelectTrigger className="w-52 bg-neutral-50 border-neutral-200">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
+                        {deliverables.map((d) => (
+                          <SelectItem key={d.id} value={d.id}>
+                            {d.name} ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               )}
 
-              {/* Lista de Entregaveis */}
+              {/* Lista de Entregaveis - White */}
               {deliverables.length > 0 && (
                 <div className="space-y-3">
                   {deliverables.map((del) => (
-                    <Card 
+                    <div 
                       key={del.id} 
-                      className="border-neutral-200 hover:border-[#BEFF00]/30 transition-colors cursor-pointer"
+                      className="bg-white rounded-2xl p-4 border border-neutral-100 hover:border-[#bfff00]/40 hover:shadow-sm transition-all cursor-pointer"
                       onClick={() => {
                         setEditingDeliverable(del)
                         setDeliverableModalStep("form")
@@ -5589,57 +5795,53 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         setDeliverableModalOpen(true)
                       }}
                     >
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                              del.type === "media" ? "bg-purple-500/10" : 
-                              del.type === "link" ? "bg-blue-500/10" : "bg-amber-500/10"
-                            }`}>
-                              {del.type === "media" ? (
-                                <ImageIcon className="h-5 w-5 text-purple-500" />
-                              ) : del.type === "link" ? (
-                                <Link2 className="h-5 w-5 text-blue-500" />
-                              ) : (
-                                <Users className="h-5 w-5 text-amber-500" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">{del.name}</p>
-                              <p className="text-xs text-neutral-500">
-                                {del.type === "media" 
-                                  ? `${(del.medias || []).length} midia(s)` 
-                                  : del.type === "link" 
-                                    ? del.link || "Sem link configurado"
-                                    : del.vipGroupName || "Grupo VIP"
-                                }
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {mainDeliverableId === del.id && (
-                              <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-[#BEFF00]/30">
-                                <Crown className="h-3 w-3 mr-1" />
-                                Principal
-                              </Badge>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`h-11 w-11 rounded-xl flex items-center justify-center shadow-lg ${
+                            del.type === "media" ? "bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/25" : 
+                            del.type === "link" ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25" : "bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/25"
+                          }`}>
+                            {del.type === "media" ? (
+                              <ImageIcon className="h-5 w-5 text-white" />
+                            ) : del.type === "link" ? (
+                              <Link2 className="h-5 w-5 text-white" />
+                            ) : (
+                              <Users className="h-5 w-5 text-white" />
                             )}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (mainDeliverableId === del.id) setMainDeliverableId("")
-                                setDeliverables(deliverables.filter((d) => d.id !== del.id))
-                                setHasChanges(true)
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                          </div>
+                          <div>
+                            <p className="font-bold text-neutral-900">{del.name}</p>
+                            <p className="text-xs text-neutral-500">
+                              {del.type === "media" 
+                                ? `${(del.medias || []).length} midia(s)` 
+                                : del.type === "link" 
+                                  ? del.link || "Sem link configurado"
+                                  : del.vipGroupName || "Grupo VIP"
+                              }
+                            </p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                        <div className="flex items-center gap-2">
+                          {mainDeliverableId === del.id && (
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#bfff00]/20 text-[#8fb300] text-xs font-bold">
+                              <Crown className="h-3 w-3" />
+                              Principal
+                            </span>
+                          )}
+                          <button
+                            className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (mainDeliverableId === del.id) setMainDeliverableId("")
+                              setDeliverables(deliverables.filter((d) => d.id !== del.id))
+                              setHasChanges(true)
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -5770,229 +5972,6 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
               )}
             </div>
-          )}
-        </div>
-        )}
-
-        {/* Sidebar - Only show for tabs that need it */}
-        {(activeTab === "bots" || activeTab === "welcome") && (
-        <div className="w-80 border-l border-neutral-200 bg-white p-6 overflow-auto">
-          {/* Welcome Tab Sidebar Options */}
-          {activeTab === "welcome" && (
-            <div className="space-y-4">
-              {/* Mensagem Secundaria */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <MessageCircle className="h-4 w-4 text-purple-400" />
-                      <div>
-                        <p className="font-medium text-sm">Mensagem Secundaria</p>
-                        <p className="text-xs text-neutral-500">Mensagem separada onde os botoes serao enviados</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={secondaryMessageEnabled}
-                      onCheckedChange={(checked) => {
-                        setSecondaryMessageEnabled(checked)
-                        setHasChanges(true)
-                      }}
-                    />
-                  </div>
-                  {secondaryMessageEnabled && (
-                    <div className="mt-4">
-                      <Textarea
-                        value={secondaryMessage}
-                        onChange={(e) => {
-                          setSecondaryMessage(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="Digite a mensagem secundaria..."
-                        rows={3}
-                        className="bg-secondary/30 border-neutral-200 text-sm"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Botao Redirect */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <ExternalLink className="h-4 w-4 text-blue-400" />
-                      <div>
-                        <p className="font-medium text-sm">Botao Redirect</p>
-                        <p className="text-xs text-neutral-500">Redireciona para canal de previas</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={redirectButtonEnabled}
-                      onCheckedChange={(checked) => {
-                        setRedirectButtonEnabled(checked)
-                        setHasChanges(true)
-                      }}
-                    />
-                  </div>
-                  {redirectButtonEnabled && (
-                    <div className="mt-4 space-y-3">
-                      <Input
-                        value={redirectButtonText}
-                        onChange={(e) => {
-                          setRedirectButtonText(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="Texto do botao"
-                        className="bg-neutral-50 border-neutral-200"
-                      />
-                      <Input
-                        value={redirectButtonUrl}
-                        onChange={(e) => {
-                          setRedirectButtonUrl(e.target.value)
-                          setHasChanges(true)
-                        }}
-                        placeholder="@canal ou https://t.me/canal"
-                        className="bg-neutral-50 border-neutral-200"
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Entregaveis - Only show in bots tab */}
-          {activeTab === "bots" && (
-            <Card className="border-neutral-200 shadow-sm">
-              <CardContent className="p-5">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-5">
-                  <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-[#8fb300]" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-sm">Entregaveis</h3>
-                      <p className="text-xs text-neutral-500">{deliverables.length} cadastrado{deliverables.length !== 1 ? "s" : ""}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Lista de entregaveis ou estado vazio */}
-                <div className="space-y-2">
-                  {deliverables.map((del) => (
-                    <button
-                      key={del.id}
-                      type="button"
-                      onClick={() => {
-                        setEditingDeliverable(del)
-                        setDeliverableModalStep("form")
-                        setTempDeliverable({ ...del })
-                        setDeliverableModalOpen(true)
-                      }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all text-left group"
-                    >
-                      <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        del.type === "media" ? "bg-purple-500/15" : 
-                        del.type === "link" ? "bg-blue-500/15" : "bg-amber-500/15"
-                      }`}>
-                        {del.type === "media" ? (
-                          <ImageIcon className="h-4 w-4 text-purple-500" />
-                        ) : del.type === "link" ? (
-                          <Link2 className="h-4 w-4 text-blue-500" />
-                        ) : (
-                          <Users className="h-4 w-4 text-amber-500" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{del.name}</p>
-                        <p className="text-xs text-neutral-500">
-                          {del.type === "media" ? "Midia" : del.type === "link" ? "Link" : "Grupo VIP"}
-                        </p>
-                      </div>
-                      {mainDeliverableId === del.id && (
-                        <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-0 text-[10px] px-1.5 py-0.5">
-                          Principal
-                        </Badge>
-                      )}
-                      <ChevronRight className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                    </button>
-                  ))}
-
-                  {/* Botao Adicionar */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingDeliverable(null)
-                      setDeliverableModalStep("select")
-                      setTempDeliverable({
-                        id: `del-${Date.now()}`,
-                        name: `Entregavel ${deliverables.length + 1}`,
-                        type: "media",
-                        medias: [],
-                        link: "",
-                        linkText: "",
-                        vipGroupChatId: "",
-                        vipGroupName: "",
-                        vipAutoAdd: true,
-                        vipAutoRemove: true,
-                      })
-                      setDeliverableModalOpen(true)
-                    }}
-                    disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-neutral-200 hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="h-9 w-9 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center group-hover:bg-accent/15 transition-colors shrink-0">
-                      <Plus className="h-4 w-4 text-[#8fb300]" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium text-sm">Adicionar</p>
-                      <p className="text-xs text-neutral-500">Midia, Grupo VIP ou Link</p>
-                    </div>
-                  </button>
-                </div>
-
-                {/* Helper text */}
-                {deliverables.length === 0 && (
-                  <p className="text-center text-xs text-neutral-500 mt-4 px-2">
-                    Configure o que sera entregue apos o pagamento
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-
-
-
-
-          {/* Danger Zone - Collapsible at bottom */}
-          {activeTab === "bots" && (
-          <details className="group mt-8">
-            <summary className="flex items-center gap-2 cursor-pointer text-sm text-neutral-400 hover:text-neutral-600 transition-colors list-none [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              <AlertTriangle className="h-4 w-4" />
-              <span>Zona de Perigo</span>
-            </summary>
-            <div className="mt-4 p-5 rounded-xl bg-red-50 border border-red-100">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h4 className="font-medium text-red-900 mb-1">Excluir Fluxo</h4>
-                  <p className="text-sm text-red-700/70">
-                    Todos os bots vinculados e grupos VIP serao desvinculados. Esta acao nao pode ser desfeita.
-                  </p>
-                </div>
-                <button
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir
-                </button>
-              </div>
-            </div>
-          </details>
           )}
         </div>
         )}
