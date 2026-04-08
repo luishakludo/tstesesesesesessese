@@ -1698,20 +1698,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
   return (
     <div className="flex h-full flex-col bg-[#f5f5f7]">
-      {/* Header - Dark Modern Design */}
-      <div className="bg-[#1c1c1e] border-b border-white/10">
+      {/* Header - Clean White Design */}
+      <div className="bg-white border-b border-neutral-200/80 sticky top-0 z-40">
         <div className="max-w-[1200px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-5">
               <button 
                 onClick={() => router.push("/fluxos")}
-                className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-bold"
+                className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-semibold"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Fluxos</span>
               </button>
 
-              <div className="h-5 w-px bg-white/20" />
+              <div className="h-5 w-px bg-neutral-200" />
 
               <div className="flex items-center gap-2">
                 {isEditingName ? (
@@ -1723,16 +1723,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     }}
                     onBlur={() => setIsEditingName(false)}
                     onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                    className="w-56 h-9 bg-white/5 border-white/10 text-white text-base font-bold focus:border-[#bfff00] focus:ring-[#bfff00]/20"
+                    className="w-56 h-9 bg-neutral-50 border-neutral-200 text-neutral-900 text-base font-semibold focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                     autoFocus
                   />
                 ) : (
                   <button
-                    className="flex items-center gap-2 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors group"
+                    className="flex items-center gap-2 hover:bg-neutral-100 px-3 py-1.5 rounded-lg transition-colors group"
                     onClick={() => setIsEditingName(true)}
                   >
-                    <h1 className="text-lg font-bold text-white">{editName}</h1>
-                    <Pencil className="h-3.5 w-3.5 text-gray-500 group-hover:text-[#bfff00]" />
+                    <h1 className="text-lg font-bold text-neutral-900">{editName}</h1>
+                    <Pencil className="h-3.5 w-3.5 text-neutral-400 group-hover:text-[#8fb300]" />
                   </button>
                 )}
               </div>
@@ -1741,7 +1741,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_25px_rgba(190,255,0,0.35)] hover:shadow-[0_0_30px_rgba(190,255,0,0.5)] disabled:opacity-50"
+              className="flex items-center gap-2 bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-[0_0_20px_rgba(190,255,0,0.25)] hover:shadow-[0_0_25px_rgba(190,255,0,0.4)] disabled:opacity-50"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1754,10 +1754,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
         </div>
       </div>
 
-      {/* Tabs - Dark Modern Style */}
-      <div className="bg-[#1c1c1e] border-b border-white/10">
+      {/* Tabs - Fixed White Bar */}
+      <div className="bg-white border-b border-neutral-200/80 sticky top-[73px] z-30">
         <div className="max-w-[1200px] mx-auto px-6">
-          <div className="flex items-center gap-1.5 py-3 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center gap-1 py-2.5 overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
@@ -1768,18 +1768,18 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   key={tab.id}
                   onClick={() => !isLocked && setActiveTab(tab.id)}
                   disabled={isLocked}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 text-sm font-bold rounded-xl transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all whitespace-nowrap ${
                     isActive
-                      ? "bg-[#bfff00] text-[#1c1c1e] shadow-[0_0_20px_rgba(190,255,0,0.3)]"
+                      ? "bg-neutral-900 text-white"
                       : isLocked
-                      ? "text-gray-600 cursor-not-allowed"
-                      : "text-gray-400 hover:text-white hover:bg-white/10"
+                      ? "text-neutral-300 cursor-not-allowed"
+                      : "text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100"
                   }`}
                 >
                   {isLocked ? (
                     <Lock className="h-4 w-4" />
                   ) : (
-                    <Icon className={`h-4 w-4 ${isActive ? "" : ""}`} />
+                    <Icon className="h-4 w-4" />
                   )}
                   {tab.label}
                 </button>
@@ -1804,110 +1804,88 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Bots Tab */}
           {activeTab === "bots" && (
             <div className="space-y-6">
-              {/* Stats Row - Dark cards with glow */}
+              {/* Stats Row - White cards with colored accents */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="relative rounded-[20px] p-5 overflow-hidden bg-[#1c1c1e]">
-                  <div 
-                    className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse at center bottom, rgba(59, 130, 246, 0.15) 0%, transparent 70%)" }}
-                  />
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-11 w-11 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                        <Users className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-400">Leads</span>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                      <Users className="h-5 w-5 text-white" />
                     </div>
-                    <p className="text-3xl font-bold text-white">
-                      {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-gray-500" /> : stats.leads.toLocaleString()}
-                    </p>
+                    <span className="text-sm font-semibold text-neutral-500">Leads</span>
                   </div>
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.leads.toLocaleString()}
+                  </p>
                 </div>
-                <div className="relative rounded-[20px] p-5 overflow-hidden bg-[#1c1c1e]">
-                  <div 
-                    className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse at center bottom, rgba(190, 255, 0, 0.15) 0%, transparent 70%)" }}
-                  />
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-11 w-11 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                        <Crown className="h-5 w-5 text-[#bfff00]" />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-400">VIPs</span>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <Crown className="h-5 w-5 text-neutral-900" />
                     </div>
-                    <p className="text-3xl font-bold text-white">
-                      {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-gray-500" /> : stats.vips.toLocaleString()}
-                    </p>
+                    <span className="text-sm font-semibold text-neutral-500">VIPs</span>
                   </div>
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.vips.toLocaleString()}
+                  </p>
                 </div>
-                <div className="relative rounded-[20px] p-5 overflow-hidden bg-[#1c1c1e]">
-                  <div 
-                    className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-                    style={{ background: "radial-gradient(ellipse at center bottom, rgba(16, 185, 129, 0.15) 0%, transparent 70%)" }}
-                  />
-                  <div className="relative">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-11 w-11 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                        <DollarSign className="h-5 w-5 text-emerald-400" />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-400">Receita</span>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100 hover:shadow-md transition-shadow">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                      <DollarSign className="h-5 w-5 text-white" />
                     </div>
-                    <p className="text-3xl font-bold text-white">
-                      {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-gray-500" /> : `R$ ${stats.revenue.toFixed(2)}`}
-                    </p>
+                    <span className="text-sm font-semibold text-neutral-500">Receita</span>
                   </div>
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : `R$ ${stats.revenue.toFixed(2)}`}
+                  </p>
                 </div>
               </div>
 
-              {/* Bots Section - Dark Card with Glow */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(190, 255, 0, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* Bots Section - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-[#bfff00]" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                        <Bot className="h-5 w-5 text-neutral-900" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white">Bots Vinculados</h3>
-                        <p className="text-sm text-gray-400">Gerencie os bots que executam este fluxo</p>
+                        <h3 className="font-bold text-neutral-900">Bots Vinculados</h3>
+                        <p className="text-sm text-neutral-500">Gerencie os bots que executam este fluxo</p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-[#1c1c1e] bg-[#bfff00] px-3 py-1 rounded-full">{flowBots.length}/5</span>
+                    <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{flowBots.length}/5</span>
                   </div>
                 </div>
                 
-                <div className="relative p-6">
+                <div className="p-6">
                   {flowBots.length === 0 ? (
                     <div className="text-center py-10">
-                      <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
-                        <Bot className="h-8 w-8 text-gray-500" />
+                      <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                        <Bot className="h-8 w-8 text-neutral-400" />
                       </div>
-                      <h4 className="font-bold text-white mb-1">Nenhum bot vinculado</h4>
-                      <p className="text-sm text-gray-400 mb-6">Adicione bots para executar este fluxo</p>
+                      <h4 className="font-bold text-neutral-900 mb-1">Nenhum bot vinculado</h4>
+                      <p className="text-sm text-neutral-500 mb-6">Adicione bots para executar este fluxo</p>
                       
                       {userBots.length === 0 ? (
                         showCreateBotForm ? (
                           <div className="max-w-sm mx-auto space-y-4 text-left">
                             <div className="space-y-2">
-                              <Label htmlFor="bot-token" className="text-gray-300 font-medium">Token do Bot</Label>
+                              <Label htmlFor="bot-token" className="text-neutral-700 font-medium">Token do Bot</Label>
                               <Input
                                 id="bot-token"
                                 value={newBotToken}
                                 onChange={(e) => setNewBotToken(e.target.value)}
                                 placeholder="Cole o token do BotFather aqui..."
-                                className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
+                                className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                               />
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-neutral-500">
                                 Obtenha o token no @BotFather do Telegram
                               </p>
                             </div>
                             <div className="flex gap-3">
                               <button
-                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
                                 onClick={() => {
                                   setShowCreateBotForm(false)
                                   setNewBotToken("")
@@ -1916,7 +1894,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 Cancelar
                               </button>
                               <button
-                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] transition-colors disabled:opacity-50"
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors disabled:opacity-50"
                                 onClick={handleCreateBotInline}
                                 disabled={isCreatingBot || !newBotToken.trim()}
                               >
@@ -1927,7 +1905,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </div>
                         ) : (
                           <button
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] transition-colors shadow-[0_0_25px_rgba(190,255,0,0.3)]"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                             onClick={() => setShowCreateBotForm(true)}
                           >
                             <Plus className="h-4 w-4" />
@@ -1936,7 +1914,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         )
                       ) : (
                         <button
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] transition-colors shadow-[0_0_25px_rgba(190,255,0,0.3)]"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                           onClick={() => {
                             fetchAvailableBots()
                             setShowAddBotDialog(true)
@@ -1952,7 +1930,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {flowBots.map((fb) => (
                         <div
                           key={fb.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-[#2a2a2e] border border-[#3a3a3e] hover:border-[#bfff00]/30 transition-colors"
+                          className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors"
                         >
                           <div className="flex items-center gap-4">
                             {fb.bot?.photo_url ? (
@@ -1963,20 +1941,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               />
                             ) : (
                               <div className="h-12 w-12 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                                <Bot className="h-6 w-6 text-[#bfff00]" />
+                                <Bot className="h-6 w-6 text-[#8fb300]" />
                               </div>
                             )}
                             <div>
-                              <p className="font-bold text-white">
+                              <p className="font-bold text-neutral-900">
                                 {fb.bot?.first_name || "Bot"}
                               </p>
-                              <p className="text-sm text-gray-400">
+                              <p className="text-sm text-neutral-500">
                                 @{fb.bot?.username || "unknown"}
                               </p>
                             </div>
                           </div>
                           <button
-                            className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             onClick={() => handleRemoveBot(fb.id)}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -1988,7 +1966,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <div className="flex gap-3 pt-2">
                           {userBots.length > flowBots.length && (
                             <button
-                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-[#3a3a3e] text-gray-400 hover:border-[#bfff00]/50 hover:text-white hover:bg-[#bfff00]/10 transition-all"
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-500 hover:border-[#bfff00]/50 hover:text-neutral-900 hover:bg-[#bfff00]/5 transition-all"
                               onClick={() => {
                                 fetchAvailableBots()
                                 setShowAddBotDialog(true)
@@ -1999,7 +1977,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </button>
                           )}
                           <button
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-[#3a3a3e] text-gray-400 hover:border-[#bfff00]/50 hover:text-white hover:bg-[#bfff00]/10 transition-all"
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-500 hover:border-[#bfff00]/50 hover:text-neutral-900 hover:bg-[#bfff00]/5 transition-all"
                             onClick={() => setShowCreateBotForm(true)}
                           >
                             <Plus className="h-4 w-4" />
@@ -2009,23 +1987,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       )}
                       
                       {showCreateBotForm && (
-                        <div className="p-5 rounded-xl bg-[#2a2a2e] border border-[#3a3a3e] space-y-4 mt-3">
+                        <div className="p-5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-4 mt-3">
                           <div className="space-y-2">
-                            <Label htmlFor="bot-token-inline" className="text-gray-300 font-medium">Token do Bot</Label>
+                            <Label htmlFor="bot-token-inline" className="text-neutral-700 font-medium">Token do Bot</Label>
                             <Input
                               id="bot-token-inline"
                               value={newBotToken}
                               onChange={(e) => setNewBotToken(e.target.value)}
                               placeholder="Cole o token do BotFather aqui..."
-                              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
+                              className="bg-white border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                             />
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-neutral-500">
                               Obtenha o token no @BotFather do Telegram
                             </p>
                           </div>
                           <div className="flex gap-3">
                             <button
-                              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-colors"
+                              className="px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
                               onClick={() => {
                                 setShowCreateBotForm(false)
                                 setNewBotToken("")
@@ -2034,7 +2012,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               Cancelar
                             </button>
                             <button
-                              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] transition-colors disabled:opacity-50"
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors disabled:opacity-50"
                               onClick={handleCreateBotInline}
                               disabled={isCreatingBot || !newBotToken.trim()}
                             >
@@ -2049,46 +2027,42 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Entregaveis Quick Access - Dark Card */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(168, 85, 247, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* Entregaveis Quick Access - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                        <Gift className="h-5 w-5 text-purple-400" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                        <Gift className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white">Entregaveis</h3>
-                        <p className="text-sm text-gray-400">{deliverables.length} cadastrados</p>
+                        <h3 className="font-bold text-neutral-900">Entregaveis</h3>
+                        <p className="text-sm text-neutral-500">{deliverables.length} cadastrados</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => setActiveTab("deliverables")}
-                      className="text-sm font-bold text-[#bfff00] hover:text-[#d4ff4d] transition-colors"
+                      className="text-sm font-bold text-[#8fb300] hover:text-[#7a9900] transition-colors"
                     >
                       Gerenciar
                     </button>
                   </div>
                 </div>
-                <div className="relative p-6">
+                <div className="p-6">
                   {deliverables.length === 0 ? (
-                    <p className="text-sm text-gray-500 text-center py-4">Nenhum entregavel configurado ainda</p>
+                    <p className="text-sm text-neutral-500 text-center py-4">Nenhum entregavel configurado ainda</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {deliverables.slice(0, 5).map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2a2a2e] border border-[#3a3a3e] text-sm text-gray-300 font-medium">
-                          {d.type === "media" && <ImageIcon className="h-3.5 w-3.5 text-purple-400" />}
-                          {d.type === "link" && <Link2 className="h-3.5 w-3.5 text-blue-400" />}
-                          {d.type === "vip_group" && <Users className="h-3.5 w-3.5 text-amber-400" />}
+                        <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-sm text-neutral-700 font-medium">
+                          {d.type === "media" && <ImageIcon className="h-3.5 w-3.5 text-purple-500" />}
+                          {d.type === "link" && <Link2 className="h-3.5 w-3.5 text-blue-500" />}
+                          {d.type === "vip_group" && <Users className="h-3.5 w-3.5 text-amber-500" />}
                           {d.name}
                         </span>
                       ))}
                       {deliverables.length > 5 && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-[#2a2a2e] border border-[#3a3a3e] text-sm text-gray-500">
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
                           +{deliverables.length - 5} mais
                         </span>
                       )}
@@ -2102,43 +2076,39 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Welcome Tab */}
           {activeTab === "welcome" && (
             <div className="space-y-6">
-              {/* Midias Section - Dark Card */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(168, 85, 247, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* Midias Section - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                      <ImageIcon className="h-5 w-5 text-purple-400" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                      <ImageIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white">Midias</h3>
-                      <p className="text-sm text-gray-400">Adicione ate 3 midias para a mensagem de boas-vindas</p>
+                      <h3 className="font-bold text-neutral-900">Midias</h3>
+                      <p className="text-sm text-neutral-500">Adicione ate 3 midias para a mensagem de boas-vindas</p>
                     </div>
                   </div>
                 </div>
-                <div className="relative p-6">
+                <div className="p-6">
                   <div className="flex gap-4">
                     {welcomeMedias.map((media, index) => (
-                      <div key={index} className="relative w-28 h-28 rounded-xl border border-[#3a3a3e] overflow-hidden group">
+                      <div key={index} className="relative w-28 h-28 rounded-xl border border-neutral-200 overflow-hidden group">
                         <img src={media} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => {
                             setWelcomeMedias(welcomeMedias.filter((_, i) => i !== index))
                             setHasChanges(true)
                           }}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                         >
-                          <Trash2 className="h-5 w-5 text-red-400" />
+                          <Trash2 className="h-5 w-5 text-white" />
                         </button>
                       </div>
                     ))}
                     {welcomeMedias.length < 3 && (
-                      <label className="w-28 h-28 rounded-xl border-2 border-dashed border-[#3a3a3e] flex flex-col items-center justify-center cursor-pointer hover:border-[#bfff00]/50 hover:bg-[#bfff00]/10 transition-all">
-                        <Plus className="h-6 w-6 text-gray-500 mb-1" />
-                        <span className="text-xs text-gray-500">{welcomeMedias.length}/3</span>
+                      <label className="w-28 h-28 rounded-xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-all">
+                        <Plus className="h-6 w-6 text-neutral-400 mb-1" />
+                        <span className="text-xs text-neutral-500">{welcomeMedias.length}/3</span>
                         <input
                           type="file"
                           accept="image/*,video/*"
@@ -2190,41 +2160,37 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* Message Section - Dark Card */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(59, 130, 246, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* Message Section - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                        <MessageSquare className="h-5 w-5 text-blue-400" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+                        <MessageSquare className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white">Mensagem de Boas-vindas</h3>
-                        <p className="text-sm text-gray-400">Primeira mensagem enviada ao usuario</p>
+                        <h3 className="font-bold text-neutral-900">Mensagem de Boas-vindas</h3>
+                        <p className="text-sm text-neutral-500">Primeira mensagem enviada ao usuario</p>
                       </div>
                     </div>
                     {/* Formatting toolbar */}
-                    <div className="flex items-center gap-0.5 bg-[#2a2a2e] rounded-lg p-1 border border-[#3a3a3e]">
-                      <button className="h-7 w-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-0.5 bg-neutral-100 rounded-lg p-1">
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
                         <Bold className="h-3.5 w-3.5" />
                       </button>
-                      <button className="h-7 w-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
                         <Italic className="h-3.5 w-3.5" />
                       </button>
-                      <button className="h-7 w-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
                         <Code className="h-3.5 w-3.5" />
                       </button>
-                      <button className="h-7 w-7 rounded flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/10 transition-colors">
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
                         <LinkIcon className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="relative p-6 space-y-4">
+                <div className="p-6 space-y-4">
                   <Textarea
                     value={welcomeMessage}
                     onChange={(e) => {
@@ -2233,16 +2199,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     }}
                     placeholder="Ola {nome}! Bem-vindo ao @{bot.username}"
                     rows={6}
-                    className="bg-[#2a2a2e] border-[#3a3a3e] text-white placeholder:text-gray-500 font-mono text-sm resize-none focus:border-[#bfff00] focus:ring-[#bfff00]/20"
+                    className="bg-neutral-50 border-neutral-200 font-mono text-sm resize-none focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-neutral-400">
                       {welcomeMessage.length}/4000 caracteres
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Variaveis:</span>
+                      <span className="text-xs text-neutral-400">Variaveis:</span>
                       <button 
-                        className="px-2 py-1 rounded bg-[#2a2a2e] border border-[#3a3a3e] text-xs font-mono text-gray-400 hover:bg-[#bfff00]/20 hover:text-[#bfff00] hover:border-[#bfff00]/30 transition-colors"
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#bfff00]/20 hover:text-[#8fb300] transition-colors"
                         onClick={() => {
                           setWelcomeMessage(welcomeMessage + "{nome}")
                           setHasChanges(true)
@@ -2251,7 +2217,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         {"{nome}"}
                       </button>
                       <button 
-                        className="px-2 py-1 rounded bg-[#2a2a2e] border border-[#3a3a3e] text-xs font-mono text-gray-400 hover:bg-[#bfff00]/20 hover:text-[#bfff00] hover:border-[#bfff00]/30 transition-colors"
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#bfff00]/20 hover:text-[#8fb300] transition-colors"
                         onClick={() => {
                           setWelcomeMessage(welcomeMessage + "{username}")
                           setHasChanges(true)
@@ -2264,27 +2230,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               </div>
 
-              {/* CTA Button Section - Dark Card */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(190, 255, 0, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* CTA Button Section - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                      <ExternalLink className="h-5 w-5 text-[#bfff00]" />
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <ExternalLink className="h-5 w-5 text-neutral-900" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-white">Botao de Acao (CTA)</h3>
-                      <p className="text-sm text-gray-400">Botao exibido apos a mensagem para ver os planos</p>
+                      <h3 className="font-bold text-neutral-900">Botao de Acao (CTA)</h3>
+                      <p className="text-sm text-neutral-500">Botao exibido apos a mensagem para ver os planos</p>
                     </div>
                   </div>
                 </div>
-                <div className="relative p-6">
+                <div className="p-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-sm text-gray-300 font-medium">Texto do Botao</Label>
+                      <Label className="text-sm text-neutral-700 font-medium">Texto do Botao</Label>
                       <Input
                         value={ctaButtonText}
                         onChange={(e) => {
@@ -2292,12 +2254,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="Ver Planos"
-                        className="bg-[#2a2a2e] border-[#3a3a3e] text-white placeholder:text-gray-500 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
+                        className="bg-neutral-50 border-neutral-200 focus:border-[#bfff00] focus:ring-[#bfff00]/20"
                       />
                     </div>
                     <div className="flex items-start gap-3 p-4 rounded-xl bg-[#bfff00]/10 border border-[#bfff00]/20">
-                      <HelpCircle className="h-4 w-4 text-[#bfff00] shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-300">
+                      <HelpCircle className="h-4 w-4 text-[#8fb300] shrink-0 mt-0.5" />
+                      <p className="text-sm text-neutral-700">
                         Este botao sera exibido ao usuario apos a mensagem de boas-vindas para que ele possa ver os planos disponiveis.
                       </p>
                     </div>
@@ -2310,29 +2272,25 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Plans Tab */}
           {activeTab === "plans" && (
             <div className="space-y-6">
-              {/* Planos de Pagamento - Dark Card */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e]">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(16, 185, 129, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative px-6 py-5 border-b border-white/10">
+              {/* Planos de Pagamento - White Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                        <CreditCard className="h-5 w-5 text-emerald-400" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <CreditCard className="h-5 w-5 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-white">Planos de Pagamento</h3>
-                        <p className="text-sm text-gray-400">Configure ate 10 planos com entregas personalizadas</p>
+                        <h3 className="font-bold text-neutral-900">Planos de Pagamento</h3>
+                        <p className="text-sm text-neutral-500">Configure ate 10 planos com entregas personalizadas</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-[#1c1c1e] bg-[#bfff00] px-3 py-1 rounded-full">{plans.length}/10</span>
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{plans.length}/10</span>
                       {plans.length > 0 && plans.length < 10 && (
                         <button
                           onClick={handleAddPlan}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-[#1c1c1e] transition-colors"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors"
                         >
                           <Plus className="h-4 w-4" />
                           Adicionar
@@ -2341,17 +2299,17 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                   </div>
                 </div>
-                <div className="relative p-6">
+                <div className="p-6">
                   {plans.length === 0 ? (
                     <div className="text-center py-12">
-                      <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-4">
-                        <CreditCard className="h-8 w-8 text-gray-500" />
+                      <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                        <CreditCard className="h-8 w-8 text-neutral-400" />
                       </div>
-                      <h4 className="font-bold text-white mb-1">Nenhum plano configurado</h4>
-                      <p className="text-sm text-gray-400 mb-6">Crie planos para seus clientes comprarem</p>
+                      <h4 className="font-bold text-neutral-900 mb-1">Nenhum plano configurado</h4>
+                      <p className="text-sm text-neutral-500 mb-6">Crie planos para seus clientes comprarem</p>
                       <button
                         onClick={handleAddPlan}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                       >
                         <Plus className="h-4 w-4" />
                         Adicionar Plano
@@ -5526,79 +5484,73 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Deliverables Tab */}
           {activeTab === "deliverables" && (
             <div className="space-y-6">
-              {/* Header Card - Dark */}
-              <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e] p-6">
-                <div 
-                  className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"
-                  style={{ background: "radial-gradient(ellipse at center bottom, rgba(190, 255, 0, 0.12) 0%, transparent 70%)" }}
-                />
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                        <Gift className="h-5 w-5 text-[#bfff00]" />
-                      </div>
-                      <div>
-                        <h2 className="text-lg font-bold text-white">Entregaveis</h2>
-                        <p className="text-sm text-gray-400">Configure o que sera entregue apos o pagamento</p>
-                      </div>
+              {/* Header Card - White */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                      <Gift className="h-5 w-5 text-neutral-900" />
                     </div>
-                    <span className="text-sm font-bold text-[#1c1c1e] bg-[#bfff00] px-3 py-1 rounded-full">
-                      {deliverables.length}/10
-                    </span>
+                    <div>
+                      <h2 className="text-lg font-bold text-neutral-900">Entregaveis</h2>
+                      <p className="text-sm text-neutral-500">Configure o que sera entregue apos o pagamento</p>
+                    </div>
                   </div>
-
-                  {/* Botao Adicionar */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingDeliverable(null)
-                      setDeliverableModalStep("select")
-                      setTempDeliverable({
-                        id: `del-${Date.now()}`,
-                        name: `Entregavel ${deliverables.length + 1}`,
-                        type: "media",
-                        medias: [],
-                        link: "",
-                        linkText: "",
-                        vipGroupChatId: "",
-                        vipGroupName: "",
-                        vipAutoAdd: true,
-                        vipAutoRemove: true,
-                      })
-                      setDeliverableModalOpen(true)
-                    }}
-                    disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-[#3a3a3e] hover:border-[#bfff00]/50 hover:bg-[#bfff00]/10 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <div className="h-12 w-12 rounded-full bg-[#bfff00]/20 flex items-center justify-center group-hover:bg-[#bfff00]/30 transition-colors">
-                      <Plus className="h-5 w-5 text-[#bfff00]" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white">Adicionar Entregavel</p>
-                      <p className="text-sm text-gray-400">Midia, Grupo VIP ou Link</p>
-                    </div>
-                  </button>
-
-                  {deliverables.length === 0 && (
-                    <p className="text-center text-sm text-gray-500 mt-4">
-                      Configure o que sera entregue apos o pagamento ser aprovado
-                    </p>
-                  )}
+                  <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
+                    {deliverables.length}/10
+                  </span>
                 </div>
+
+                {/* Botao Adicionar */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingDeliverable(null)
+                    setDeliverableModalStep("select")
+                    setTempDeliverable({
+                      id: `del-${Date.now()}`,
+                      name: `Entregavel ${deliverables.length + 1}`,
+                      type: "media",
+                      medias: [],
+                      link: "",
+                      linkText: "",
+                      vipGroupChatId: "",
+                      vipGroupName: "",
+                      vipAutoAdd: true,
+                      vipAutoRemove: true,
+                    })
+                    setDeliverableModalOpen(true)
+                  }}
+                  disabled={deliverables.length >= 10}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="h-12 w-12 rounded-full bg-[#bfff00]/20 flex items-center justify-center group-hover:bg-[#bfff00]/30 transition-colors">
+                    <Plus className="h-5 w-5 text-[#8fb300]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-neutral-900">Adicionar</p>
+                    <p className="text-sm text-neutral-500">Midia, Grupo VIP ou Link</p>
+                  </div>
+                </button>
+
+                {deliverables.length === 0 && (
+                  <p className="text-center text-xs text-neutral-500 mt-4">
+                    Configure o que sera entregue apos o pagamento
+                  </p>
+                )}
               </div>
 
-              {/* Entregavel Principal - Dark */}
+              {/* Entregavel Principal - White */}
               {deliverables.length > 0 && (
-                <div className="relative rounded-[20px] overflow-hidden bg-[#1c1c1e] p-5 ring-2 ring-[#bfff00]/30">
+                <div className="bg-white rounded-2xl shadow-sm border-2 border-[#bfff00]/30 p-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-xl bg-[#bfff00]/20 flex items-center justify-center">
-                        <Crown className="h-5 w-5 text-[#bfff00]" />
+                        <Crown className="h-5 w-5 text-[#8fb300]" />
                       </div>
                       <div>
-                        <p className="font-bold text-white text-sm">Entregavel Principal</p>
-                        <p className="text-xs text-gray-400">Sera enviado apos a compra inicial</p>
+                        <p className="font-bold text-neutral-900 text-sm">Entregavel Principal</p>
+                        <p className="text-xs text-neutral-500">Sera enviado apos a compra inicial</p>
                       </div>
                     </div>
                     <Select
@@ -5608,13 +5560,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         setHasChanges(true)
                       }}
                     >
-                      <SelectTrigger className="w-52 bg-[#2a2a2e] border-[#3a3a3e] text-white">
+                      <SelectTrigger className="w-52 bg-neutral-50 border-neutral-200">
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#2a2a2e] border-[#3a3a3e]">
-                        <SelectItem value="none" className="text-gray-400">Nenhum</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {deliverables.map((d) => (
-                          <SelectItem key={d.id} value={d.id} className="text-white">
+                          <SelectItem key={d.id} value={d.id}>
                             {d.name} ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
                           </SelectItem>
                         ))}
@@ -5624,13 +5576,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
               )}
 
-              {/* Lista de Entregaveis - Dark */}
+              {/* Lista de Entregaveis - White */}
               {deliverables.length > 0 && (
                 <div className="space-y-3">
                   {deliverables.map((del) => (
                     <div 
                       key={del.id} 
-                      className="relative rounded-[16px] overflow-hidden bg-[#1c1c1e] p-4 border border-[#3a3a3e] hover:border-[#bfff00]/30 transition-colors cursor-pointer"
+                      className="bg-white rounded-2xl p-4 border border-neutral-100 hover:border-[#bfff00]/40 hover:shadow-sm transition-all cursor-pointer"
                       onClick={() => {
                         setEditingDeliverable(del)
                         setDeliverableModalStep("form")
@@ -5640,21 +5592,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`h-11 w-11 rounded-xl flex items-center justify-center ${
-                            del.type === "media" ? "bg-purple-500/20" : 
-                            del.type === "link" ? "bg-blue-500/20" : "bg-amber-500/20"
+                          <div className={`h-11 w-11 rounded-xl flex items-center justify-center shadow-lg ${
+                            del.type === "media" ? "bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-500/25" : 
+                            del.type === "link" ? "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25" : "bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/25"
                           }`}>
                             {del.type === "media" ? (
-                              <ImageIcon className="h-5 w-5 text-purple-400" />
+                              <ImageIcon className="h-5 w-5 text-white" />
                             ) : del.type === "link" ? (
-                              <Link2 className="h-5 w-5 text-blue-400" />
+                              <Link2 className="h-5 w-5 text-white" />
                             ) : (
-                              <Users className="h-5 w-5 text-amber-400" />
+                              <Users className="h-5 w-5 text-white" />
                             )}
                           </div>
                           <div>
-                            <p className="font-bold text-white">{del.name}</p>
-                            <p className="text-xs text-gray-400">
+                            <p className="font-bold text-neutral-900">{del.name}</p>
+                            <p className="text-xs text-neutral-500">
                               {del.type === "media" 
                                 ? `${(del.medias || []).length} midia(s)` 
                                 : del.type === "link" 
@@ -5666,13 +5618,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div className="flex items-center gap-2">
                           {mainDeliverableId === del.id && (
-                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#bfff00]/20 text-[#bfff00] text-xs font-bold">
+                            <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#bfff00]/20 text-[#8fb300] text-xs font-bold">
                               <Crown className="h-3 w-3" />
                               Principal
                             </span>
                           )}
                           <button
-                            className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation()
                               if (mainDeliverableId === del.id) setMainDeliverableId("")
@@ -6012,33 +5964,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
 
 
-          {/* Danger Zone - Collapsible at bottom */}
-          {activeTab === "bots" && (
-          <details className="group mt-8">
-            <summary className="flex items-center gap-2 cursor-pointer text-sm text-neutral-400 hover:text-neutral-600 transition-colors list-none [&::-webkit-details-marker]:hidden">
-              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
-              <AlertTriangle className="h-4 w-4" />
-              <span>Zona de Perigo</span>
-            </summary>
-            <div className="mt-4 p-5 rounded-xl bg-red-50 border border-red-100">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h4 className="font-medium text-red-900 mb-1">Excluir Fluxo</h4>
-                  <p className="text-sm text-red-700/70">
-                    Todos os bots vinculados e grupos VIP serao desvinculados. Esta acao nao pode ser desfeita.
-                  </p>
-                </div>
-                <button
-                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
-                  onClick={() => setShowDeleteDialog(true)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Excluir
-                </button>
-              </div>
-            </div>
-          </details>
-          )}
+
         </div>
         )}
       </div>
