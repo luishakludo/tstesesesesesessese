@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
-import { Loader2, Shield, Eye, EyeOff, Lock, Mail, Sparkles } from "lucide-react"
+import { Loader2, Shield, Eye, EyeOff, Lock, Mail } from "lucide-react"
 
 // Credenciais do admin
 const ADMIN_EMAIL = "1@gmail.com"
@@ -43,18 +43,8 @@ export default function DragonAdmLoginPage() {
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 admin-theme"
-      style={{ background: '#050505' }}
+      style={{ background: '#0a0a0a' }}
     >
-      {/* Background glow effects */}
-      <div 
-        className="fixed top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #95e468 0%, transparent 70%)' }}
-      />
-      <div 
-        className="fixed bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)' }}
-      />
-
       {/* Login Card */}
       <div 
         className="w-full max-w-md rounded-3xl overflow-hidden relative"
@@ -76,14 +66,12 @@ export default function DragonAdmLoginPage() {
             <div 
               className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto"
               style={{ 
-                background: 'linear-gradient(135deg, rgba(149, 228, 104, 0.2), rgba(139, 92, 246, 0.1))',
-                border: '1px solid rgba(149, 228, 104, 0.3)',
-                boxShadow: '0 0 40px rgba(149, 228, 104, 0.2)'
+                background: '#111111',
+                border: '1px solid rgba(149, 228, 104, 0.2)'
               }}
             >
-              <Sparkles className="w-10 h-10 text-[#95e468]" />
+              <Shield className="w-10 h-10 text-[#95e468]" />
             </div>
-            <div className="absolute -inset-4 rounded-3xl bg-[#95e468]/10 blur-2xl -z-10" />
           </div>
           <h1 className="text-2xl font-bold text-white mb-2">Dragon Admin</h1>
           <p className="text-sm text-[#666666]">Painel de administracao do sistema</p>
