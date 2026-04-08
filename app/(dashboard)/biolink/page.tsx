@@ -30,7 +30,7 @@ const pageTypes = [
     id: "presell" as const,
     name: "Presell",
     description: "Pagina...",
-    image: "/images/presell-icon.jpg",
+    image: "/images/presell-icon.png",
   },
   {
     id: "conversion" as const,
