@@ -4,23 +4,14 @@ import { useEffect, useState } from "react"
 import {
   Users,
   Bot,
-  CreditCard,
-  TrendingUp,
-  Activity,
   DollarSign,
   ArrowUpRight,
-  Zap,
 } from "lucide-react"
 
 interface DashboardStats {
   totalUsers: number
-  activeUsers: number
-  bannedUsers: number
   totalBots: number
-  activeBots: number
-  totalPayments: number
   totalRevenue: number
-  pendingPayments: number
 }
 
 export default function DragonAdmDashboardPage() {
@@ -46,19 +37,30 @@ export default function DragonAdmDashboardPage() {
   }, [])
 
   const statCards = [
-    { title: "Total Usuarios", value: stats?.totalUsers || 0, icon: Users },
-    { title: "Usuarios Ativos", value: stats?.activeUsers || 0, icon: Activity },
-    { title: "Banidos", value: stats?.bannedUsers || 0, icon: Users },
-    { title: "Total Bots", value: stats?.totalBots || 0, icon: Bot },
-    { title: "Bots Ativos", value: stats?.activeBots || 0, icon: Zap, highlight: true },
-    { title: "Pagamentos", value: stats?.totalPayments || 0, icon: CreditCard },
+    { 
+      title: "Total Usuarios", 
+      value: stats?.totalUsers || 0, 
+      icon: Users,
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
+      borderColor: "border-blue-500/20"
+    },
+    { 
+      title: "Total Bots", 
+      value: stats?.totalBots || 0, 
+      icon: Bot,
+      color: "text-purple-400",
+      bgColor: "bg-purple-500/10",
+      borderColor: "border-purple-500/20"
+    },
     { 
       title: "Receita Total", 
       value: `R$ ${(stats?.totalRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      highlight: true
+      color: "text-[#95e468]",
+      bgColor: "bg-[#95e468]/10",
+      borderColor: "border-[#95e468]/20"
     },
-    { title: "Pendentes", value: stats?.pendingPayments || 0, icon: TrendingUp },
   ]
 
   return (
@@ -68,30 +70,26 @@ export default function DragonAdmDashboardPage() {
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#95e468]/10">
           <div className="w-2 h-2 rounded-full bg-[#95e468]" />
-          <span className="text-xs text-[#95e468]">Atualizado</span>
+          <span className="text-xs text-[#95e468]">Online</span>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Stats Grid - 3 cards principais */}
+      <div className="grid gap-4 sm:grid-cols-3">
         {statCards.map((stat, index) => (
           <div
             key={index}
-            className={`rounded-xl p-5 border transition-all hover:border-[#95e468]/30 ${
-              stat.highlight ? 'bg-[#95e468]/5 border-[#95e468]/20' : 'bg-[#111] border-white/5'
-            }`}
+            className={`rounded-xl p-6 border ${stat.bgColor} ${stat.borderColor} transition-all hover:scale-[1.02]`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                stat.highlight ? 'bg-[#95e468]/20' : 'bg-white/5'
-              }`}>
-                <stat.icon className={`h-5 w-5 ${stat.highlight ? 'text-[#95e468]' : 'text-white/60'}`} />
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bgColor}`}>
+                <stat.icon className={`h-6 w-6 ${stat.color}`} />
               </div>
             </div>
-            <p className={`text-2xl font-bold mb-1 ${stat.highlight ? 'text-[#95e468]' : 'text-white'}`}>
-              {isLoading ? '...' : stat.value}
+            <p className={`text-3xl font-bold mb-1 ${stat.color}`}>
+              {isLoading ? "..." : stat.value}
             </p>
-            <p className="text-sm text-[#666]">{stat.title}</p>
+            <p className="text-sm text-[#888]">{stat.title}</p>
           </div>
         ))}
       </div>
@@ -99,9 +97,9 @@ export default function DragonAdmDashboardPage() {
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: Users, label: "Usuarios", href: "/dragonadm/users" },
-          { icon: Bot, label: "Bots", href: "/dragonadm/bots" },
-          { icon: CreditCard, label: "Pagamentos", href: "/dragonadm/payments" },
+          { icon: Users, label: "Usuarios", desc: "Gerenciar usuarios", href: "/dragonadm/users" },
+          { icon: Bot, label: "Bots", desc: "Ver todos os bots", href: "/dragonadm/bots" },
+          { icon: DollarSign, label: "Pagamentos", desc: "Historico de pagamentos", href: "/dragonadm/payments" },
         ].map((action, i) => (
           <a
             key={i}
@@ -113,7 +111,7 @@ export default function DragonAdmDashboardPage() {
             </div>
             <div>
               <h3 className="text-sm font-medium text-white">{action.label}</h3>
-              <p className="text-xs text-[#666]">Gerenciar</p>
+              <p className="text-xs text-[#666]">{action.desc}</p>
             </div>
             <ArrowUpRight className="w-4 h-4 text-[#444] ml-auto group-hover:text-[#95e468] transition-colors" />
           </a>

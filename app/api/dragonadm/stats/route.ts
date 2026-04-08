@@ -3,20 +3,20 @@ import { supabaseAdmin } from "@/lib/supabase"
 
 export async function GET() {
   try {
-    // Buscar total de usuarios (usando admin para bypassar RLS)
+    // Buscar total de usuarios (usando tabela users - mesma da pagina de usuarios)
     const { count: totalUsers } = await supabaseAdmin
-      .from("profiles")
+      .from("users")
       .select("*", { count: "exact", head: true })
 
     // Buscar usuarios ativos (nao banidos)
     const { count: activeUsers } = await supabaseAdmin
-      .from("profiles")
+      .from("users")
       .select("*", { count: "exact", head: true })
       .eq("banned", false)
 
     // Buscar usuarios banidos
     const { count: bannedUsers } = await supabaseAdmin
-      .from("profiles")
+      .from("users")
       .select("*", { count: "exact", head: true })
       .eq("banned", true)
 
