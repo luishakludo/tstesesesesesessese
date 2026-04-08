@@ -1,5 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSupabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
+import { cookies } from "next/headers"
 
 interface ImportUser {
   nome: string
@@ -61,9 +62,17 @@ function parseTextInput(text: string): { users: ImportUser[], errors: string[] }
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient()
+    const supabase = getSupabase()
     
-    const { data: { user } } = await supabase.auth.getUser()
+    // Get user from cookie
+    const cookieStore = await cookies()
+    const userCookie = cookieStore.get("dragon_user")
+    
+    if (!userCookie?.value) {
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
+    }
+    
+    const user = JSON.parse(userCookie.value)
     if (!user) {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
     }
