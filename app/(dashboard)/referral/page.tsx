@@ -481,7 +481,7 @@ export default function ReferralPage() {
             {/* Desktop: Two column layout for Table + Steps */}
             <div className="lg:grid lg:grid-cols-2 lg:gap-6 space-y-6 lg:space-y-0">
             {/* Referral Table */}
-            <section className="space-y-4 lg:flex-1">
+            <section className="space-y-4 lg:flex-1 flex flex-col">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[#666666] uppercase tracking-wider">Indicacoes Recentes</h3>
                 {referrals.length > 0 && (
@@ -489,7 +489,7 @@ export default function ReferralPage() {
                 )}
               </div>
               
-              <div className="bg-[#16181d] border border-white/5 rounded-3xl overflow-hidden">
+              <div className="bg-[#16181d] border border-white/5 rounded-3xl overflow-hidden flex-1">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs min-w-[300px]">
                     <thead>
@@ -551,10 +551,10 @@ export default function ReferralPage() {
             </section>
 
             {/* Program Steps */}
-            <section className="space-y-3 lg:flex-1">
+            <section className="space-y-4 lg:flex-1 flex flex-col">
               <h3 className="text-sm font-semibold text-[#666666] uppercase tracking-wider">Como funciona</h3>
-              <div className="bg-[#16181d] rounded-3xl p-5 border border-white/5">
-                <div className="grid grid-cols-3 gap-4 items-center">
+              <div className="bg-[#16181d] rounded-3xl p-5 border border-white/5 flex-1 flex items-center">
+                <div className="grid grid-cols-3 gap-4 items-center w-full">
                   {/* Step 1 */}
                   <div className="flex flex-col items-center text-center">
                     <div className="relative mb-2">
