@@ -1657,7 +1657,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   if (isAuthLoading || isBotsLoading || isLoading) {
     return (
       <div className="flex h-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-500" />
       </div>
     )
   }
@@ -1665,7 +1665,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   if (!flow) {
     return (
       <div className="flex h-full items-center justify-center bg-background">
-        <p className="text-muted-foreground">Fluxo nao encontrado</p>
+        <p className="text-neutral-500">Fluxo nao encontrado</p>
       </div>
     )
   }
@@ -1697,226 +1697,232 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   const tabs = isN8nFlow ? n8nTabs : basicTabs
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/50 bg-card px-6 py-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => router.push("/fluxos")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-
-          <div className="flex items-center gap-3">
-            {isEditingName ? (
-              <Input
-                value={editName}
-                onChange={(e) => {
-                  setEditName(e.target.value)
-                  setHasChanges(true)
-                }}
-                onBlur={() => setIsEditingName(false)}
-                onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
-                className="w-48 h-8"
-                autoFocus
-              />
-            ) : (
-              <button
-                className="flex items-center gap-2 hover:bg-secondary/50 px-2 py-1 rounded-lg transition-colors"
-                onClick={() => setIsEditingName(true)}
+    <div className="flex h-full flex-col bg-[#f5f5f7]">
+      {/* Header - Clean minimal design */}
+      <div className="bg-white border-b border-neutral-200/60">
+        <div className="max-w-[1200px] mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-5">
+              <button 
+                onClick={() => router.push("/fluxos")}
+                className="flex items-center gap-2 text-neutral-500 hover:text-neutral-900 transition-colors text-sm font-medium"
               >
-                <h1 className="text-lg font-semibold text-foreground">{editName}</h1>
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                <ArrowLeft className="h-4 w-4" />
+                <span>Fluxos</span>
               </button>
-            )}
 
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <HelpCircle className="h-4 w-4 text-muted-foreground" />
-            </Button>
+              <div className="h-5 w-px bg-neutral-200" />
+
+              <div className="flex items-center gap-2">
+                {isEditingName ? (
+                  <Input
+                    value={editName}
+                    onChange={(e) => {
+                      setEditName(e.target.value)
+                      setHasChanges(true)
+                    }}
+                    onBlur={() => setIsEditingName(false)}
+                    onKeyDown={(e) => e.key === "Enter" && setIsEditingName(false)}
+                    className="w-56 h-9 bg-neutral-50 border-neutral-200 text-base font-semibold"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    className="flex items-center gap-2 hover:bg-neutral-100 px-3 py-1.5 rounded-lg transition-colors group"
+                    onClick={() => setIsEditingName(true)}
+                  >
+                    <h1 className="text-lg font-semibold text-neutral-900">{editName}</h1>
+                    <Pencil className="h-3.5 w-3.5 text-neutral-400 group-hover:text-neutral-600" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-[0_0_20px_rgba(190,255,0,0.3)] hover:shadow-[0_0_25px_rgba(190,255,0,0.4)] disabled:opacity-50"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Salvar
+            </button>
           </div>
         </div>
-
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          Salvar Configuracao
-        </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-border/50 bg-card px-6">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {tabs.map((tab) => {
-            const Icon = tab.icon
-            const isActive = activeTab === tab.id
-            const isLocked = tab.locked
+      {/* Tabs - Modern pill style */}
+      <div className="bg-white border-b border-neutral-200/60">
+        <div className="max-w-[1200px] mx-auto px-6">
+          <div className="flex items-center gap-1 py-3 overflow-x-auto scrollbar-hide">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              const isLocked = tab.locked
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => !isLocked && setActiveTab(tab.id)}
-                disabled={isLocked}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  isActive
-                    ? "border-accent text-accent"
-                    : isLocked
-                    ? "border-transparent text-muted-foreground/50 cursor-not-allowed"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                }`}
-              >
-                {isLocked ? (
-                  <Lock className="h-4 w-4" />
-                ) : (
-                  <Icon className="h-4 w-4" />
-                )}
-                {tab.label}
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => !isLocked && setActiveTab(tab.id)}
+                  disabled={isLocked}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+                    isActive
+                      ? "bg-neutral-900 text-white shadow-sm"
+                      : isLocked
+                      ? "text-neutral-300 cursor-not-allowed"
+                      : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
+                  }`}
+                >
+                  {isLocked ? (
+                    <Lock className="h-4 w-4" />
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex-1 overflow-auto">
         {/* N8N Flow Builder Tab - Full Width */}
         {activeTab === "n8n" && (
-          <div className="flex-1 h-full">
+          <div className="h-full">
             <FlowBuilder flowName={flow?.name || "Novo Fluxo"} />
           </div>
         )}
 
         {/* Main Content for other tabs */}
         {activeTab !== "n8n" && (
-        <div className="flex-1 overflow-auto p-6">
+        <div className="max-w-[900px] mx-auto px-6 py-8">
           {/* Bots Tab */}
           {activeTab === "bots" && (
             <div className="space-y-6">
-              {/* Stats */}
-              <Card className="border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="h-4 w-4 text-accent" />
-                    Resumo do Fluxo
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 rounded-xl bg-secondary/30">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">Leads</span>
-                      </div>
-                      <p className="text-2xl font-bold">
-                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : stats.leads}
-                      </p>
+              {/* Stats Row - Clean horizontal cards */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                      <Users className="h-5 w-5 text-blue-600" />
                     </div>
-                    <div className="text-center p-4 rounded-xl bg-secondary/30">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <Crown className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">VIPs</span>
-                      </div>
-                      <p className="text-2xl font-bold">
-                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : stats.vips}
-                      </p>
-                    </div>
-                    <div className="text-center p-4 rounded-xl bg-secondary/30">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-xs uppercase tracking-wide text-muted-foreground">Receita</span>
-                      </div>
-                      <p className="text-2xl font-bold">
-                        {loadingStats ? <RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /> : `R$ ${stats.revenue.toFixed(2)}`}
-                      </p>
-                    </div>
+                    <span className="text-sm font-medium text-neutral-500">Leads</span>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Linked Bots */}
-              <Card className="border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
-                  <div className="flex items-center gap-2">
-                    <Bot className="h-4 w-4 text-muted-foreground" />
-                    <CardTitle className="text-base">Bots Vinculados</CardTitle>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{flowBots.length}/5 bot(s)</span>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Gerencie os bots que executam este fluxo
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.leads.toLocaleString()}
                   </p>
+                </div>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                      <Crown className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-500">VIPs</span>
+                  </div>
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : stats.vips.toLocaleString()}
+                  </p>
+                </div>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-neutral-100">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <span className="text-sm font-medium text-neutral-500">Receita</span>
+                  </div>
+                  <p className="text-3xl font-bold text-neutral-900">
+                    {loadingStats ? <RefreshCw className="h-6 w-6 animate-spin text-neutral-300" /> : `R$ ${stats.revenue.toFixed(2)}`}
+                  </p>
+                </div>
+              </div>
 
+              {/* Bots Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
+                        <Bot className="h-5 w-5 text-[#8fb300]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-neutral-900">Bots Vinculados</h3>
+                        <p className="text-sm text-neutral-500">Gerencie os bots que executam este fluxo</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">{flowBots.length}/5</span>
+                  </div>
+                </div>
+                
+                <div className="p-6">
                   {flowBots.length === 0 ? (
-                    <div className="flex flex-col items-center py-8 border border-dashed border-border/50 rounded-xl">
-                      <Bot className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                      <p className="font-medium text-foreground mb-1">Nenhum bot vinculado</p>
-                      <p className="text-sm text-muted-foreground mb-4">Adicione bots para executar este fluxo</p>
+                    <div className="text-center py-10">
+                      <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                        <Bot className="h-8 w-8 text-neutral-300" />
+                      </div>
+                      <h4 className="font-semibold text-neutral-900 mb-1">Nenhum bot vinculado</h4>
+                      <p className="text-sm text-neutral-500 mb-6">Adicione bots para executar este fluxo</p>
                       
-                      {/* Se usuario nao tem bots, mostrar criar bot */}
                       {userBots.length === 0 ? (
                         showCreateBotForm ? (
-                          <div className="w-full max-w-sm space-y-3">
+                          <div className="max-w-sm mx-auto space-y-4 text-left">
                             <div className="space-y-2">
-                              <Label htmlFor="bot-token">Token do Bot</Label>
+                              <Label htmlFor="bot-token" className="text-neutral-700">Token do Bot</Label>
                               <Input
                                 id="bot-token"
                                 value={newBotToken}
                                 onChange={(e) => setNewBotToken(e.target.value)}
                                 placeholder="Cole o token do BotFather aqui..."
-                                className="bg-secondary/30"
+                                className="bg-neutral-50 border-neutral-200"
                               />
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-neutral-500">
                                 Obtenha o token no @BotFather do Telegram
                               </p>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                className="flex-1"
+                            <div className="flex gap-3">
+                              <button
+                                className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-neutral-600 hover:bg-neutral-100 transition-colors"
                                 onClick={() => {
                                   setShowCreateBotForm(false)
                                   setNewBotToken("")
                                 }}
                               >
                                 Cancelar
-                              </Button>
-                              <Button
-                                className="flex-1"
+                              </button>
+                              <button
+                                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors disabled:opacity-50"
                                 onClick={handleCreateBotInline}
                                 disabled={isCreatingBot || !newBotToken.trim()}
                               >
-                                {isCreatingBot ? (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                  <Plus className="h-4 w-4 mr-2" />
-                                )}
+                                {isCreatingBot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                                 Criar Bot
-                              </Button>
+                              </button>
                             </div>
                           </div>
                         ) : (
-                          <Button
-                            variant="outline"
+                          <button
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                             onClick={() => setShowCreateBotForm(true)}
                           >
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="h-4 w-4" />
                             Criar Bot
-                          </Button>
+                          </button>
                         )
                       ) : (
-                        /* Se usuario tem bots, mostrar selecionar */
-                        <Button
-                          variant="outline"
+                        <button
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                           onClick={() => {
                             fetchAvailableBots()
                             setShowAddBotDialog(true)
                           }}
                         >
-                          <Plus className="h-4 w-4 mr-2" />
+                          <Plus className="h-4 w-4" />
                           Selecionar Bot
-                        </Button>
+                        </button>
                       )}
                     </div>
                   ) : (
@@ -1924,135 +1930,169 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {flowBots.map((fb) => (
                         <div
                           key={fb.id}
-                          className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-secondary/20"
+                          className="flex items-center justify-between p-4 rounded-xl bg-neutral-50 border border-neutral-100 hover:border-neutral-200 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-4">
                             {fb.bot?.photo_url ? (
                               <img 
                                 src={fb.bot.photo_url} 
                                 alt={fb.bot.first_name}
-                                className="h-10 w-10 rounded-full object-cover"
+                                className="h-12 w-12 rounded-xl object-cover"
                               />
                             ) : (
-                              <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-                                <Bot className="h-5 w-5 text-accent" />
+                              <div className="h-12 w-12 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
+                                <Bot className="h-6 w-6 text-[#8fb300]" />
                               </div>
                             )}
                             <div>
-                              <p className="font-medium text-foreground">
+                              <p className="font-semibold text-neutral-900">
                                 {fb.bot?.first_name || "Bot"}
                               </p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-neutral-500">
                                 @{fb.bot?.username || "unknown"}
                               </p>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-destructive"
+                          <button
+                            className="h-9 w-9 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                             onClick={() => handleRemoveBot(fb.id)}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </button>
                         </div>
                       ))}
 
                       {flowBots.length < 5 && (
-                        <div className="flex gap-2">
-                          {/* Botao selecionar bot existente */}
+                        <div className="flex gap-3 pt-2">
                           {userBots.length > flowBots.length && (
-                            <Button
-                              variant="outline"
-                              className="flex-1"
+                            <button
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-600 hover:border-[#BEFF00] hover:text-neutral-900 hover:bg-[#BEFF00]/5 transition-all"
                               onClick={() => {
                                 fetchAvailableBots()
                                 setShowAddBotDialog(true)
                               }}
                             >
-                              <Plus className="h-4 w-4 mr-2" />
+                              <Plus className="h-4 w-4" />
                               Selecionar Bot
-                            </Button>
+                            </button>
                           )}
-                          {/* Botao criar novo bot */}
-                          <Button
-                            variant="outline"
-                            className="flex-1"
+                          <button
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 border-dashed border-neutral-200 text-neutral-600 hover:border-[#BEFF00] hover:text-neutral-900 hover:bg-[#BEFF00]/5 transition-all"
                             onClick={() => setShowCreateBotForm(true)}
                           >
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className="h-4 w-4" />
                             Criar Bot
-                          </Button>
+                          </button>
                         </div>
                       )}
                       
-                      {/* Form criar bot inline quando ja tem bots vinculados */}
                       {showCreateBotForm && (
-                        <div className="p-4 border border-border/50 rounded-xl bg-secondary/10 space-y-3">
+                        <div className="p-5 rounded-xl bg-neutral-50 border border-neutral-200 space-y-4 mt-3">
                           <div className="space-y-2">
-                            <Label htmlFor="bot-token-inline">Token do Bot</Label>
+                            <Label htmlFor="bot-token-inline" className="text-neutral-700">Token do Bot</Label>
                             <Input
                               id="bot-token-inline"
                               value={newBotToken}
                               onChange={(e) => setNewBotToken(e.target.value)}
                               placeholder="Cole o token do BotFather aqui..."
-                              className="bg-secondary/30"
+                              className="bg-white border-neutral-200"
                             />
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-neutral-500">
                               Obtenha o token no @BotFather do Telegram
                             </p>
                           </div>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
+                          <div className="flex gap-3">
+                            <button
+                              className="px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-200 transition-colors"
                               onClick={() => {
                                 setShowCreateBotForm(false)
                                 setNewBotToken("")
                               }}
                             >
                               Cancelar
-                            </Button>
-                            <Button
-                              size="sm"
+                            </button>
+                            <button
+                              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors disabled:opacity-50"
                               onClick={handleCreateBotInline}
                               disabled={isCreatingBot || !newBotToken.trim()}
                             >
-                              {isCreatingBot ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Plus className="h-4 w-4 mr-2" />
-                              )}
+                              {isCreatingBot ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                               Criar e Vincular
-                            </Button>
+                            </button>
                           </div>
                         </div>
                       )}
                     </div>
                   )}
-                  
+                </div>
+              </div>
 
-                </CardContent>
-              </Card>
+              {/* Entregaveis Quick Access */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-neutral-900">Entregaveis</h3>
+                        <p className="text-sm text-neutral-500">{deliverables.length} cadastrados</p>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setActiveTab("deliverables")}
+                      className="text-sm font-medium text-[#8fb300] hover:text-[#7a9900] transition-colors"
+                    >
+                      Gerenciar
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {deliverables.length === 0 ? (
+                    <p className="text-sm text-neutral-500 text-center py-4">Nenhum entregavel configurado ainda</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {deliverables.slice(0, 5).map((d) => (
+                        <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-700">
+                          {d.type === "media" && <ImageIcon className="h-3.5 w-3.5" />}
+                          {d.type === "link" && <Link2 className="h-3.5 w-3.5" />}
+                          {d.type === "vip_group" && <Users className="h-3.5 w-3.5" />}
+                          {d.name}
+                        </span>
+                      ))}
+                      {deliverables.length > 5 && (
+                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
+                          +{deliverables.length - 5} mais
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
           {/* Welcome Tab */}
           {activeTab === "welcome" && (
             <div className="space-y-6">
-              {/* Midias Card */}
-              <Card className="border-border/50">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ImageIcon className="h-4 w-4 text-accent" />
-                    Midias
-                  </CardTitle>
-                  <p className="text-sm text-muted-foreground">Adicione ate 3 midias</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-3">
+              {/* Midias Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                      <ImageIcon className="h-5 w-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-neutral-900">Midias</h3>
+                      <p className="text-sm text-neutral-500">Adicione ate 3 midias para a mensagem de boas-vindas</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <div className="flex gap-4">
                     {welcomeMedias.map((media, index) => (
-                      <div key={index} className="relative w-24 h-24 rounded-lg border border-border/50 overflow-hidden group">
+                      <div key={index} className="relative w-28 h-28 rounded-xl border border-neutral-200 overflow-hidden group">
                         <img src={media} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => {
@@ -2066,10 +2106,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     ))}
                     {welcomeMedias.length < 3 && (
-                      <label className="w-24 h-24 rounded-lg border-2 border-dashed border-border/50 flex flex-col items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
-                        <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                        <span className="text-xs text-muted-foreground">Adicionar</span>
-                        <span className="text-xs text-muted-foreground">({welcomeMedias.length}/3)</span>
+                      <label className="w-28 h-28 rounded-xl border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] hover:bg-[#BEFF00]/5 transition-all">
+                        <Plus className="h-6 w-6 text-neutral-400 mb-1" />
+                        <span className="text-xs text-neutral-500">{welcomeMedias.length}/3</span>
                         <input
                           type="file"
                           accept="image/*,video/*"
@@ -2078,7 +2117,6 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             const file = e.target.files?.[0]
                             if (file && flow) {
                               try {
-                                // Upload para Supabase Storage
                                 const fileExt = file.name.split('.').pop()
                                 const fileName = `${flow.id}/${Date.now()}.${fileExt}`
                                 
@@ -2099,7 +2137,6 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   return
                                 }
                                 
-                                // Pegar URL publica
                                 const { data: urlData } = supabase.storage
                                   .from('flow-medias')
                                   .getPublicUrl(fileName)
@@ -2120,45 +2157,40 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </label>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Mensagem de Boas-vindas Card */}
-              <Card className="border-border/50">
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-base font-semibold">Mensagem de Boas-vindas</Label>
-                    <span className="text-destructive">*</span>
+              {/* Message Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <MessageSquare className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-neutral-900">Mensagem de Boas-vindas</h3>
+                        <p className="text-sm text-neutral-500">Primeira mensagem enviada ao usuario</p>
+                      </div>
+                    </div>
+                    {/* Formatting toolbar */}
+                    <div className="flex items-center gap-0.5 bg-neutral-100 rounded-lg p-1">
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
+                        <Bold className="h-3.5 w-3.5" />
+                      </button>
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
+                        <Italic className="h-3.5 w-3.5" />
+                      </button>
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
+                        <Code className="h-3.5 w-3.5" />
+                      </button>
+                      <button className="h-7 w-7 rounded flex items-center justify-center text-neutral-500 hover:text-neutral-900 hover:bg-white transition-colors">
+                        <LinkIcon className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Bold className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Italic className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Underline className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Strikethrough className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Code className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <LinkIcon className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Quote className="h-4 w-4" />
-                    </Button>
-                    <div className="w-px h-4 bg-border mx-1" />
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                      <Smile className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                </div>
+                <div className="p-6 space-y-4">
                   <Textarea
                     value={welcomeMessage}
                     onChange={(e) => {
@@ -2167,67 +2199,73 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     }}
                     placeholder="Ola {nome}! Bem-vindo ao @{bot.username}"
                     rows={6}
-                    className="bg-secondary/30 border-border/50 font-mono text-sm"
+                    className="bg-neutral-50 border-neutral-200 font-mono text-sm resize-none"
                   />
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-neutral-400">
                       {welcomeMessage.length}/4000 caracteres
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Variaveis:</span>
-                      <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent/20" onClick={() => {
-                        setWelcomeMessage(welcomeMessage + "{nome}")
-                        setHasChanges(true)
-                      }}>
+                      <span className="text-xs text-neutral-400">Variaveis:</span>
+                      <button 
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#BEFF00]/20 transition-colors"
+                        onClick={() => {
+                          setWelcomeMessage(welcomeMessage + "{nome}")
+                          setHasChanges(true)
+                        }}
+                      >
                         {"{nome}"}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs cursor-pointer hover:bg-accent/20" onClick={() => {
-                        setWelcomeMessage(welcomeMessage + "{username}")
-                        setHasChanges(true)
-                      }}>
+                      </button>
+                      <button 
+                        className="px-2 py-1 rounded bg-neutral-100 text-xs font-mono text-neutral-600 hover:bg-[#BEFF00]/20 transition-colors"
+                        onClick={() => {
+                          setWelcomeMessage(welcomeMessage + "{username}")
+                          setHasChanges(true)
+                        }}
+                      >
                         {"{username}"}
-                      </Badge>
+                      </button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              {/* Botao CTA */}
-              <Card className="border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                        <ExternalLink className="h-5 w-5 text-accent" />
-                      </div>
-                      <div>
-                        <Label className="text-base font-semibold">Botao de Acao (CTA)</Label>
-                        <p className="text-sm text-muted-foreground">
-                          Botao exibido apos a mensagem para mostrar os planos
-                        </p>
-                      </div>
+              {/* CTA Button Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-[#BEFF00]/10 flex items-center justify-center">
+                      <ExternalLink className="h-5 w-5 text-[#8fb300]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-neutral-900">Botao de Acao (CTA)</h3>
+                      <p className="text-sm text-neutral-500">Botao exibido apos a mensagem para ver os planos</p>
                     </div>
                   </div>
-                  <div className="mt-4 space-y-3">
-                    <Label className="text-sm">Texto do Botao</Label>
-                    <Input
-                      value={ctaButtonText}
-                      onChange={(e) => {
-                        setCtaButtonText(e.target.value)
-                        setHasChanges(true)
-                      }}
-                      placeholder="Ver Planos"
-                      className="bg-secondary/30 border-border/50"
-                    />
-                    <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/10 border border-accent/20">
-                      <HelpCircle className="h-4 w-4 text-accent shrink-0" />
-                      <p className="text-sm text-accent">
+                </div>
+                <div className="p-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm text-neutral-600">Texto do Botao</Label>
+                      <Input
+                        value={ctaButtonText}
+                        onChange={(e) => {
+                          setCtaButtonText(e.target.value)
+                          setHasChanges(true)
+                        }}
+                        placeholder="Ver Planos"
+                        className="bg-neutral-50 border-neutral-200"
+                      />
+                    </div>
+                    <div className="flex items-start gap-3 p-4 rounded-xl bg-[#BEFF00]/10 border border-[#BEFF00]/20">
+                      <HelpCircle className="h-4 w-4 text-[#8fb300] shrink-0 mt-0.5" />
+                      <p className="text-sm text-neutral-600">
                         Este botao sera exibido ao usuario apos a mensagem de boas-vindas para que ele possa ver os planos disponiveis.
                       </p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
 
@@ -2235,149 +2273,165 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "plans" && (
             <div className="space-y-6">
               {/* Planos de Pagamento */}
-              <Card className="border-border/50">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                          <CreditCard className="h-5 w-5 text-accent" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-base">Planos de Pagamento</CardTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Configure ate 10 planos com entregas personalizadas
-                          </p>
-                        </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                        <CreditCard className="h-5 w-5 text-emerald-600" />
                       </div>
-                      <span className="text-sm text-muted-foreground">{plans.length}/10</span>
+                      <div>
+                        <h3 className="font-semibold text-neutral-900">Planos de Pagamento</h3>
+                        <p className="text-sm text-neutral-500">Configure ate 10 planos com entregas personalizadas</p>
+                      </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    {plans.length === 0 ? (
-                      <div className="flex flex-col items-center py-12 border-2 border-dashed border-border/50 rounded-xl">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent/10 mb-4">
-                          <CreditCard className="h-8 w-8 text-accent" />
-                        </div>
-                        <p className="text-muted-foreground mb-4">Nenhum plano configurado</p>
-                        <Button 
-                          variant="outline" 
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-neutral-400 bg-neutral-100 px-3 py-1 rounded-full">{plans.length}/10</span>
+                      {plans.length > 0 && plans.length < 10 && (
+                        <button
                           onClick={handleAddPlan}
-                          className="border-accent text-accent hover:bg-accent/10"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors"
                         >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Adicionar Plano
-                        </Button>
+                          <Plus className="h-4 w-4" />
+                          Adicionar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  {plans.length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                        <CreditCard className="h-8 w-8 text-neutral-300" />
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {plans.map((plan, index) => (
+                      <h4 className="font-semibold text-neutral-900 mb-1">Nenhum plano configurado</h4>
+                      <p className="text-sm text-neutral-500 mb-6">Crie planos para seus clientes comprarem</p>
+                      <button
+                        onClick={handleAddPlan}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#BEFF00] hover:bg-[#a8e600] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar Plano
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {plans.map((plan, index) => (
+                        <div
+                          key={plan.id}
+                          className="rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden hover:border-neutral-200 transition-colors"
+                        >
+                          {/* Plan Header - Collapsible */}
                           <div
-                            key={plan.id}
-                            className="rounded-xl border border-border/50 bg-secondary/20 overflow-hidden"
+                            className="flex items-center justify-between p-4 cursor-pointer"
+                            onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}
                           >
-                            {/* Plan Header - Collapsible */}
-                            <div
-                              className="flex items-center justify-between p-4 cursor-pointer hover:bg-secondary/30 transition-colors"
-                              onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                                  <Package className="h-5 w-5 text-accent" />
+                            <div className="flex items-center gap-4">
+                              <div className="h-12 w-12 rounded-xl bg-white border border-neutral-200 flex items-center justify-center">
+                                <Package className="h-5 w-5 text-neutral-600" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-neutral-900">{plan.name || `Plano ${index + 1}`}</p>
+                                <p className="text-sm text-neutral-500">
+                                  R$ {Number(plan.price || 0).toFixed(2)} • {
+                                    plan.duration_type === "daily" ? "Diario" :
+                                    plan.duration_type === "weekly" ? "Semanal" :
+                                    plan.duration_type === "monthly" ? "Mensal" :
+                                    plan.duration_type === "yearly" ? "Anual" : "Vitalicio"
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleRemovePlan(plan.id)
+                                }}
+                                className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                              <ChevronDown className={`h-5 w-5 text-neutral-400 transition-transform ${expandedPlan === plan.id ? "rotate-180" : ""}`} />
+                            </div>
+                          </div>
+
+                          {/* Expanded Content */}
+                          {expandedPlan === plan.id && (
+                            <div className="px-4 pb-4 space-y-6 border-t border-neutral-100 pt-4">
+                              {/* Nome, Preco, Duracao */}
+                              <div className="grid grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-neutral-600">Nome do Plano</Label>
+                                  <Input
+                                    value={plan.name}
+                                    onChange={(e) => handleUpdatePlan(plan.id, "name", e.target.value)}
+                                    placeholder="Ex: Plano Mensal"
+                                    className="bg-white border-neutral-200"
+                                  />
                                 </div>
-                                <div>
-                                  <p className="font-medium">{plan.name || `Plano ${index + 1}`}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    R$ {Number(plan.price || 0).toFixed(2)} • {
-                                      plan.duration_type === "daily" ? "Diario" :
-                                      plan.duration_type === "weekly" ? "Semanal" :
-                                      plan.duration_type === "monthly" ? "Mensal" :
-                                      plan.duration_type === "yearly" ? "Anual" : "Vitalicio"
-                                    } • {plan.delivery_type === "default" ? "Entrega padrao" : "Entrega personalizada"}
-                                  </p>
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-neutral-600">Preco (R$)</Label>
+                                  <Input
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={plan.price || ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                      handleUpdatePlan(plan.id, "price", val === "" ? 0 : val)
+                                    }}
+                                    onBlur={(e) => {
+                                      const num = parseFloat(String(plan.price).replace(",", ".")) || 0
+                                      handleUpdatePlan(plan.id, "price", num)
+                                    }}
+                                    placeholder="0.00"
+                                    className="bg-white border-neutral-200"
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm text-neutral-600">Duracao</Label>
+                                  <Select
+                                    value={plan.duration_type}
+                                    onValueChange={(value) => handleUpdatePlan(plan.id, "duration_type", value)}
+                                  >
+                                    <SelectTrigger className="bg-white border-neutral-200">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="daily">Diario</SelectItem>
+                                      <SelectItem value="weekly">Semanal</SelectItem>
+                                      <SelectItem value="monthly">Mensal</SelectItem>
+                                      <SelectItem value="yearly">Anual</SelectItem>
+                                      <SelectItem value="lifetime">Vitalicio</SelectItem>
+                                    </SelectContent>
+                                  </Select>
                                 </div>
                               </div>
-                              {expandedPlan === plan.id ? (
-                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                              )}
-                            </div>
 
-                            {/* Expanded Content */}
-                            {expandedPlan === plan.id && (
-                              <div className="p-4 pt-0 space-y-6">
-                                {/* Nome, Preco, Duracao */}
-                                <div className="grid grid-cols-3 gap-4">
-                                  <div className="space-y-2">
-                                    <Label className="text-muted-foreground">Nome do Plano</Label>
-                                    <Input
-                                      value={plan.name}
-                                      onChange={(e) => handleUpdatePlan(plan.id, "name", e.target.value)}
-                                      placeholder="Ex: Plano Mensal"
-                                      className="bg-secondary/50"
-                                    />
+                              {/* Entrega deste Plano */}
+                              <div className="space-y-3 p-4 rounded-xl bg-white border border-neutral-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                                    <Gift className="h-4 w-4 text-emerald-600" />
                                   </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-muted-foreground">Preco (R$)</Label>
-                                    <Input
-                                      type="text"
-                                      inputMode="decimal"
-                                      value={plan.price || ""}
-                                      onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
-                                        handleUpdatePlan(plan.id, "price", val === "" ? 0 : val)
-                                      }}
-                                      onBlur={(e) => {
-                                        const num = parseFloat(String(plan.price).replace(",", ".")) || 0
-                                        handleUpdatePlan(plan.id, "price", num)
-                                      }}
-                                      placeholder="0.00"
-                                      className="bg-secondary/50"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label className="text-muted-foreground">Duracao</Label>
-                                    <Select
-                                      value={plan.duration_type}
-                                      onValueChange={(value) => handleUpdatePlan(plan.id, "duration_type", value)}
-                                    >
-                                      <SelectTrigger className="bg-secondary/50 border-border/50">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="daily">Diario</SelectItem>
-                                        <SelectItem value="weekly">Semanal</SelectItem>
-                                        <SelectItem value="monthly">Mensal</SelectItem>
-                                        <SelectItem value="yearly">Anual</SelectItem>
-                                        <SelectItem value="lifetime">Vitalicio</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
+                                  <span className="font-medium text-neutral-900">Entregavel</span>
                                 </div>
-
-                                {/* Entrega deste Plano */}
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                                      <Gift className="h-4 w-4 text-emerald-500" />
-                                    </div>
-                                    <span className="font-medium">Entregavel</span>
-                                  </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    Selecione qual entregavel sera enviado ao comprar este plano
-                                  </p>
-                                  <Select
-                                    value={plan.delivery_type}
-                                    onValueChange={(value) => {
-                                      handleUpdatePlan(plan.id, "delivery_type", value)
-                                      if (value === "default") {
+                                <p className="text-xs text-neutral-500">
+                                  Selecione qual entregavel sera enviado ao comprar este plano
+                                </p>
+                                <Select
+                                  value={plan.delivery_type}
+                                  onValueChange={(value) => {
+                                    handleUpdatePlan(plan.id, "delivery_type", value)
+                                    if (value === "default") {
                                         handleUpdatePlan(plan.id, "deliverableId", "")
                                       }
                                     }}
                                   >
-                                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                                    <SelectTrigger className="bg-white border-neutral-200">
                                       <div className="flex items-center gap-2">
-                                        <Gift className="h-4 w-4 text-muted-foreground" />
+                                        <Gift className="h-4 w-4 text-neutral-500" />
                                         <SelectValue />
                                       </div>
                                     </SelectTrigger>
@@ -2395,7 +2449,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                             <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
                                             <div className="text-xs">
                                               <p className="font-medium text-amber-500">Nenhum entregavel</p>
-                                              <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot;</p>
+                                              <p className="text-neutral-500">Crie entregaveis na aba &quot;Entregaveis&quot;</p>
                                             </div>
                                           </div>
                                         </div>
@@ -2404,7 +2458,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           value={plan.deliverableId || "none"}
                                           onValueChange={(value) => handleUpdatePlan(plan.id, "deliverableId", value === "none" ? "" : value)}
                                         >
-                                          <SelectTrigger className="bg-secondary/30 border-border/50">
+                                          <SelectTrigger className="bg-white border-neutral-200">
                                             <SelectValue placeholder="Selecione..." />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -2427,14 +2481,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </div>
 
                                 {/* Order Bumps do Plano */}
-                                <div className="space-y-3 pt-4 border-t border-border/50">
+                                <div className="space-y-3 pt-4 border-t border-neutral-200">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
                                         <Package className="h-4 w-4 text-purple-500" />
                                       </div>
                                       <span className="font-medium">Order Bumps</span>
-                                      <span className="text-xs text-muted-foreground">({(plan.order_bumps || []).length}/5)</span>
+                                      <span className="text-xs text-neutral-500">({(plan.order_bumps || []).length}/5)</span>
                                     </div>
                                     {(plan.order_bumps || []).length < 5 && (
                                       <Button
@@ -2464,14 +2518,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                       </Button>
                                     )}
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
+                                  <p className="text-xs text-neutral-500">
                                     Produtos adicionais oferecidos antes do pagamento deste plano
                                   </p>
                                   
                                   {(plan.order_bumps || []).length === 0 ? (
-                                    <div className="text-center py-4 border border-dashed border-border/50 rounded-lg">
-                                      <Package className="h-6 w-6 text-muted-foreground/50 mx-auto mb-2" />
-                                      <p className="text-sm text-muted-foreground">Nenhum order bump configurado</p>
+                                    <div className="text-center py-4 border border-dashed border-neutral-200 rounded-lg">
+                                      <Package className="h-6 w-6 text-neutral-500/50 mx-auto mb-2" />
+                                      <p className="text-sm text-neutral-500">Nenhum order bump configurado</p>
                                     </div>
                                   ) : (
                                     <div className="space-y-3">
@@ -2508,7 +2562,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           
                                           <div className="grid grid-cols-2 gap-3">
                                             <div className="space-y-1">
-                                              <Label className="text-xs text-muted-foreground">Nome</Label>
+                                              <Label className="text-xs text-neutral-500">Nome</Label>
                                               <Input
                                                 value={bump.name}
                                                 onChange={(e) => {
@@ -2521,7 +2575,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                               />
                                             </div>
                                             <div className="space-y-1">
-                                              <Label className="text-xs text-muted-foreground">Preco (R$)</Label>
+                                              <Label className="text-xs text-neutral-500">Preco (R$)</Label>
                                               <Input
                                                 type="text"
                                                 inputMode="decimal"
@@ -2539,7 +2593,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           </div>
                                           
                                           <div className="mt-3 space-y-1">
-                                            <Label className="text-xs text-muted-foreground">Descricao</Label>
+                                            <Label className="text-xs text-neutral-500">Descricao</Label>
                                             <Textarea
                                               value={bump.description}
                                               onChange={(e) => {
@@ -2555,7 +2609,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           
                                           <div className="grid grid-cols-2 gap-3 mt-3">
                                             <div className="space-y-1">
-                                              <Label className="text-xs text-muted-foreground">Texto Aceitar</Label>
+                                              <Label className="text-xs text-neutral-500">Texto Aceitar</Label>
                                               <Input
                                                 value={bump.acceptText}
                                                 onChange={(e) => {
@@ -2568,7 +2622,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                               />
                                             </div>
                                             <div className="space-y-1">
-                                              <Label className="text-xs text-muted-foreground">Texto Recusar</Label>
+                                              <Label className="text-xs text-neutral-500">Texto Recusar</Label>
                                               <Input
                                                 value={bump.rejectText}
                                                 onChange={(e) => {
@@ -2585,12 +2639,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           {/* Midias do Order Bump (ate 3) */}
                                           <div className="mt-3 space-y-2">
                                             <div className="flex items-center justify-between">
-                                              <Label className="text-xs text-muted-foreground">Midias ({(bump.medias || []).length}/3)</Label>
+                                              <Label className="text-xs text-neutral-500">Midias ({(bump.medias || []).length}/3)</Label>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                               {(bump.medias || []).map((media, mediaIndex) => (
                                                 <div key={mediaIndex} className="relative group">
-                                                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-border/50 bg-secondary/30">
+                                                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-neutral-200 bg-secondary/30">
                                                     {media.match(/\.(mp4|webm|mov)$/i) ? (
                                                       <video src={media} className="w-full h-full object-cover" />
                                                     ) : (
@@ -2613,7 +2667,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                 </div>
                                               ))}
                                               {(bump.medias || []).length < 3 && (
-                                                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-border/50 flex items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors">
+                                                <label className="w-16 h-16 rounded-lg border-2 border-dashed border-neutral-200 flex items-center justify-center cursor-pointer hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors">
                                                   <input
                                                     type="file"
                                                     accept="image/*,video/*"
@@ -2641,11 +2695,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                       handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                     }}
                                                   />
-                                                  <Plus className="h-4 w-4 text-muted-foreground" />
+                                                  <Plus className="h-4 w-4 text-neutral-500" />
                                                 </label>
                                               )}
                                             </div>
-                                            <p className="text-[10px] text-muted-foreground">Imagens ou videos para exibir no order bump</p>
+                                            <p className="text-[10px] text-neutral-500">Imagens ou videos para exibir no order bump</p>
                                           </div>
                                         </div>
                                       ))}
@@ -2682,7 +2736,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
 
                 {/* Resumo de Entregaveis */}
-                <Card className="border-border/50 bg-gradient-to-br from-emerald-500/5 to-transparent">
+                <Card className="border-neutral-200 bg-gradient-to-br from-emerald-500/5 to-transparent">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -2691,7 +2745,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                         <div>
                           <p className="font-semibold">Entregaveis</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-neutral-500">
                             {deliverables.length === 0 
                               ? "Configure o que entregar apos o pagamento" 
                               : `${deliverables.length} entregavel${deliverables.length > 1 ? "is" : ""} configurado${deliverables.length > 1 ? "s" : ""}`
@@ -2710,10 +2764,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                     
                     {mainDeliverableId && deliverables.find(d => d.id === mainDeliverableId) && (
-                      <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-border/50">
+                      <div className="mt-4 p-3 rounded-lg bg-secondary/30 border border-neutral-200">
                         <div className="flex items-center gap-2 text-sm">
                           <Crown className="h-4 w-4 text-amber-500" />
-                          <span className="text-muted-foreground">Entregavel Principal:</span>
+                          <span className="text-neutral-500">Entregavel Principal:</span>
                           <span className="font-medium">{deliverables.find(d => d.id === mainDeliverableId)?.name}</span>
                           <Badge variant="outline" className="ml-auto text-xs">
                             {deliverables.find(d => d.id === mainDeliverableId)?.type === "media" ? "Midia" : 
@@ -2733,16 +2787,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             <div className="space-y-6">
               {/* Header Card - Config */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                          <TrendingUp className="h-5 w-5 text-accent" />
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#BEFF00]/10">
+                          <TrendingUp className="h-5 w-5 text-[#8fb300]" />
                         </div>
                         <div>
                           <p className="font-semibold">Upsell</p>
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-neutral-500">
                             Aumente suas vendas com ofertas especiais
                           </p>
                         </div>
@@ -2766,9 +2820,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             setHasChanges(true)
                           }}
                         >
-                          <SelectTrigger className="bg-secondary/50 border-border/50">
+                          <SelectTrigger className="bg-white border-neutral-200">
                             <div className="flex items-center gap-2">
-                              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                              <RefreshCw className="h-4 w-4 text-neutral-500" />
                               <SelectValue />
                             </div>
                           </SelectTrigger>
@@ -2783,13 +2837,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
 
                 {upsellEnabled && (
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="pt-6 space-y-3">
-                      <p className="text-sm font-medium text-accent">Como funciona?</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm font-medium text-[#8fb300]">Como funciona?</p>
+                      <p className="text-sm text-neutral-500">
                         Upsell e enviado apos o cliente pagar, oferecendo produtos complementares.
                       </p>
-                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
                         <li>Ate 20 sequencias</li>
                         <li>Ofertas premium</li>
                         <li>Aumento do ticket medio</li>
@@ -2803,21 +2857,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Sequencias de Upsell</h3>
-                  <span className="text-sm text-muted-foreground">{upsellSequences.length}/20</span>
+                  <span className="text-sm text-neutral-500">{upsellSequences.length}/20</span>
                 </div>
 
                 {!upsellEnabled ? (
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="flex flex-col items-center justify-center py-16">
-                      <TrendingUp className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                      <p className="text-muted-foreground">Ative o Upsell para configurar sequencias</p>
+                      <TrendingUp className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500">Ative o Upsell para configurar sequencias</p>
                     </CardContent>
                   </Card>
                 ) : upsellSequences.length === 0 ? (
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Plus className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                      <p className="text-muted-foreground mb-4">Nenhuma sequencia configurada</p>
+                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500 mb-4">Nenhuma sequencia configurada</p>
                       <Button onClick={handleAddUpsellSequence} className="bg-accent hover:bg-accent/90">
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar Sequencia
@@ -2827,7 +2881,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 ) : (
                   <div className="space-y-4">
                     {upsellSequences.map((seq, index) => (
-                      <Card key={seq.id} className="border-border/50">
+                      <Card key={seq.id} className="border-neutral-200">
                         {/* Sequence Header */}
                         <div
                           className="flex items-center justify-between p-4 cursor-pointer"
@@ -2835,13 +2889,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         >
                           <div className="flex items-center gap-3">
                             {expandedSequence === seq.id ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              <ChevronDown className="h-4 w-4 text-neutral-500" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              <ChevronRight className="h-4 w-4 text-neutral-500" />
                             )}
                             <span className="font-medium">{seq.name || `Upsell ${index + 1}`}</span>
                             {(seq.plans?.length || 0) > 0 && (
-                              <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+                              <span className="text-xs text-neutral-500 bg-secondary/50 px-2 py-0.5 rounded">
                                 {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
                               </span>
                             )}
@@ -2855,7 +2909,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 handleDuplicateUpsellSequence(seq)
                               }}
                             >
-                              <Copy className="h-4 w-4 text-muted-foreground" />
+                              <Copy className="h-4 w-4 text-neutral-500" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -2880,13 +2934,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 value={seq.name || ""}
                                 onChange={(e) => handleUpdateUpsellSequence(seq.id, "name", e.target.value)}
                                 placeholder="Ex: Pacote Premium"
-                                className="bg-secondary/30 border-border/50"
+                                className="bg-neutral-50 border-neutral-200"
                               />
                             </div>
 
                             {/* Midias */}
                             <div className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-2 text-sm text-neutral-500">
                                 <ImageIcon className="h-4 w-4" />
                                 <span>Midias (ate 3)</span>
                               </div>
@@ -2911,13 +2965,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 
                                 {/* Botao de adicionar */}
                                 {(seq.medias?.length || 0) < 3 && (
-                                  <label className="w-24 h-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent/50 transition-colors">
+                                  <label className="w-24 h-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00]/50 transition-colors">
                                     {uploadingUpsellMedia === seq.id ? (
-                                      <div className="animate-spin h-5 w-5 border-2 border-accent border-t-transparent rounded-full" />
+                                      <div className="animate-spin h-5 w-5 border-2 border-[#BEFF00] border-t-transparent rounded-full" />
                                     ) : (
                                       <>
-                                        <Plus className="h-5 w-5 text-muted-foreground" />
-                                        <span className="text-xs text-muted-foreground mt-1">Adicionar</span>
+                                        <Plus className="h-5 w-5 text-neutral-500" />
+                                        <span className="text-xs text-neutral-500 mt-1">Adicionar</span>
                                       </>
                                     )}
                                     <input
@@ -2939,7 +2993,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             {/* Enviar + Preco */}
                             <div className="flex flex-wrap gap-4">
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2 text-sm text-neutral-500">
                                   <Clock className="h-4 w-4" />
                                   <span>Enviar:</span>
                                 </div>
@@ -2947,7 +3001,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   value={seq.sendTiming}
                                   onValueChange={(value: "immediate" | "custom") => handleUpdateUpsellSequence(seq.id, "sendTiming", value)}
                                 >
-                                  <SelectTrigger className="w-40 bg-secondary/50 border-border/50">
+                                  <SelectTrigger className="w-40 bg-secondary/50 border-neutral-200">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -2960,7 +3014,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               {/* Tempo personalizado */}
                               {seq.sendTiming === "custom" && (
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2 text-sm text-neutral-500">
                                     <Clock className="h-4 w-4" />
                                     <span>Tempo:</span>
                                   </div>
@@ -2970,13 +3024,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                       min="1"
                                       value={seq.sendDelayValue || 30}
                                       onChange={(e) => handleUpdateUpsellSequence(seq.id, "sendDelayValue", parseInt(e.target.value) || 1)}
-                                      className="w-20 bg-secondary/50 border-border/50"
+                                      className="w-20 bg-secondary/50 border-neutral-200"
                                     />
                                     <Select
                                       value={seq.sendDelayUnit || "minutes"}
                                       onValueChange={(value: "minutes" | "hours" | "days") => handleUpdateUpsellSequence(seq.id, "sendDelayUnit", value)}
                                     >
-                                      <SelectTrigger className="w-28 bg-secondary/50 border-border/50">
+                                      <SelectTrigger className="w-28 bg-secondary/50 border-neutral-200">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -2998,9 +3052,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   <Crown className="h-4 w-4 text-amber-500" />
                                   <h4 className="font-medium">Planos</h4>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{(seq.plans?.length || 0)}/5</span>
+                                <span className="text-xs text-neutral-500">{(seq.plans?.length || 0)}/5</span>
                               </div>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-neutral-500">
                                 Configure os planos que aparecerao como botoes para o cliente escolher.
                               </p>
                               
@@ -3009,16 +3063,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
                                     <div className="flex-1 grid grid-cols-2 gap-3">
                                       <div className="space-y-1">
-                                        <Label className="text-xs text-muted-foreground">Texto do Botao</Label>
+                                        <Label className="text-xs text-neutral-500">Texto do Botao</Label>
                                         <Input
                                           value={plan.buttonText}
                                           onChange={(e) => handleUpdateUpsellPlan(seq.id, plan.id, "buttonText", e.target.value)}
                                           placeholder="Ex: Mensal"
-                                          className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                          className="bg-secondary/50 border-neutral-200 h-8 text-sm"
                                         />
                                       </div>
                                       <div className="space-y-1">
-<Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+<Label className="text-xs text-neutral-500">Valor (R$)</Label>
 <Input
                                                   type="text"
                                                   inputMode="decimal"
@@ -3032,7 +3086,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                     handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
                                                   }}
                                                   placeholder="0.00"
-                                  className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                  className="bg-secondary/50 border-neutral-200 h-8 text-sm"
                                 />
                                       </div>
                                     </div>
@@ -3071,23 +3125,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 onChange={(e) => handleUpdateUpsellSequence(seq.id, "message", e.target.value)}
                                 placeholder="Oferta especial para voce! Aproveite esse bonus exclusivo..."
                                 rows={4}
-                                className="bg-secondary/30 border-border/50"
+                                className="bg-neutral-50 border-neutral-200"
                               />
-                              <p className="text-xs text-muted-foreground text-right">{seq.message.length}/4000 caracteres</p>
+                              <p className="text-xs text-neutral-500 text-right">{seq.message.length}/4000 caracteres</p>
                             </div>
 
-                            <div className="border-t border-border/50 pt-4" />
+                            <div className="border-t border-neutral-200 pt-4" />
 
                             {/* Botao de Recusar */}
                             <div className="space-y-3">
                               <h4 className="font-medium">Botao de Recusar</h4>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-neutral-500">
                                 Os planos acima serao exibidos como botoes. Configure aqui o botao de recusar opcional.
                               </p>
                               <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
                                 <div>
                                   <p className="text-sm font-medium">Mostrar botao de recusar</p>
-                                  <p className="text-xs text-muted-foreground">Adiciona um botao para o cliente pular a oferta</p>
+                                  <p className="text-xs text-neutral-500">Adiciona um botao para o cliente pular a oferta</p>
                                 </div>
                                 <Switch
                                   checked={!seq.hideRejectButton}
@@ -3096,7 +3150,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               </div>
                               {!seq.hideRejectButton && (
                                 <div className="space-y-2">
-                                  <Label className="text-sm text-muted-foreground">Texto do Botao</Label>
+                                  <Label className="text-sm text-neutral-500">Texto do Botao</Label>
                                   <div className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
                                     <X className="h-4 w-4 text-destructive" />
                                     <Input
@@ -3114,9 +3168,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="font-medium">Entrega</h4>
-                                <span className="text-sm text-muted-foreground">Opcional</span>
+                                <span className="text-sm text-neutral-500">Opcional</span>
                               </div>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-neutral-500">
                                 Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
                               </p>
                               <Select
@@ -3128,9 +3182,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   }
                                 }}
                               >
-                                <SelectTrigger className="bg-secondary/50 border-border/50">
+                                <SelectTrigger className="bg-white border-neutral-200">
                                   <div className="flex items-center gap-2">
-                                    <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                                    <RefreshCw className="h-4 w-4 text-neutral-500" />
                                     <SelectValue />
                                   </div>
                                 </SelectTrigger>
@@ -3149,7 +3203,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
                                         <div className="text-sm">
                                           <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
-                                          <p className="text-muted-foreground">
+                                          <p className="text-neutral-500">
                                             Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
                                           </p>
                                         </div>
@@ -3162,7 +3216,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         value={seq.deliverableId || "none"}
                                         onValueChange={(value) => handleUpdateUpsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
                                       >
-                                        <SelectTrigger className="bg-secondary/30 border-border/50">
+                                        <SelectTrigger className="bg-white border-neutral-200">
                                           <SelectValue placeholder="Selecione..." />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -3180,7 +3234,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         </SelectContent>
                                       </Select>
                                       {seq.deliverableId && (
-                                        <p className="text-xs text-muted-foreground">
+                                        <p className="text-xs text-neutral-500">
                                           Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
                                         </p>
                                       )}
@@ -3235,7 +3289,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </div>
 
               {/* Sub-tab description */}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-neutral-500">
                 {downsellSubTab === "geral" 
                   ? "Sequencias enviadas apos o /start para todos os leads que nao compraram. Ative o \"PIX Gerado\" para diferenciar quem gerou pagamento."
                   : "Sequencias enviadas quando o lead gera pagamento mas nao paga. Quando ativo, substitui o downsell geral para esses leads."
@@ -3246,13 +3300,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               <div className="flex gap-6">
                 {/* Left Sidebar - Config */}
                 <div className="w-72 space-y-4">
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="pt-6 space-y-4">
                       <div className="flex items-center gap-3">
                         <TrendingDown className="h-5 w-5 text-pink-500" />
                         <span className="font-semibold text-pink-500">Downsell</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-neutral-500">
                         Recupere vendas com ofertas alternativas
                       </p>
                       <div className="flex items-center justify-between">
@@ -3269,12 +3323,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {downsellEnabled && (
                         <>
                           {/* Info box */}
-                          <div className="rounded-lg border border-border/50 p-4 space-y-3">
+                          <div className="rounded-lg border border-neutral-200 p-4 space-y-3">
                             <p className="text-sm font-medium text-pink-500">Como funciona?</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-sm text-neutral-500">
                               Downsell e enviado automaticamente a cada X minutos apos o /start se o cliente nao comprar.
                             </p>
-                            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                            <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
                               <li>Ate 20 sequencias</li>
                               <li>Ofertas alternativas</li>
                               <li>Recuperacao de vendas</li>
@@ -3291,9 +3345,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 setHasChanges(true)
                               }}
                             >
-                              <SelectTrigger className="bg-secondary/50 border-border/50">
+                              <SelectTrigger className="bg-white border-neutral-200">
                                 <div className="flex items-center gap-2">
-                                  <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                                  <RefreshCw className="h-4 w-4 text-neutral-500" />
                                   <SelectValue />
                                 </div>
                               </SelectTrigger>
@@ -3315,23 +3369,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <h3 className="text-lg font-semibold">
                       {downsellSubTab === "geral" ? "Sequencias Gerais" : "Sequencias Pix Gerado"}
                     </h3>
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-neutral-500">
                       {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length}/20
                     </span>
                   </div>
 
                   {!downsellEnabled ? (
-                    <Card className="border-border/50">
+                    <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                       <CardContent className="flex flex-col items-center justify-center py-16">
-                        <TrendingDown className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                        <p className="text-muted-foreground">Ative o Downsell para configurar sequencias</p>
+                        <TrendingDown className="h-10 w-10 text-neutral-500/30 mb-4" />
+                        <p className="text-neutral-500">Ative o Downsell para configurar sequencias</p>
                       </CardContent>
                     </Card>
                   ) : downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length === 0 ? (
-                    <Card className="border-border/50">
+                    <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                       <CardContent className="flex flex-col items-center justify-center py-16">
-                        <Plus className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                        <p className="text-muted-foreground mb-4">
+                        <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
+                        <p className="text-neutral-500 mb-4">
                           {downsellSubTab === "geral" 
                             ? "Nenhuma sequencia geral configurada" 
                             : "Nenhuma sequencia para Pix Gerado configurada"}
@@ -3345,7 +3399,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   ) : (
                     <div className="space-y-4">
                       {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).map((seq, index) => (
-                        <Card key={seq.id} className="border-border/50">
+                        <Card key={seq.id} className="border-neutral-200">
                           {/* Sequence Header */}
                           <div
                             className="flex items-center justify-between p-4 cursor-pointer"
@@ -3353,13 +3407,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           >
                             <div className="flex items-center gap-2">
   {expandedDownsellSequence === seq.id ? (
-  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+  <ChevronDown className="h-4 w-4 text-neutral-500" />
   ) : (
-  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+  <ChevronRight className="h-4 w-4 text-neutral-500" />
   )}
   <span className="font-medium">Sequencia {index + 1}</span>
   {(seq.plans?.length || 0) > 0 && (
-    <span className="text-xs text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded">
+    <span className="text-xs text-neutral-500 bg-secondary/50 px-2 py-0.5 rounded">
       {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
     </span>
   )}
@@ -3373,7 +3427,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   handleDuplicateDownsellSequence(seq)
                                 }}
                               >
-                                <Copy className="h-4 w-4 text-muted-foreground" />
+                                <Copy className="h-4 w-4 text-neutral-500" />
                               </Button>
                               <Button
                                 variant="ghost"
@@ -3393,7 +3447,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             <CardContent className="pt-0 space-y-6">
                               {/* Midias */}
                               <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2 text-sm text-neutral-500">
                                   <ImageIcon className="h-4 w-4" />
                                   <span>Midias (ate 3)</span>
                                 </div>
@@ -3418,13 +3472,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   
                                   {/* Botao de adicionar */}
                                   {(seq.medias?.length || 0) < 3 && (
-                                    <label className="w-24 h-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/50 transition-colors">
+                                    <label className="w-24 h-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-pink-500/50 transition-colors">
                                       {uploadingDownsellMedia === seq.id ? (
                                         <div className="animate-spin h-5 w-5 border-2 border-pink-500 border-t-transparent rounded-full" />
                                       ) : (
                                         <>
-                                          <Plus className="h-5 w-5 text-muted-foreground" />
-                                          <span className="text-xs text-muted-foreground mt-1">Adicionar</span>
+                                          <Plus className="h-5 w-5 text-neutral-500" />
+                                          <span className="text-xs text-neutral-500 mt-1">Adicionar</span>
                                         </>
                                       )}
                                       <input
@@ -3446,7 +3500,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               {/* Enviar + Preco */}
                               <div className="flex flex-wrap gap-4">
                                 <div className="space-y-2">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2 text-sm text-neutral-500">
                                     <Clock className="h-4 w-4" />
                                     <span>Enviar:</span>
                                   </div>
@@ -3454,7 +3508,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     value={seq.sendTiming || "immediate"}
                                     onValueChange={(value: "immediate" | "custom") => handleUpdateDownsellSequence(seq.id, "sendTiming", value)}
                                   >
-                                    <SelectTrigger className="w-40 bg-secondary/50 border-border/50">
+                                    <SelectTrigger className="w-40 bg-secondary/50 border-neutral-200">
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -3467,7 +3521,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 {/* Tempo personalizado */}
                                 {seq.sendTiming === "custom" && (
                                   <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2 text-sm text-neutral-500">
                                       <Clock className="h-4 w-4" />
                                       <span>Tempo:</span>
                                     </div>
@@ -3476,14 +3530,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         type="number"
                                         value={seq.sendDelayValue || 30}
                                         onChange={(e) => handleUpdateDownsellSequence(seq.id, "sendDelayValue", parseInt(e.target.value) || 0)}
-                                        className="w-20 bg-secondary/50 border-border/50"
+                                        className="w-20 bg-secondary/50 border-neutral-200"
                                         min={1}
                                       />
                                       <Select
                                         value={seq.sendDelayUnit || "minutes"}
                                         onValueChange={(value: "minutes" | "hours" | "days") => handleUpdateDownsellSequence(seq.id, "sendDelayUnit", value)}
                                       >
-                                        <SelectTrigger className="w-28 bg-secondary/50 border-border/50">
+                                        <SelectTrigger className="w-28 bg-secondary/50 border-neutral-200">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -3505,9 +3559,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     <Crown className="h-4 w-4 text-amber-500" />
                                     <h4 className="font-medium">Planos</h4>
                                   </div>
-                                  <span className="text-xs text-muted-foreground">{(seq.plans?.length || 0)}/5</span>
+                                  <span className="text-xs text-neutral-500">{(seq.plans?.length || 0)}/5</span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-neutral-500">
                                   Configure os planos que aparecerao como botoes para o cliente escolher.
                                 </p>
                                 
@@ -3516,16 +3570,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
                                       <div className="flex-1 grid grid-cols-2 gap-3">
                                         <div className="space-y-1">
-                                          <Label className="text-xs text-muted-foreground">Texto do Botao</Label>
+                                          <Label className="text-xs text-neutral-500">Texto do Botao</Label>
                                           <Input
                                             value={plan.buttonText}
                                             onChange={(e) => handleUpdateDownsellPlan(seq.id, plan.id, "buttonText", e.target.value)}
                                             placeholder="Ex: Mensal"
-                                            className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                            className="bg-secondary/50 border-neutral-200 h-8 text-sm"
                                           />
                                         </div>
                                         <div className="space-y-1">
-                                          <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                                          <Label className="text-xs text-neutral-500">Valor (R$)</Label>
 <Input
                                                   type="text"
                                                   inputMode="decimal"
@@ -3539,7 +3593,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                     handleUpdateDownsellPlan(seq.id, plan.id, "price", num)
                                                   }}
                                                   placeholder="0.00"
-                                  className="bg-secondary/50 border-border/50 h-8 text-sm"
+                                  className="bg-secondary/50 border-neutral-200 h-8 text-sm"
                                 />
                                         </div>
                                       </div>
@@ -3573,7 +3627,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               {/* Mensagem */}
                               <div className="space-y-2">
                                 <Label>Mensagem <span className="text-destructive">*</span></Label>
-                                <div className="flex items-center gap-1 border-b border-border/50 pb-2">
+                                <div className="flex items-center gap-1 border-b border-neutral-200 pb-2">
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
                                     <Bold className="h-4 w-4" />
                                   </Button>
@@ -3605,20 +3659,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   onChange={(e) => handleUpdateDownsellSequence(seq.id, "message", e.target.value)}
                                   placeholder="Nao conseguiu pagar? Temos uma oferta especial..."
                                   rows={4}
-                                  className="bg-secondary/30 border-border/50"
+                                  className="bg-neutral-50 border-neutral-200"
                                 />
-                                <p className="text-xs text-muted-foreground text-right">{seq.message.length}/4000 caracteres</p>
+                                <p className="text-xs text-neutral-500 text-right">{seq.message.length}/4000 caracteres</p>
                               </div>
 
-                              <div className="border-t border-border/50 pt-4" />
+                              <div className="border-t border-neutral-200 pt-4" />
 
                               {/* Entrega */}
                               <div className="space-y-3">
                                 <div className="flex items-center justify-between">
                                   <h4 className="font-medium">Entrega</h4>
-                                  <span className="text-sm text-muted-foreground">Opcional</span>
+                                  <span className="text-sm text-neutral-500">Opcional</span>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-neutral-500">
                                   Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
                                 </p>
                                 <Select
@@ -3630,9 +3684,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     }
                                   }}
                                 >
-                                  <SelectTrigger className="bg-secondary/50 border-border/50">
+                                  <SelectTrigger className="bg-white border-neutral-200">
                                     <div className="flex items-center gap-2">
-                                      <RefreshCw className="h-4 w-4 text-muted-foreground" />
+                                      <RefreshCw className="h-4 w-4 text-neutral-500" />
                                       <SelectValue />
                                     </div>
                                   </SelectTrigger>
@@ -3651,7 +3705,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
                                           <div className="text-sm">
                                             <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
-                                            <p className="text-muted-foreground">
+                                            <p className="text-neutral-500">
                                               Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
                                             </p>
                                           </div>
@@ -3664,7 +3718,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           value={seq.deliverableId || "none"}
                                           onValueChange={(value) => handleUpdateDownsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
                                         >
-                                          <SelectTrigger className="bg-secondary/30 border-border/50">
+                                          <SelectTrigger className="bg-white border-neutral-200">
                                             <SelectValue placeholder="Selecione..." />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -3682,7 +3736,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                           </SelectContent>
                                         </Select>
                                         {seq.deliverableId && (
-                                          <p className="text-xs text-muted-foreground">
+                                          <p className="text-xs text-neutral-500">
                                             Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
                                           </p>
                                         )}
@@ -3719,7 +3773,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             <div className="flex gap-6">
               {/* Left Sidebar */}
               <div className="w-72 space-y-4">
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
@@ -3727,22 +3781,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                       <span className="font-semibold">Order Bump</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Produto adicional oferecido no checkout antes do pagamento
                     </p>
                   </CardContent>
                 </Card>
 
                 {/* Como funciona */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-3">
                     <p className="text-sm font-medium text-amber-500">Como funciona?</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Configure um Order Bump diferente para cada etapa do funil:
                     </p>
-                    <ul className="text-sm text-muted-foreground space-y-2">
+                    <ul className="text-sm text-neutral-500 space-y-2">
                       <li><span className="text-blue-400 font-medium">Inicial:</span> Exibido junto aos planos principais</li>
-                      <li><span className="text-accent font-medium">Upsell:</span> Exibido nas ofertas de upsell</li>
+                      <li><span className="text-[#8fb300] font-medium">Upsell:</span> Exibido nas ofertas de upsell</li>
                       <li><span className="text-pink-500 font-medium">Downsell:</span> Exibido nas ofertas de downsell</li>
                       <li><span className="text-emerald-500 font-medium">Packs:</span> Exibido na compra de packs avulsos</li>
                     </ul>
@@ -3750,27 +3804,27 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
 
                 {/* Aplicar Order Bump Inicial */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-3">
                     <p className="text-sm font-medium">Aplicar Order Bump Inicial tambem em:</p>
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input 
                           type="checkbox" 
-                          className="rounded border-border/50"
+                          className="rounded border-neutral-200"
                           checked={applyInicialTo.upsell}
                           onChange={(e) => {
                             setApplyInicialTo({...applyInicialTo, upsell: e.target.checked})
                             setHasChanges(true)
                           }}
                         />
-                        <TrendingUp className="h-4 w-4 text-accent" />
-                        <span className="text-sm text-accent">Upsell</span>
+                        <TrendingUp className="h-4 w-4 text-[#8fb300]" />
+                        <span className="text-sm text-[#8fb300]">Upsell</span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input 
                           type="checkbox" 
-                          className="rounded border-border/50"
+                          className="rounded border-neutral-200"
                           checked={applyInicialTo.downsell}
                           onChange={(e) => {
                             setApplyInicialTo({...applyInicialTo, downsell: e.target.checked})
@@ -3783,7 +3837,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input 
                           type="checkbox" 
-                          className="rounded border-border/50"
+                          className="rounded border-neutral-200"
                           checked={applyInicialTo.packs}
                           onChange={(e) => {
                             setApplyInicialTo({...applyInicialTo, packs: e.target.checked})
@@ -3794,7 +3848,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <span className="text-sm text-emerald-500">Packs</span>
                       </label>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-neutral-500">
                       Marcando, o Order Bump do Fluxo Inicial sera usado tambem nesses fluxos
                     </p>
                   </CardContent>
@@ -3804,7 +3858,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               {/* Main Content - 4 Order Bump Cards */}
               <div className="flex-1 space-y-4">
                 {/* Fluxo Inicial */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -3819,7 +3873,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Exibido quando o cliente seleciona um plano principal
                     </p>
                   </CardHeader>
@@ -3828,7 +3882,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {/* Nome e Preco */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Nome do Produto</Label>
+                          <Label className="text-neutral-500">Nome do Produto</Label>
                           <Input
                             value={orderBumpInicial.name}
                             onChange={(e) => {
@@ -3836,11 +3890,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               setHasChanges(true)
                             }}
                             placeholder="Ex: Acesso ao grupo exclusivo"
-                            className="bg-secondary/50"
+                            className="bg-white border-neutral-200"
                           />
                         </div>
 <div className="space-y-2">
-                              <Label className="text-muted-foreground">Preco (R$)</Label>
+                              <Label className="text-neutral-500">Preco (R$)</Label>
 <Input
                                   type="text"
                                   inputMode="decimal"
@@ -3855,14 +3909,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     setOrderBumpInicial({...orderBumpInicial, price: num})
                                   }}
                                 placeholder="0.00"
-                                className="bg-secondary/50"
+                                className="bg-white border-neutral-200"
                               />
                             </div>
                       </div>
 
                       {/* Descricao */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Descricao/Mensagem do Order Bump</Label>
+                        <Label className="text-neutral-500">Descricao/Mensagem do Order Bump</Label>
                         <Textarea
                           value={orderBumpInicial.description}
                           onChange={(e) => {
@@ -3871,16 +3925,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           }}
                           placeholder="Descricao completa do produto adicional que sera enviada ao cliente..."
                           rows={4}
-                          className="bg-secondary/50 border-border/50"
+                          className="bg-secondary/50 border-neutral-200"
                         />
-                        <p className="text-xs text-muted-foreground text-right">{orderBumpInicial.description.length}/4000 caracteres</p>
+                        <p className="text-xs text-neutral-500 text-right">{orderBumpInicial.description.length}/4000 caracteres</p>
                       </div>
 
                       {/* Botoes */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Botao Aceitar</Label>
-                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                          <Label className="text-neutral-500">Botao Aceitar</Label>
+                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-neutral-200">
                             <Check className="h-4 w-4 text-emerald-500" />
                             <Input
                               value={orderBumpInicial.acceptText}
@@ -3893,8 +3947,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </div>
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Botao Recusar</Label>
-                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                          <Label className="text-neutral-500">Botao Recusar</Label>
+                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-neutral-200">
                             <X className="h-4 w-4 text-destructive" />
                             <Input
                               value={orderBumpInicial.rejectText}
@@ -3910,7 +3964,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                       {/* Entrega */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Entrega do Order Bump</Label>
+                        <Label className="text-neutral-500">Entrega do Order Bump</Label>
                         <Select
                           value={orderBumpInicial.deliveryType}
                           onValueChange={(value: OrderBumpItem["deliveryType"]) => {
@@ -3918,7 +3972,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             setHasChanges(true)
                           }}
                         >
-                          <SelectTrigger className="bg-secondary/50 border-border/50">
+                          <SelectTrigger className="bg-white border-neutral-200">
                             <div className="flex items-center gap-2">
                               <Check className="h-4 w-4 text-emerald-500" />
                               <SelectValue />
@@ -3935,8 +3989,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                       
                       {/* Midias do Order Bump inicial */}
-                      <div className="space-y-2 pt-4 border-t border-border/50">
-                        <Label className="text-muted-foreground flex items-center gap-2">
+                      <div className="space-y-2 pt-4 border-t border-neutral-200">
+                        <Label className="text-neutral-500 flex items-center gap-2">
                           <ImageIcon className="h-4 w-4" />
                           Midias (ate 3)
                         </Label>
@@ -3944,9 +3998,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           {(orderBumpInicial.medias || []).map((media, idx) => (
                             <div key={idx} className="relative group">
                               {media.includes('video') ? (
-                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               ) : (
-                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               )}
                               <button type="button" onClick={() => handleRemoveOrderBumpMedia("inicial", idx)} className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <X className="h-3 w-3" />
@@ -3954,31 +4008,31 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                           ))}
                           {(orderBumpInicial.medias?.length || 0) < 3 && (
-                            <label className="h-20 w-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors">
+                            <label className="h-20 w-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] transition-colors">
                               {uploadingOrderBumpMedia === "inicial" ? (
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                               ) : (
                                 <>
-                                  <Plus className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-[10px] text-muted-foreground">Adicionar</span>
+                                  <Plus className="h-5 w-5 text-neutral-500" />
+                                  <span className="text-[10px] text-neutral-500">Adicionar</span>
                                 </>
                               )}
                               <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUploadOrderBumpMedia("inicial", file); e.target.value = "" }} />
                             </label>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{orderBumpInicial.medias?.length || 0}/3 midias</p>
+                        <p className="text-xs text-neutral-500">{orderBumpInicial.medias?.length || 0}/3 midias</p>
                       </div>
                     </CardContent>
                   )}
                 </Card>
 
                 {/* Upsell */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <TrendingUp className="h-5 w-5 text-accent" />
+                        <TrendingUp className="h-5 w-5 text-[#8fb300]" />
                         <span className="font-semibold">Upsell</span>
                       </div>
                       <Switch
@@ -3989,7 +4043,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Exibido quando o cliente aceita uma oferta de upsell
                     </p>
                   </CardHeader>
@@ -3997,22 +4051,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Nome do Produto</Label>
-                          <Input value={orderBumpUpsell.name} onChange={(e) => { setOrderBumpUpsell({...orderBumpUpsell, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Nome do Produto</Label>
+                          <Input value={orderBumpUpsell.name} onChange={(e) => { setOrderBumpUpsell({...orderBumpUpsell, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-white border-neutral-200" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpUpsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpUpsell({...orderBumpUpsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpUpsell.price).replace(",", ".")) || 0; setOrderBumpUpsell({...orderBumpUpsell, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Preco (R$)</Label>
+                          <Input type="text" inputMode="decimal" value={orderBumpUpsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpUpsell({...orderBumpUpsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpUpsell.price).replace(",", ".")) || 0; setOrderBumpUpsell({...orderBumpUpsell, price: num}) }} placeholder="0.00" className="bg-white border-neutral-200" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Descricao</Label>
-                        <Textarea value={orderBumpUpsell.description} onChange={(e) => { setOrderBumpUpsell({...orderBumpUpsell, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-secondary/50" />
+                        <Label className="text-neutral-500">Descricao</Label>
+                        <Textarea value={orderBumpUpsell.description} onChange={(e) => { setOrderBumpUpsell({...orderBumpUpsell, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-white border-neutral-200" />
                       </div>
                       
                       {/* Midias do Order Bump Upsell */}
-                      <div className="space-y-2 pt-4 border-t border-border/50">
-                        <Label className="text-muted-foreground flex items-center gap-2">
+                      <div className="space-y-2 pt-4 border-t border-neutral-200">
+                        <Label className="text-neutral-500 flex items-center gap-2">
                           <ImageIcon className="h-4 w-4" />
                           Midias (ate 3)
                         </Label>
@@ -4020,9 +4074,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           {(orderBumpUpsell.medias || []).map((media, idx) => (
                             <div key={idx} className="relative group">
                               {media.includes('video') ? (
-                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               ) : (
-                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               )}
                               <button type="button" onClick={() => handleRemoveOrderBumpMedia("upsell", idx)} className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <X className="h-3 w-3" />
@@ -4030,27 +4084,27 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                           ))}
                           {(orderBumpUpsell.medias?.length || 0) < 3 && (
-                            <label className="h-20 w-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors">
+                            <label className="h-20 w-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] transition-colors">
                               {uploadingOrderBumpMedia === "upsell" ? (
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                               ) : (
                                 <>
-                                  <Plus className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-[10px] text-muted-foreground">Adicionar</span>
+                                  <Plus className="h-5 w-5 text-neutral-500" />
+                                  <span className="text-[10px] text-neutral-500">Adicionar</span>
                                 </>
                               )}
                               <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUploadOrderBumpMedia("upsell", file); e.target.value = "" }} />
                             </label>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{orderBumpUpsell.medias?.length || 0}/3 midias</p>
+                        <p className="text-xs text-neutral-500">{orderBumpUpsell.medias?.length || 0}/3 midias</p>
                       </div>
                     </CardContent>
                   )}
                 </Card>
 
                 {/* Downsell */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -4065,7 +4119,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Exibido quando o cliente aceita uma oferta de downsell
                     </p>
                   </CardHeader>
@@ -4073,22 +4127,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Nome do Produto</Label>
-                          <Input value={orderBumpDownsell.name} onChange={(e) => { setOrderBumpDownsell({...orderBumpDownsell, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Nome do Produto</Label>
+                          <Input value={orderBumpDownsell.name} onChange={(e) => { setOrderBumpDownsell({...orderBumpDownsell, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-white border-neutral-200" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpDownsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpDownsell({...orderBumpDownsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpDownsell.price).replace(",", ".")) || 0; setOrderBumpDownsell({...orderBumpDownsell, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Preco (R$)</Label>
+                          <Input type="text" inputMode="decimal" value={orderBumpDownsell.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpDownsell({...orderBumpDownsell, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpDownsell.price).replace(",", ".")) || 0; setOrderBumpDownsell({...orderBumpDownsell, price: num}) }} placeholder="0.00" className="bg-white border-neutral-200" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Descricao</Label>
-                        <Textarea value={orderBumpDownsell.description} onChange={(e) => { setOrderBumpDownsell({...orderBumpDownsell, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-secondary/50" />
+                        <Label className="text-neutral-500">Descricao</Label>
+                        <Textarea value={orderBumpDownsell.description} onChange={(e) => { setOrderBumpDownsell({...orderBumpDownsell, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-white border-neutral-200" />
                       </div>
                       
                       {/* Midias do Order Bump Downsell */}
-                      <div className="space-y-2 pt-4 border-t border-border/50">
-                        <Label className="text-muted-foreground flex items-center gap-2">
+                      <div className="space-y-2 pt-4 border-t border-neutral-200">
+                        <Label className="text-neutral-500 flex items-center gap-2">
                           <ImageIcon className="h-4 w-4" />
                           Midias (ate 3)
                         </Label>
@@ -4096,9 +4150,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           {(orderBumpDownsell.medias || []).map((media, idx) => (
                             <div key={idx} className="relative group">
                               {media.includes('video') ? (
-                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               ) : (
-                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               )}
                               <button type="button" onClick={() => handleRemoveOrderBumpMedia("downsell", idx)} className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <X className="h-3 w-3" />
@@ -4106,27 +4160,27 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                           ))}
                           {(orderBumpDownsell.medias?.length || 0) < 3 && (
-                            <label className="h-20 w-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors">
+                            <label className="h-20 w-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] transition-colors">
                               {uploadingOrderBumpMedia === "downsell" ? (
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                               ) : (
                                 <>
-                                  <Plus className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-[10px] text-muted-foreground">Adicionar</span>
+                                  <Plus className="h-5 w-5 text-neutral-500" />
+                                  <span className="text-[10px] text-neutral-500">Adicionar</span>
                                 </>
                               )}
                               <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUploadOrderBumpMedia("downsell", file); e.target.value = "" }} />
                             </label>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{orderBumpDownsell.medias?.length || 0}/3 midias</p>
+                        <p className="text-xs text-neutral-500">{orderBumpDownsell.medias?.length || 0}/3 midias</p>
                       </div>
                     </CardContent>
                   )}
                 </Card>
 
                 {/* Packs */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -4141,7 +4195,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Exibido quando o cliente seleciona um pack avulso
                     </p>
                   </CardHeader>
@@ -4149,34 +4203,34 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Nome do Produto</Label>
-                          <Input value={orderBumpPacks.name} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Nome do Produto</Label>
+                          <Input value={orderBumpPacks.name} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, name: e.target.value}); setHasChanges(true) }} placeholder="Ex: Pack Extra" className="bg-white border-neutral-200" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Preco (R$)</Label>
-                          <Input type="text" inputMode="decimal" value={orderBumpPacks.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpPacks({...orderBumpPacks, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpPacks.price).replace(",", ".")) || 0; setOrderBumpPacks({...orderBumpPacks, price: num}) }} placeholder="0.00" className="bg-secondary/50" />
+                          <Label className="text-neutral-500">Preco (R$)</Label>
+                          <Input type="text" inputMode="decimal" value={orderBumpPacks.price || ""} onChange={(e) => { const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", "."); setOrderBumpPacks({...orderBumpPacks, price: val === "" ? 0 : val as unknown as number}); setHasChanges(true) }} onBlur={() => { const num = parseFloat(String(orderBumpPacks.price).replace(",", ".")) || 0; setOrderBumpPacks({...orderBumpPacks, price: num}) }} placeholder="0.00" className="bg-white border-neutral-200" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Descricao</Label>
-                        <Textarea value={orderBumpPacks.description} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-secondary/50" />
+                        <Label className="text-neutral-500">Descricao</Label>
+                        <Textarea value={orderBumpPacks.description} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, description: e.target.value}); setHasChanges(true) }} placeholder="Descricao do order bump..." rows={3} className="bg-white border-neutral-200" />
                       </div>
                       
                       {/* Botoes */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Botao Aceitar</Label>
+                          <Label className="text-neutral-500">Botao Aceitar</Label>
                           <Input value={orderBumpPacks.acceptText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, acceptText: e.target.value}); setHasChanges(true) }} placeholder="ADICIONAR" className="bg-secondary/50 uppercase font-medium" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-muted-foreground">Botao Recusar</Label>
+                          <Label className="text-neutral-500">Botao Recusar</Label>
                           <Input value={orderBumpPacks.rejectText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, rejectText: e.target.value}); setHasChanges(true) }} placeholder="NAO QUERO" className="bg-secondary/50 uppercase font-medium" />
                         </div>
                       </div>
                       
                       {/* Entrega */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Entrega do Order Bump</Label>
+                        <Label className="text-neutral-500">Entrega do Order Bump</Label>
                         <Select
                           value={orderBumpPacks.deliveryType}
                           onValueChange={(value: OrderBumpItem["deliveryType"]) => {
@@ -4184,7 +4238,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             setHasChanges(true)
                           }}
                         >
-                          <SelectTrigger className="bg-secondary/50 border-border/50">
+                          <SelectTrigger className="bg-white border-neutral-200">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -4197,8 +4251,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                       
                       {/* Midias do Order Bump Packs */}
-                      <div className="space-y-2 pt-4 border-t border-border/50">
-                        <Label className="text-muted-foreground flex items-center gap-2">
+                      <div className="space-y-2 pt-4 border-t border-neutral-200">
+                        <Label className="text-neutral-500 flex items-center gap-2">
                           <ImageIcon className="h-4 w-4" />
                           Midias (ate 3)
                         </Label>
@@ -4206,9 +4260,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           {(orderBumpPacks.medias || []).map((media, idx) => (
                             <div key={idx} className="relative group">
                               {media.includes('video') ? (
-                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <video src={media} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               ) : (
-                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-border/50" />
+                                <img src={media} alt={`Media ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-neutral-200" />
                               )}
                               <button type="button" onClick={() => handleRemoveOrderBumpMedia("packs", idx)} className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <X className="h-3 w-3" />
@@ -4216,20 +4270,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                           ))}
                           {(orderBumpPacks.medias?.length || 0) < 3 && (
-                            <label className="h-20 w-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-accent transition-colors">
+                            <label className="h-20 w-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#BEFF00] transition-colors">
                               {uploadingOrderBumpMedia === "packs" ? (
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                               ) : (
                                 <>
-                                  <Plus className="h-5 w-5 text-muted-foreground" />
-                                  <span className="text-[10px] text-muted-foreground">Adicionar</span>
+                                  <Plus className="h-5 w-5 text-neutral-500" />
+                                  <span className="text-[10px] text-neutral-500">Adicionar</span>
                                 </>
                               )}
                               <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file) handleUploadOrderBumpMedia("packs", file); e.target.value = "" }} />
                             </label>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">{orderBumpPacks.medias?.length || 0}/3 midias</p>
+                        <p className="text-xs text-neutral-500">{orderBumpPacks.medias?.length || 0}/3 midias</p>
                       </div>
                     </CardContent>
                   )}
@@ -4243,13 +4297,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
             <div className="flex gap-6">
               {/* Left Sidebar */}
               <div className="w-72 space-y-4">
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-4">
                     <div className="flex items-center gap-3">
                       <Wallet className="h-5 w-5 text-emerald-500" />
                       <span className="font-semibold">Packs</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Venda conteudos avulsos alem das assinaturas
                     </p>
                     <div className="flex items-center justify-between">
@@ -4266,8 +4320,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     {packsEnabled && (
                       <>
                         <div className="space-y-2">
-                          <Label className="text-sm text-muted-foreground">Texto do Botao</Label>
-                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-border/50">
+                          <Label className="text-sm text-neutral-500">Texto do Botao</Label>
+                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-neutral-200">
                             <span className="text-lg">📦</span>
                             <Input
                               value={packsButtonText}
@@ -4285,13 +4339,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Card>
 
                 {/* Como funciona */}
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="pt-6 space-y-3">
                     <p className="text-sm font-medium">Como funciona?</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-neutral-500">
                       Packs sao conteudos avulsos que o cliente pode comprar alem das assinaturas.
                     </p>
-                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                    <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
                       <li>Ate 20 packs por fluxo</li>
                       <li>Cada pack com seu canal/grupo de entrega</li>
                       <li>Pagamento via PIX</li>
@@ -4304,21 +4358,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold">Lista de Packs</h3>
-                  <span className="text-sm text-muted-foreground">{packsList.length}/20</span>
+                  <span className="text-sm text-neutral-500">{packsList.length}/20</span>
                 </div>
 
                 {!packsEnabled ? (
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Wallet className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                      <p className="text-muted-foreground">Ative os Packs para configurar</p>
+                      <Wallet className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500">Ative os Packs para configurar</p>
                     </CardContent>
                   </Card>
                 ) : packsList.length === 0 ? (
-                  <Card className="border-border/50">
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                     <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Plus className="h-10 w-10 text-muted-foreground/30 mb-4" />
-                      <p className="text-muted-foreground mb-4">Nenhum pack configurado</p>
+                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500 mb-4">Nenhum pack configurado</p>
                       <Button onClick={handleAddPack} variant="outline">
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar Pack
@@ -4328,7 +4382,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 ) : (
                   <div className="space-y-4">
                     {packsList.map((pack, index) => (
-                      <Card key={pack.id} className="border-border/50">
+                      <Card key={pack.id} className="border-neutral-200">
                         {/* Pack Header */}
                         <div
                           className="flex items-center justify-between p-4 cursor-pointer"
@@ -4336,9 +4390,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         >
                           <div className="flex items-center gap-3">
                             {expandedPack === pack.id ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                              <ChevronDown className="h-4 w-4 text-neutral-500" />
                             ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              <ChevronRight className="h-4 w-4 text-neutral-500" />
                             )}
                             <span className="text-lg">{pack.emoji}</span>
                             <span className="font-medium">{pack.name || `Pack ${index + 1}`}</span>
@@ -4370,7 +4424,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             {/* Emoji, Nome, Preco */}
                             <div className="grid grid-cols-3 gap-4">
                               <div className="space-y-2">
-                                <Label className="text-muted-foreground">Emoji</Label>
+                                <Label className="text-neutral-500">Emoji</Label>
                                 <Input
                                   value={pack.emoji}
                                   onChange={(e) => handleUpdatePack(pack.id, "emoji", e.target.value)}
@@ -4379,16 +4433,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-muted-foreground">Nome do Pack</Label>
+                                <Label className="text-neutral-500">Nome do Pack</Label>
                                 <Input
                                   value={pack.name}
                                   onChange={(e) => handleUpdatePack(pack.id, "name", e.target.value)}
                                   placeholder="Pack Especial"
-                                  className="bg-secondary/50"
+                                  className="bg-white border-neutral-200"
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-muted-foreground">Preco (R$)</Label>
+                                <Label className="text-neutral-500">Preco (R$)</Label>
                                 <Input
                                   type="text"
                                   inputMode="decimal"
@@ -4402,37 +4456,37 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     handleUpdatePack(pack.id, "price", num)
                                   }}
                                   placeholder="0.00"
-                                  className="bg-secondary/50"
+                                  className="bg-white border-neutral-200"
                                 />
                               </div>
                             </div>
 
                             {/* Descricao */}
                             <div className="space-y-2">
-                              <Label className="text-muted-foreground">Descricao</Label>
+                              <Label className="text-neutral-500">Descricao</Label>
                               <Textarea
                                 value={pack.description}
                                 onChange={(e) => handleUpdatePack(pack.id, "description", e.target.value)}
                                 placeholder="Descricao do pack que sera exibida na previa..."
                                 rows={3}
-                                className="bg-secondary/50 border-border/50"
+                                className="bg-secondary/50 border-neutral-200"
                               />
                             </div>
 
                             {/* Texto do Botao Personalizado */}
                             <div className="space-y-2">
-                              <Label className="text-muted-foreground">Texto do Botao</Label>
+                              <Label className="text-neutral-500">Texto do Botao</Label>
                               <Input
                                 value={pack.buttonText || "Comprar Pack"}
                                 onChange={(e) => handleUpdatePack(pack.id, "buttonText", e.target.value)}
                                 placeholder="Comprar Pack"
-                                className="bg-secondary/50"
+                                className="bg-white border-neutral-200"
                               />
-                              <p className="text-xs text-muted-foreground">Texto exibido no botao de compra deste pack</p>
+                              <p className="text-xs text-neutral-500">Texto exibido no botao de compra deste pack</p>
                             </div>
 
                             {/* Entregavel do Pack */}
-                            <Card className="border-border/50 bg-emerald-500/5">
+                            <Card className="border-neutral-200 bg-emerald-500/5">
                               <CardContent className="pt-4 space-y-3">
                                 <div className="flex items-center gap-2">
                                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -4440,7 +4494,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   </div>
                                   <div>
                                     <span className="font-medium text-sm">Entregavel do Pack</span>
-                                    <p className="text-xs text-muted-foreground">O que sera enviado apos a compra</p>
+                                    <p className="text-xs text-neutral-500">O que sera enviado apos a compra</p>
                                   </div>
                                 </div>
                                 
@@ -4450,7 +4504,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                       <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
                                       <div className="text-xs">
                                         <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
-                                        <p className="text-muted-foreground">Crie entregaveis na aba &quot;Entregaveis&quot; para associar a este pack</p>
+                                        <p className="text-neutral-500">Crie entregaveis na aba &quot;Entregaveis&quot; para associar a este pack</p>
                                       </div>
                                     </div>
                                   </div>
@@ -4459,7 +4513,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                     value={pack.deliverableId || "none"}
                                     onValueChange={(value) => handleUpdatePack(pack.id, "deliverableId", value === "none" ? "" : value)}
                                   >
-                                    <SelectTrigger className="bg-secondary/50 border-border/50">
+                                    <SelectTrigger className="bg-white border-neutral-200">
                                       <SelectValue placeholder="Selecione um entregavel..." />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -4471,7 +4525,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                             {d.type === "link" && <Link2 className="h-3 w-3" />}
                                             {d.type === "vip_group" && <Users className="h-3 w-3" />}
                                             {d.name}
-                                            <span className="text-muted-foreground text-xs">
+                                            <span className="text-neutral-500 text-xs">
                                               ({d.type === "media" ? "Midia" : d.type === "link" ? "Link" : "Grupo VIP"})
                                             </span>
                                           </div>
@@ -4482,7 +4536,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 )}
                                 
                                 {pack.deliverableId && deliverables.find(d => d.id === pack.deliverableId) && (
-                                  <div className="rounded-lg bg-secondary/30 p-2 text-xs text-muted-foreground">
+                                  <div className="rounded-lg bg-secondary/30 p-2 text-xs text-neutral-500">
                                     Tipo: {deliverables.find(d => d.id === pack.deliverableId)?.type === "media" 
                                       ? "Midias serao enviadas" 
                                       : deliverables.find(d => d.id === pack.deliverableId)?.type === "link" 
@@ -4494,14 +4548,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </Card>
 
                             {/* Midias de Preview */}
-                            <Card className="border-border/50 bg-secondary/10">
+                            <Card className="border-neutral-200 bg-secondary/10">
                               <CardContent className="pt-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2 text-sm">
-                                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                    <ImageIcon className="h-4 w-4 text-neutral-500" />
                                     <span>Midias de Preview (ate 10 - exibidas antes da compra)</span>
                                   </div>
-                                  <span className="text-xs text-muted-foreground">{(pack.previewMedias?.length || 0)}/10</span>
+                                  <span className="text-xs text-neutral-500">{(pack.previewMedias?.length || 0)}/10</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                   {/* Midias existentes */}
@@ -4524,13 +4578,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   
                                   {/* Botao de adicionar */}
                                   {(pack.previewMedias?.length || 0) < 10 && (
-                                    <label className="w-24 h-20 border-2 border-dashed border-border/50 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 transition-colors">
+                                    <label className="w-24 h-20 border-2 border-dashed border-neutral-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 transition-colors">
                                       {uploadingPackMedia === pack.id ? (
                                         <div className="animate-spin h-5 w-5 border-2 border-emerald-500 border-t-transparent rounded-full" />
                                       ) : (
                                         <>
-                                          <Plus className="h-5 w-5 text-muted-foreground" />
-                                          <span className="text-xs text-muted-foreground mt-1">Adicionar</span>
+                                          <Plus className="h-5 w-5 text-neutral-500" />
+                                          <span className="text-xs text-neutral-500 mt-1">Adicionar</span>
                                         </>
                                       )}
                                       <input
@@ -4551,14 +4605,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </Card>
 
                             {/* Entrega do Pack */}
-                            <Card className="border-border/50 bg-secondary/10">
+                            <Card className="border-neutral-200 bg-secondary/10">
                               <CardContent className="pt-4 space-y-3">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2 text-sm">
                                     <Package className="h-4 w-4 text-emerald-500" />
                                     <span className="font-medium">Entrega do Pack</span>
                                   </div>
-                                  <Button variant="ghost" size="sm" className="text-muted-foreground">
+                                  <Button variant="ghost" size="sm" className="text-neutral-500">
                                     <RefreshCw className="h-3 w-3 mr-1" />
                                     Atualizar
                                   </Button>
@@ -4567,7 +4621,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   value={pack.deliveryDestination}
                                   onValueChange={(value) => handleUpdatePack(pack.id, "deliveryDestination", value)}
                                 >
-                                  <SelectTrigger className="bg-secondary/50 border-border/50">
+                                  <SelectTrigger className="bg-white border-neutral-200">
                                     <SelectValue placeholder="Selecione o destino" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -4604,15 +4658,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "payments" && (
             <div className="space-y-6">
               {/* Header Card */}
-              <Card className="border border-border bg-card">
+              <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
-                      <DollarSign className="h-5 w-5 text-accent" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#BEFF00]/10">
+                      <DollarSign className="h-5 w-5 text-[#8fb300]" />
                     </div>
                     <span className="font-semibold text-lg">Configuracoes de Pagamento</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-neutral-500">
                     Configure as mensagens enviadas durante o processo de pagamento PIX
                   </p>
                 </CardContent>
@@ -4624,23 +4678,23 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                 {/* Mensagem Personalizada */}
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Mensagem Personalizada</Label>
+                  <Label className="text-neutral-500">Mensagem Personalizada</Label>
                   <Textarea
                     value={pixGeneratedMessage}
                     onChange={(e) => { setPixGeneratedMessage(e.target.value); setHasChanges(true) }}
                     rows={6}
-                    className="bg-card border border-border font-mono text-sm"
+                    className="bg-white border border-neutral-200 font-mono text-sm"
                   />
-                  <p className="text-xs text-muted-foreground text-right">{pixGeneratedMessage.length}/4000 caracteres</p>
+                  <p className="text-xs text-neutral-500 text-right">{pixGeneratedMessage.length}/4000 caracteres</p>
                 </div>
 
                 {/* Variaveis */}
-                <Card className="border border-border bg-card">
+                <Card className="border border-neutral-200 bg-white">
                   <CardContent className="pt-4">
                     <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                     <div className="flex flex-wrap gap-2">
                       {["{nome}"].map((v) => (
-                        <span key={v} className="px-3 py-1 rounded-full bg-muted text-sm text-foreground border border-border">{v}</span>
+                        <span key={v} className="px-3 py-1 rounded-full bg-muted text-sm text-neutral-900 border border-neutral-200">{v}</span>
                       ))}
                     </div>
                   </CardContent>
@@ -4652,9 +4706,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <h3 className="font-semibold">2. Configuracoes do QR Code e Codigo PIX</h3>
                 
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Exibicao do QR Code</Label>
+                  <Label className="text-neutral-500">Exibicao do QR Code</Label>
                   <Select value={qrCodeDisplay} onValueChange={(v) => { setQrCodeDisplay(v); setHasChanges(true) }}>
-                    <SelectTrigger className="bg-card border border-border">
+                    <SelectTrigger className="bg-white border border-neutral-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -4663,13 +4717,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <SelectItem value="none">Nao exibir</SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">QR Code enviado junto com a mensagem</p>
+                  <p className="text-xs text-neutral-500">QR Code enviado junto com a mensagem</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Formato do Codigo PIX</Label>
+                  <Label className="text-neutral-500">Formato do Codigo PIX</Label>
                   <Select value={pixCodeFormat} onValueChange={(v) => { setPixCodeFormat(v); setHasChanges(true) }}>
-                    <SelectTrigger className="bg-card border border-border">
+                    <SelectTrigger className="bg-white border border-neutral-200">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -4679,24 +4733,24 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </Select>
                 </div>
 
-                <Card className="border border-border bg-card">
+                <Card className="border border-neutral-200 bg-white">
                   <CardContent className="pt-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-medium">Mostrar Botao "Copiar Codigo"</p>
-                        <p className="text-sm text-muted-foreground">Exibe um botao para copiar o codigo PIX facilmente</p>
+                        <p className="text-sm text-neutral-500">Exibe um botao para copiar o codigo PIX facilmente</p>
                       </div>
                       <Switch checked={showCopyButton} onCheckedChange={(c) => { setShowCopyButton(c); setHasChanges(true) }} />
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Mensagem Antes do Codigo</Label>
+                      <Label className="text-neutral-500">Mensagem Antes do Codigo</Label>
                       <Input
                         value={messageBeforeCode}
                         onChange={(e) => { setMessageBeforeCode(e.target.value); setHasChanges(true) }}
-                        className="bg-card border border-border"
+                        className="bg-white border border-neutral-200"
                       />
-                      <p className="text-xs text-muted-foreground">Aparece logo antes do codigo PIX copiavel</p>
+                      <p className="text-xs text-neutral-500">Aparece logo antes do codigo PIX copiavel</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -4706,8 +4760,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               <div className="space-y-4">
                 <h3 className="font-semibold">3. Botao Verificar Status</h3>
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">Texto do Botao</Label>
-                  <div className="flex items-center gap-2 rounded-lg bg-card p-3 border border-border">
+                  <Label className="text-neutral-500">Texto do Botao</Label>
+                  <div className="flex items-center gap-2 rounded-lg bg-white p-3 border border-neutral-200">
                     <Check className="h-4 w-4 text-emerald-500" />
                     <Input
                       value={verifyStatusButtonText}
@@ -4719,7 +4773,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </div>
 
               {/* 4. Mensagem de Pagamento Aprovado */}
-              <Card className="border border-border bg-card">
+              <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -4727,16 +4781,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                     <div>
                       <p className="font-semibold">Mensagem de Pagamento Aprovado</p>
-                      <p className="text-sm text-muted-foreground">Enviada quando o pagamento e confirmado</p>
+                      <p className="text-sm text-neutral-500">Enviada quando o pagamento e confirmado</p>
                     </div>
                   </div>
 
                   {/* Midias - ate 3 */}
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Midias (opcional - ate 3)</Label>
+                    <Label className="text-neutral-500">Midias (opcional - ate 3)</Label>
                     <div className="flex gap-3 flex-wrap">
                       {approvedMedias.map((media, index) => (
-                        <div key={index} className="relative w-24 h-24 rounded-lg border border-border overflow-hidden group">
+                        <div key={index} className="relative w-24 h-24 rounded-lg border border-neutral-200 overflow-hidden group">
                           {media.match(/\.(mp4|webm|mov)$/i) ? (
                             <video src={media} className="w-full h-full object-cover" />
                           ) : (
@@ -4754,14 +4808,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                       ))}
                       {approvedMedias.length < 3 && (
-                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors">
+                        <label className="w-24 h-24 rounded-lg border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-colors">
                           {uploadingApprovedMedia ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                           ) : (
                             <>
-                              <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                              <span className="text-xs text-muted-foreground">Adicionar</span>
-                              <span className="text-xs text-muted-foreground">({approvedMedias.length}/3)</span>
+                              <Plus className="h-6 w-6 text-neutral-500 mb-1" />
+                              <span className="text-xs text-neutral-500">Adicionar</span>
+                              <span className="text-xs text-neutral-500">({approvedMedias.length}/3)</span>
                             </>
                           )}
                           <input
@@ -4817,41 +4871,41 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </label>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">Imagens ou videos enviados junto com a mensagem de aprovacao</p>
+                    <p className="text-xs text-neutral-500">Imagens ou videos enviados junto com a mensagem de aprovacao</p>
                   </div>
 
                   {/* Mensagem */}
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Mensagem Personalizada</Label>
+                    <Label className="text-neutral-500">Mensagem Personalizada</Label>
                     <Textarea
                       value={approvedMessage}
                       onChange={(e) => { setApprovedMessage(e.target.value); setHasChanges(true) }}
                       rows={5}
-                      className="bg-card border border-border font-mono text-sm"
+                      className="bg-white border border-neutral-200 font-mono text-sm"
                     />
-                    <p className="text-xs text-muted-foreground text-right">{approvedMessage.length}/4000 caracteres</p>
+                    <p className="text-xs text-neutral-500 text-right">{approvedMessage.length}/4000 caracteres</p>
                   </div>
 
                   {/* Variaveis */}
-                  <Card className="border border-border bg-muted/50">
+                  <Card className="border border-neutral-200 bg-muted/50">
                     <CardContent className="pt-4">
                       <p className="text-sm font-medium mb-3">Variaveis disponiveis:</p>
                       <div className="flex flex-wrap gap-2">
                         {["{nome}"].map((v) => (
-                          <span key={v} className="px-3 py-1 rounded-full bg-background text-sm text-foreground border border-border">{v}</span>
+                          <span key={v} className="px-3 py-1 rounded-full bg-background text-sm text-neutral-900 border border-neutral-200">{v}</span>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
 
                   {/* Botao de Acesso ao Entregavel */}
-                  <div className="border-t border-border pt-4 space-y-4">
+                  <div className="border-t border-neutral-200 pt-4 space-y-4">
                     <p className="font-semibold">Botao de Acessar Conteudo (Entregavel)</p>
-                    <p className="text-sm text-muted-foreground">Este botao aparece apos o pagamento aprovado e libera o acesso ao conteudo configurado nos Entregaveis.</p>
+                    <p className="text-sm text-neutral-500">Este botao aparece apos o pagamento aprovado e libera o acesso ao conteudo configurado nos Entregaveis.</p>
                     
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Texto do Botao</Label>
-                      <div className="flex items-center gap-2 rounded-lg bg-card p-3 border border-border">
+                      <Label className="text-neutral-500">Texto do Botao</Label>
+                      <div className="flex items-center gap-2 rounded-lg bg-white p-3 border border-neutral-200">
                         <Gift className="h-4 w-4 text-orange-500" />
                         <Input
                           value={accessButtonText}
@@ -4862,14 +4916,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-muted-foreground">Link do Entregavel (opcional)</Label>
+                      <Label className="text-neutral-500">Link do Entregavel (opcional)</Label>
                       <Input
                         value={accessButtonUrl}
                         onChange={(e) => { setAccessButtonUrl(e.target.value); setHasChanges(true) }}
                         placeholder="https://exemplo.com/conteudo ou deixe vazio para usar Entregaveis"
-                        className="bg-card border border-border"
+                        className="bg-white border border-neutral-200"
                       />
-                      <p className="text-xs text-muted-foreground">Se preenchido, sobrescreve o entregavel configurado. Deixe vazio para usar os Entregaveis do fluxo.</p>
+                      <p className="text-xs text-neutral-500">Se preenchido, sobrescreve o entregavel configurado. Deixe vazio para usar os Entregaveis do fluxo.</p>
                     </div>
                   </div>
                 </CardContent>
@@ -4881,35 +4935,35 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "subscription" && (
             <div className="space-y-6">
               {/* Header */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-2">
-                    <RefreshCw className="h-5 w-5 text-accent" />
+                    <RefreshCw className="h-5 w-5 text-[#8fb300]" />
                     <span className="font-semibold text-lg">Sistema de Renovacao</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-neutral-500">
                     Configure notificacoes de renovacao e acoes quando a assinatura expirar.
                   </p>
                 </CardContent>
               </Card>
 
               {/* Entrega Especifica para Renovacao */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Link2 className="h-5 w-5 text-emerald-500" />
                       <div>
                         <p className="font-semibold">Entrega Especifica para Renovacao</p>
-                        <p className="text-sm text-muted-foreground">Configure um grupo/canal diferente para entregas de renovacao. Util quando a venda inicial usa "link externo" ou "taxa" mas a renovacao deve entregar direto no grupo VIP.</p>
+                        <p className="text-sm text-neutral-500">Configure um grupo/canal diferente para entregas de renovacao. Util quando a venda inicial usa "link externo" ou "taxa" mas a renovacao deve entregar direto no grupo VIP.</p>
                       </div>
                     </div>
                     <Switch checked={renewalDeliveryEnabled} onCheckedChange={(c) => { setRenewalDeliveryEnabled(c); setHasChanges(true) }} />
                   </div>
 
                   {renewalDeliveryEnabled && deliverables.length > 0 && (
-                    <div className="space-y-2 pt-2 border-t border-border/50">
-                      <Label className="text-muted-foreground">Entregavel para Renovacao</Label>
+                    <div className="space-y-2 pt-2 border-t border-neutral-200">
+                      <Label className="text-neutral-500">Entregavel para Renovacao</Label>
                       <Select
                         value={renewalDeliverableId || "none"}
                         onValueChange={(v) => {
@@ -4917,7 +4971,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                       >
-                        <SelectTrigger className="bg-secondary/50 border-border/50">
+                        <SelectTrigger className="bg-white border-neutral-200">
                           <SelectValue placeholder="Selecione um entregavel..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -4929,7 +4983,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-muted-foreground">Este entregavel sera usado nas renovacoes em vez do entregavel principal.</p>
+                      <p className="text-xs text-neutral-500">Este entregavel sera usado nas renovacoes em vez do entregavel principal.</p>
                     </div>
                   )}
 
@@ -4944,7 +4998,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Notificacoes Antes de Expirar */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -4958,7 +5012,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <>
                       {/* Dias antes de expirar */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Dias antes de expirar</Label>
+                        <Label className="text-neutral-500">Dias antes de expirar</Label>
                         <div className="flex flex-wrap gap-2">
                           {["14 dias", "7 dias", "5 dias", "3 dias", "2 dias", "1 dia", "No dia"].map((day) => (
                             <button
@@ -4975,7 +5029,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               className={`px-4 py-2 rounded-lg border text-sm transition-colors ${
                                 daysBeforeExpire.includes(day)
                                   ? "bg-amber-500/20 border-amber-500 text-amber-500"
-                                  : "bg-secondary/50 border-border/50 text-muted-foreground hover:border-amber-500/50"
+                                  : "bg-secondary/50 border-neutral-200 text-neutral-500 hover:border-amber-500/50"
                               }`}
                             >
                               {day}
@@ -4986,7 +5040,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                       {/* Midia */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Midia (opcional)</Label>
+                        <Label className="text-neutral-500">Midia (opcional)</Label>
                         <div className="flex gap-2">
                           {[
                             { id: "none", label: "Nenhuma", icon: null },
@@ -5005,7 +5059,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               className={`px-4 py-2 rounded-lg border text-sm flex items-center gap-2 transition-colors ${
                                 renewalMediaType === type.id
                                   ? "bg-amber-500/20 border-amber-500 text-amber-500"
-                                  : "bg-secondary/50 border-border/50 text-muted-foreground hover:border-amber-500/50"
+                                  : "bg-secondary/50 border-neutral-200 text-neutral-500 hover:border-amber-500/50"
                               }`}
                             >
                               {type.icon && <type.icon className="h-4 w-4" />}
@@ -5018,12 +5072,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         {renewalMediaType !== "none" && (
                           <div className="mt-3">
                             {renewalMediaUrl ? (
-                              <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden group">
+                              <div className="relative w-32 h-32 rounded-lg border border-neutral-200 overflow-hidden group">
                                 {renewalMediaType === "video" ? (
                                   <video src={renewalMediaUrl} className="w-full h-full object-cover" />
                                 ) : renewalMediaType === "audio" ? (
                                   <div className="w-full h-full flex items-center justify-center bg-secondary/50">
-                                    <Music className="h-8 w-8 text-muted-foreground" />
+                                    <Music className="h-8 w-8 text-neutral-500" />
                                   </div>
                                 ) : (
                                   <img src={renewalMediaUrl} alt="Renewal media" className="w-full h-full object-cover" />
@@ -5039,13 +5093,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </button>
                               </div>
                             ) : (
-                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5 transition-colors">
+                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-amber-500/50 hover:bg-amber-500/5 transition-colors">
                                 {uploadingRenewalMedia ? (
-                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                  <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                                 ) : (
                                   <>
-                                    <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                                    <span className="text-xs text-muted-foreground">Upload</span>
+                                    <Plus className="h-6 w-6 text-neutral-500 mb-1" />
+                                    <span className="text-xs text-neutral-500">Upload</span>
                                   </>
                                 )}
                                 <input
@@ -5106,16 +5160,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                       {/* Mensagem */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Mensagem de Renovacao</Label>
+                        <Label className="text-neutral-500">Mensagem de Renovacao</Label>
                         <Textarea
                           value={renewalMessage}
                           onChange={(e) => { setRenewalMessage(e.target.value); setHasChanges(true) }}
                           rows={5}
-                          className="bg-secondary/50 border-border/50 font-mono text-sm"
+                          className="bg-secondary/50 border-neutral-200 font-mono text-sm"
                         />
                         <div className="flex flex-wrap gap-2">
                           {["{nome}", "{plano}", "{dias}", "{data_expiracao}", "{saudacao}", "{uf}"].map((v) => (
-                            <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
+                            <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-neutral-500 border border-neutral-200">{v}</span>
                           ))}
                         </div>
                       </div>
@@ -5125,7 +5179,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Notificacoes no Dia da Expiracao */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -5137,15 +5191,15 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                   {notifyOnDayEnabled && (
                     <>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-neutral-500">
                         Envie multiplas notificacoes em horarios especificos no dia que a assinatura expirar (dia 0)
                       </p>
 
                       {/* Quantidade */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Quantas notificacoes enviar</Label>
+                        <Label className="text-neutral-500">Quantas notificacoes enviar</Label>
                         <Select value={notificationCount} onValueChange={(v) => { setNotificationCount(v); setHasChanges(true) }}>
-                          <SelectTrigger className="bg-secondary/50 border-border/50">
+                          <SelectTrigger className="bg-white border-neutral-200">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -5156,12 +5210,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             <SelectItem value="5">5 vezes</SelectItem>
                           </SelectContent>
                         </Select>
-                        <p className="text-xs text-muted-foreground">Numero de notificacoes que serao enviadas durante o dia da expiracao</p>
+                        <p className="text-xs text-neutral-500">Numero de notificacoes que serao enviadas durante o dia da expiracao</p>
                       </div>
 
                       {/* Horarios Grid */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Horarios (selecione {notificationCount})</Label>
+                        <Label className="text-neutral-500">Horarios (selecione {notificationCount})</Label>
                         <div className="grid grid-cols-6 gap-2">
                           {Array.from({ length: 24 }, (_, i) => {
                             const hour = `${i.toString().padStart(2, "0")}:00`
@@ -5185,8 +5239,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                   isSelected
                                     ? "bg-amber-500/20 border-amber-500 text-amber-500"
                                     : isDisabled
-                                    ? "bg-secondary/30 border-border/30 text-muted-foreground/50 cursor-not-allowed"
-                                    : "bg-secondary/50 border-border/50 text-muted-foreground hover:border-amber-500/50"
+                                    ? "bg-secondary/30 border-neutral-200/30 text-neutral-500/50 cursor-not-allowed"
+                                    : "bg-secondary/50 border-neutral-200 text-neutral-500 hover:border-amber-500/50"
                                 }`}
                               >
                                 {hour}
@@ -5194,7 +5248,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             )
                           })}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-neutral-500">
                           {selectedHours.length}/{notificationCount} horario(s) selecionado(s)
                         </p>
                       </div>
@@ -5203,7 +5257,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
                         <p className="text-sm">
                           <span className="font-semibold text-amber-500">Atencao:</span>{" "}
-                          <span className="text-muted-foreground">Estas notificacoes usam a mesma mensagem e midia configuradas em "Notificacoes Antes de Expirar" acima, mas sao enviadas nos horarios especificos do dia da expiracao.</span>
+                          <span className="text-neutral-500">Estas notificacoes usam a mesma mensagem e midia configuradas em "Notificacoes Antes de Expirar" acima, mas sao enviadas nos horarios especificos do dia da expiracao.</span>
                         </p>
                       </div>
                     </>
@@ -5212,7 +5266,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Mensagem Quando Expirar */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -5226,7 +5280,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <>
                       {/* Midia */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Midia (opcional)</Label>
+                        <Label className="text-neutral-500">Midia (opcional)</Label>
                         <div className="flex gap-2">
                           {[
                             { id: "none", label: "Nenhuma", icon: null },
@@ -5245,7 +5299,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               className={`px-4 py-2 rounded-lg border text-sm flex items-center gap-2 transition-colors ${
                                 expireMediaType === type.id
                                   ? "bg-amber-500/20 border-amber-500 text-amber-500"
-                                  : "bg-secondary/50 border-border/50 text-muted-foreground hover:border-amber-500/50"
+                                  : "bg-secondary/50 border-neutral-200 text-neutral-500 hover:border-amber-500/50"
                               }`}
                             >
                               {type.icon && <type.icon className="h-4 w-4" />}
@@ -5258,12 +5312,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         {expireMediaType !== "none" && (
                           <div className="mt-3">
                             {expireMediaUrl ? (
-                              <div className="relative w-32 h-32 rounded-lg border border-border overflow-hidden group">
+                              <div className="relative w-32 h-32 rounded-lg border border-neutral-200 overflow-hidden group">
                                 {expireMediaType === "video" ? (
                                   <video src={expireMediaUrl} className="w-full h-full object-cover" />
                                 ) : expireMediaType === "audio" ? (
                                   <div className="w-full h-full flex items-center justify-center bg-secondary/50">
-                                    <Music className="h-8 w-8 text-muted-foreground" />
+                                    <Music className="h-8 w-8 text-neutral-500" />
                                   </div>
                                 ) : (
                                   <img src={expireMediaUrl} alt="Expire media" className="w-full h-full object-cover" />
@@ -5279,13 +5333,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </button>
                               </div>
                             ) : (
-                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-border flex flex-col items-center justify-center cursor-pointer hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
+                              <label className="w-32 h-32 rounded-lg border-2 border-dashed border-neutral-200 flex flex-col items-center justify-center cursor-pointer hover:border-destructive/50 hover:bg-destructive/5 transition-colors">
                                 {uploadingExpireMedia ? (
-                                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                  <Loader2 className="h-5 w-5 animate-spin text-neutral-500" />
                                 ) : (
                                   <>
-                                    <Plus className="h-6 w-6 text-muted-foreground mb-1" />
-                                    <span className="text-xs text-muted-foreground">Upload</span>
+                                    <Plus className="h-6 w-6 text-neutral-500 mb-1" />
+                                    <span className="text-xs text-neutral-500">Upload</span>
                                   </>
                                 )}
                                 <input
@@ -5346,16 +5400,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                       {/* Mensagem de Expiracao */}
                       <div className="space-y-2">
-                        <Label className="text-muted-foreground">Mensagem de Expiracao</Label>
+                        <Label className="text-neutral-500">Mensagem de Expiracao</Label>
                         <Textarea
                           value={expireMessage}
                           onChange={(e) => { setExpireMessage(e.target.value); setHasChanges(true) }}
                           rows={5}
-                          className="bg-secondary/50 border-border/50 font-mono text-sm"
+                          className="bg-secondary/50 border-neutral-200 font-mono text-sm"
                         />
                         <div className="flex flex-wrap gap-2">
                           {["{nome}", "{plano}", "{saudacao}", "{uf}"].map((v) => (
-                            <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-muted-foreground border border-border/50">{v}</span>
+                            <span key={v} className="px-3 py-1 rounded-full bg-secondary/50 text-sm text-neutral-500 border border-neutral-200">{v}</span>
                           ))}
                         </div>
                       </div>
@@ -5365,22 +5419,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Planos de Renovacao */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3">
-                    <DollarSign className="h-5 w-5 text-accent" />
+                    <DollarSign className="h-5 w-5 text-[#8fb300]" />
                     <span className="font-semibold">Planos de Renovacao</span>
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Usar planos do fluxo</span>
+                    <span className="text-neutral-500">Usar planos do fluxo</span>
                     <Switch checked={useFlowPlans} onCheckedChange={(c) => { setUseFlowPlans(c); setHasChanges(true) }} />
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-muted-foreground">Desconto na renovacao</Label>
+                    <Label className="text-neutral-500">Desconto na renovacao</Label>
                     <Select value={renewalDiscount} onValueChange={(v) => { setRenewalDiscount(v); setHasChanges(true) }}>
-                      <SelectTrigger className="bg-secondary/50 border-border/50">
+                      <SelectTrigger className="bg-white border-neutral-200">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -5392,16 +5446,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <SelectItem value="30%">30%</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">Desconto aplicado aos planos na oferta de renovacao</p>
+                    <p className="text-xs text-neutral-500">Desconto aplicado aos planos na oferta de renovacao</p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Acoes ao Expirar */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <Users className="h-5 w-5 text-neutral-500" />
                     <span className="font-semibold">Acoes ao Expirar</span>
                   </div>
 
@@ -5409,7 +5463,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                       <div>
                         <p className="font-medium">Expulsar do grupo</p>
-                        <p className="text-sm text-muted-foreground">Remove o usuario do grupo VIP quando expirar</p>
+                        <p className="text-sm text-neutral-500">Remove o usuario do grupo VIP quando expirar</p>
                       </div>
                       <Switch checked={kickFromGroup} onCheckedChange={(c) => { setKickFromGroup(c); setHasChanges(true) }} />
                     </div>
@@ -5417,7 +5471,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
                       <div>
                         <p className="font-medium">Remover status VIP</p>
-                        <p className="text-sm text-muted-foreground">Marca o lead como nao-VIP no sistema</p>
+                        <p className="text-sm text-neutral-500">Marca o lead como nao-VIP no sistema</p>
                       </div>
                       <Switch checked={removeVipStatus} onCheckedChange={(c) => { setRemoveVipStatus(c); setHasChanges(true) }} />
                     </div>
@@ -5431,14 +5485,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "deliverables" && (
             <div className="space-y-6">
               {/* Header Card */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <Gift className="h-5 w-5 text-accent" />
+                      <Gift className="h-5 w-5 text-[#8fb300]" />
                       <h2 className="text-lg font-semibold">Entregaveis</h2>
                     </div>
-                    <Badge variant="secondary" className="text-muted-foreground">
+                    <Badge variant="secondary" className="text-neutral-500">
                       {deliverables.length} cadastrados
                     </Badge>
                   </div>
@@ -5464,19 +5518,19 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       setDeliverableModalOpen(true)
                     }}
                     disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-border/50 hover:border-accent/50 hover:bg-accent/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <div className="h-12 w-12 rounded-full bg-accent/10 flex items-center justify-center group-hover:bg-accent/20 transition-colors">
-                      <Plus className="h-5 w-5 text-accent" />
+                    <div className="h-12 w-12 rounded-full bg-[#BEFF00]/10 flex items-center justify-center group-hover:bg-[#BEFF00]/20 transition-colors">
+                      <Plus className="h-5 w-5 text-[#8fb300]" />
                     </div>
                     <div className="text-left">
                       <p className="font-semibold">Adicionar Entregavel</p>
-                      <p className="text-sm text-muted-foreground">Midia, Grupo VIP ou Link</p>
+                      <p className="text-sm text-neutral-500">Midia, Grupo VIP ou Link</p>
                     </div>
                   </button>
 
                   {deliverables.length === 0 && (
-                    <p className="text-center text-sm text-muted-foreground mt-4">
+                    <p className="text-center text-sm text-neutral-500 mt-4">
                       Configure o que sera entregue apos o pagamento ser aprovado
                     </p>
                   )}
@@ -5485,16 +5539,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               {/* Entregavel Principal */}
               {deliverables.length > 0 && (
-                <Card className="border-border/50 border-accent/30">
+                <Card className="border-neutral-200 border-[#BEFF00]/30">
                   <CardContent className="pt-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center">
-                          <Crown className="h-4 w-4 text-accent" />
+                        <div className="h-9 w-9 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
+                          <Crown className="h-4 w-4 text-[#8fb300]" />
                         </div>
                         <div>
                           <p className="font-medium text-sm">Entregavel Principal</p>
-                          <p className="text-xs text-muted-foreground">Sera enviado apos a compra inicial</p>
+                          <p className="text-xs text-neutral-500">Sera enviado apos a compra inicial</p>
                         </div>
                       </div>
                       <Select
@@ -5504,7 +5558,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                       >
-                        <SelectTrigger className="w-52 bg-secondary/50 border-border/50">
+                        <SelectTrigger className="w-52 bg-secondary/50 border-neutral-200">
                           <SelectValue placeholder="Selecione..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -5527,7 +5581,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   {deliverables.map((del) => (
                     <Card 
                       key={del.id} 
-                      className="border-border/50 hover:border-accent/30 transition-colors cursor-pointer"
+                      className="border-neutral-200 hover:border-[#BEFF00]/30 transition-colors cursor-pointer"
                       onClick={() => {
                         setEditingDeliverable(del)
                         setDeliverableModalStep("form")
@@ -5552,7 +5606,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                             <div>
                               <p className="font-medium">{del.name}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-neutral-500">
                                 {del.type === "media" 
                                   ? `${(del.medias || []).length} midia(s)` 
                                   : del.type === "link" 
@@ -5564,7 +5618,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </div>
                           <div className="flex items-center gap-2">
                             {mainDeliverableId === del.id && (
-                              <Badge className="bg-accent/10 text-accent border-accent/30">
+                              <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-[#BEFF00]/30">
                                 <Crown className="h-3 w-3 mr-1" />
                                 Principal
                               </Badge>
@@ -5610,8 +5664,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     onClick={() => setConversionsPeriod(period.id)}
                     className={`px-4 py-2 rounded-lg text-sm transition-colors ${
                       conversionsPeriod === period.id
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                        ? "bg-accent text-[#8fb300]-foreground"
+                        : "bg-secondary/50 text-neutral-500 hover:bg-secondary"
                     }`}
                   >
                     {period.label}
@@ -5622,16 +5676,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               {/* Stats Summary */}
               {conversionsData.payments.length > 0 && (
                 <div className="grid grid-cols-2 gap-4">
-                  <Card className="border-border/50 bg-accent/5">
+                  <Card className="border-neutral-200 bg-[#BEFF00]/5">
                     <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Total de Vendas</p>
-                      <p className="text-2xl font-bold text-accent">{conversionsData.stats.total}</p>
+                      <p className="text-sm text-neutral-500 mb-1">Total de Vendas</p>
+                      <p className="text-2xl font-bold text-[#8fb300]">{conversionsData.stats.total}</p>
                     </CardContent>
                   </Card>
-                  <Card className="border-border/50 bg-accent/5">
+                  <Card className="border-neutral-200 bg-[#BEFF00]/5">
                     <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground mb-1">Faturamento</p>
-                      <p className="text-2xl font-bold text-accent">
+                      <p className="text-sm text-neutral-500 mb-1">Faturamento</p>
+                      <p className="text-2xl font-bold text-[#8fb300]">
                         R$ {conversionsData.stats.totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                       </p>
                     </CardContent>
@@ -5641,31 +5695,31 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               {/* Loading State */}
               {loadingConversions && (
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="flex flex-col items-center justify-center py-16">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mb-4" />
-                    <p className="text-muted-foreground">Carregando vendas...</p>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BEFF00] mb-4" />
+                    <p className="text-neutral-500">Carregando vendas...</p>
                   </CardContent>
                 </Card>
               )}
 
               {/* Empty State */}
               {!loadingConversions && conversionsData.payments.length === 0 && (
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardContent className="flex flex-col items-center justify-center py-16">
-                    <BarChart3 className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                    <p className="text-muted-foreground font-medium mb-1">Nenhuma venda registrada neste fluxo ainda.</p>
-                    <p className="text-sm text-muted-foreground">Os dados aparecerao quando houver pagamentos.</p>
+                    <BarChart3 className="h-12 w-12 text-neutral-500/30 mb-4" />
+                    <p className="text-neutral-500 font-medium mb-1">Nenhuma venda registrada neste fluxo ainda.</p>
+                    <p className="text-sm text-neutral-500">Os dados aparecerao quando houver pagamentos.</p>
                   </CardContent>
                 </Card>
               )}
 
               {/* Payments List */}
               {!loadingConversions && conversionsData.payments.length > 0 && (
-                <Card className="border-border/50">
+                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-accent" />
+                      <CheckCircle className="h-4 w-4 text-[#8fb300]" />
                       Vendas Aprovadas
                     </CardTitle>
                   </CardHeader>
@@ -5674,11 +5728,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {conversionsData.payments.map((payment) => (
                         <div
                           key={payment.id}
-                          className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-border/30"
+                          className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 border border-neutral-200/30"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-                              <span className="text-accent font-semibold text-sm">
+                            <div className="h-10 w-10 rounded-full bg-[#BEFF00]/10 flex items-center justify-center">
+                              <span className="text-[#8fb300] font-semibold text-sm">
                                 {(payment.payer_name || payment.payer_email || "?").charAt(0).toUpperCase()}
                               </span>
                             </div>
@@ -5686,7 +5740,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <p className="font-medium text-sm">
                                 {payment.payer_name || payment.payer_email || "Cliente"}
                               </p>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <div className="flex items-center gap-2 text-xs text-neutral-500">
                                 <span>{payment.bot_name}</span>
                                 <span>•</span>
                                 <span>
@@ -5702,10 +5756,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-accent">
+                            <p className="font-bold text-[#8fb300]">
                               R$ {Number(payment.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </p>
-                            <Badge className="bg-accent/10 text-accent border-accent/30 text-xs">
+                            <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-[#BEFF00]/30 text-xs">
                               Aprovado
                             </Badge>
                           </div>
@@ -5722,19 +5776,19 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
         {/* Sidebar - Only show for tabs that need it */}
         {(activeTab === "bots" || activeTab === "welcome") && (
-        <div className="w-80 border-l border-border/50 bg-card p-6 overflow-auto">
+        <div className="w-80 border-l border-neutral-200 bg-white p-6 overflow-auto">
           {/* Welcome Tab Sidebar Options */}
           {activeTab === "welcome" && (
             <div className="space-y-4">
               {/* Mensagem Secundaria */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <MessageCircle className="h-4 w-4 text-purple-400" />
                       <div>
                         <p className="font-medium text-sm">Mensagem Secundaria</p>
-                        <p className="text-xs text-muted-foreground">Mensagem separada onde os botoes serao enviados</p>
+                        <p className="text-xs text-neutral-500">Mensagem separada onde os botoes serao enviados</p>
                       </div>
                     </div>
                     <Switch
@@ -5755,7 +5809,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                         placeholder="Digite a mensagem secundaria..."
                         rows={3}
-                        className="bg-secondary/30 border-border/50 text-sm"
+                        className="bg-secondary/30 border-neutral-200 text-sm"
                       />
                     </div>
                   )}
@@ -5763,14 +5817,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
               </Card>
 
               {/* Botao Redirect */}
-              <Card className="border-border/50">
+              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                 <CardContent className="pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <ExternalLink className="h-4 w-4 text-blue-400" />
                       <div>
                         <p className="font-medium text-sm">Botao Redirect</p>
-                        <p className="text-xs text-muted-foreground">Redireciona para canal de previas</p>
+                        <p className="text-xs text-neutral-500">Redireciona para canal de previas</p>
                       </div>
                     </div>
                     <Switch
@@ -5790,7 +5844,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="Texto do botao"
-                        className="bg-secondary/30 border-border/50"
+                        className="bg-neutral-50 border-neutral-200"
                       />
                       <Input
                         value={redirectButtonUrl}
@@ -5799,7 +5853,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           setHasChanges(true)
                         }}
                         placeholder="@canal ou https://t.me/canal"
-                        className="bg-secondary/30 border-border/50"
+                        className="bg-neutral-50 border-neutral-200"
                       />
                     </div>
                   )}
@@ -5810,17 +5864,17 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
           {/* Entregaveis - Only show in bots tab */}
           {activeTab === "bots" && (
-            <Card className="border-border/50 shadow-sm">
+            <Card className="border-neutral-200 shadow-sm">
               <CardContent className="p-5">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2.5">
-                    <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                      <Gift className="h-4 w-4 text-accent" />
+                    <div className="h-8 w-8 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
+                      <Gift className="h-4 w-4 text-[#8fb300]" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-sm">Entregaveis</h3>
-                      <p className="text-xs text-muted-foreground">{deliverables.length} cadastrado{deliverables.length !== 1 ? "s" : ""}</p>
+                      <p className="text-xs text-neutral-500">{deliverables.length} cadastrado{deliverables.length !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 </div>
@@ -5853,16 +5907,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{del.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-neutral-500">
                           {del.type === "media" ? "Midia" : del.type === "link" ? "Link" : "Grupo VIP"}
                         </p>
                       </div>
                       {mainDeliverableId === del.id && (
-                        <Badge className="bg-accent/10 text-accent border-0 text-[10px] px-1.5 py-0.5">
+                        <Badge className="bg-[#BEFF00]/10 text-[#8fb300] border-0 text-[10px] px-1.5 py-0.5">
                           Principal
                         </Badge>
                       )}
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                     </button>
                   ))}
 
@@ -5887,21 +5941,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       setDeliverableModalOpen(true)
                     }}
                     disabled={deliverables.length >= 10}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-border hover:border-accent/50 hover:bg-accent/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-neutral-200 hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <div className="h-9 w-9 rounded-lg bg-accent/10 flex items-center justify-center group-hover:bg-accent/15 transition-colors shrink-0">
-                      <Plus className="h-4 w-4 text-accent" />
+                    <div className="h-9 w-9 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center group-hover:bg-accent/15 transition-colors shrink-0">
+                      <Plus className="h-4 w-4 text-[#8fb300]" />
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-sm">Adicionar</p>
-                      <p className="text-xs text-muted-foreground">Midia, Grupo VIP ou Link</p>
+                      <p className="text-xs text-neutral-500">Midia, Grupo VIP ou Link</p>
                     </div>
                   </button>
                 </div>
 
                 {/* Helper text */}
                 {deliverables.length === 0 && (
-                  <p className="text-center text-xs text-muted-foreground mt-4 px-2">
+                  <p className="text-center text-xs text-neutral-500 mt-4 px-2">
                     Configure o que sera entregue apos o pagamento
                   </p>
                 )}
@@ -5913,30 +5967,32 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
 
 
-          {/* Danger Zone - Only show on bots tab */}
+          {/* Danger Zone - Collapsible at bottom */}
           {activeTab === "bots" && (
-          <Card className="border-destructive/50 mt-6">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-sm text-destructive">
-                <AlertTriangle className="h-4 w-4" />
-                Zona de Perigo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground mb-3">
-                Ao excluir este fluxo, todos os bots vinculados e grupos VIP serao desvinculados. Esta acao nao pode ser desfeita.
-              </p>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Excluir Fluxo
-              </Button>
-            </CardContent>
-          </Card>
+          <details className="group mt-8">
+            <summary className="flex items-center gap-2 cursor-pointer text-sm text-neutral-400 hover:text-neutral-600 transition-colors list-none [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="h-4 w-4 transition-transform group-open:rotate-90" />
+              <AlertTriangle className="h-4 w-4" />
+              <span>Zona de Perigo</span>
+            </summary>
+            <div className="mt-4 p-5 rounded-xl bg-red-50 border border-red-100">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-medium text-red-900 mb-1">Excluir Fluxo</h4>
+                  <p className="text-sm text-red-700/70">
+                    Todos os bots vinculados e grupos VIP serao desvinculados. Esta acao nao pode ser desfeita.
+                  </p>
+                </div>
+                <button
+                  className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </details>
           )}
         </div>
         )}
@@ -6101,12 +6157,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {deliverableModalStep === "select" && (
             <div className="p-5">
               <div className="flex items-center gap-2.5 mb-4">
-                <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
-                  <Gift className="h-4 w-4 text-accent" />
+                <div className="h-8 w-8 rounded-lg bg-[#BEFF00]/10 flex items-center justify-center">
+                  <Gift className="h-4 w-4 text-[#8fb300]" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Novo Entregavel</h3>
-                  <p className="text-xs text-muted-foreground">Selecione o tipo</p>
+                  <p className="text-xs text-neutral-500">Selecione o tipo</p>
                 </div>
               </div>
               
@@ -6123,7 +6179,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       setTempDeliverable({ ...tempDeliverable, type: opt.type })
                       setDeliverableModalStep("form")
                     }}
-                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:border-accent/50 hover:bg-accent/5 transition-all text-left group"
+                    className="w-full flex items-center gap-3 p-3 rounded-lg border border-neutral-200 bg-white hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-all text-left group"
                   >
                     <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
                       opt.color === "purple" ? "bg-purple-500/10" :
@@ -6136,9 +6192,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{opt.label}</p>
-                      <p className="text-xs text-muted-foreground">{opt.desc}</p>
+                      <p className="text-xs text-neutral-500">{opt.desc}</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                   </button>
                 ))}
               </div>
@@ -6165,7 +6221,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">{editingDeliverable ? "Editar" : "Novo"} Entregavel</h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-neutral-500">
                       {tempDeliverable.type === "media" ? "Midia" : 
                        tempDeliverable.type === "vip_group" ? "Grupo VIP" : "Link"}
                     </p>
@@ -6201,16 +6257,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         onClick={() => setTempDeliverable({ ...tempDeliverable, type: opt.type })}
                         className={`flex flex-col items-center gap-1 py-2 px-1.5 rounded-lg border-2 transition-all ${
                           tempDeliverable.type === opt.type
-                            ? "border-accent bg-accent/5"
-                            : "border-border hover:border-accent/30"
+                            ? "border-[#BEFF00] bg-[#BEFF00]/5"
+                            : "border-neutral-200 hover:border-[#BEFF00]/30"
                         }`}
                       >
                         <opt.icon className={`h-4 w-4 ${
-                          tempDeliverable.type === opt.type ? "text-accent" :
+                          tempDeliverable.type === opt.type ? "text-[#8fb300]" :
                           opt.color === "purple" ? "text-purple-500" :
                           opt.color === "amber" ? "text-amber-500" : "text-blue-500"
                         }`} />
-                        <span className={`text-[10px] font-medium ${tempDeliverable.type === opt.type ? "text-accent" : "text-muted-foreground"}`}>{opt.label}</span>
+                        <span className={`text-[10px] font-medium ${tempDeliverable.type === opt.type ? "text-[#8fb300]" : "text-neutral-500"}`}>{opt.label}</span>
                       </button>
                     ))}
                   </div>
@@ -6221,7 +6277,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs font-medium">Midias</Label>
-                      <span className="text-[10px] text-muted-foreground">{(tempDeliverable.medias || []).length}/20</span>
+                      <span className="text-[10px] text-neutral-500">{(tempDeliverable.medias || []).length}/20</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {(tempDeliverable.medias || []).map((media, mediaIndex) => (
@@ -6229,7 +6285,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           <img
                             src={media}
                             alt={`Media ${mediaIndex + 1}`}
-                            className="h-12 w-12 rounded-lg object-cover border border-border"
+                            className="h-12 w-12 rounded-lg object-cover border border-neutral-200"
                           />
                           <button
                             type="button"
@@ -6246,8 +6302,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         </div>
                       ))}
                       {(tempDeliverable.medias || []).length < 20 && (
-                        <label className="h-12 w-12 rounded-lg border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-accent/50 hover:bg-accent/5 transition-colors">
-                          <Plus className="h-4 w-4 text-muted-foreground" />
+                        <label className="h-12 w-12 rounded-lg border-2 border-dashed border-neutral-200 flex items-center justify-center cursor-pointer hover:border-[#BEFF00]/50 hover:bg-[#BEFF00]/5 transition-colors">
+                          <Plus className="h-4 w-4 text-neutral-500" />
                           <input
                             type="file"
                             accept="image/*,video/*"
@@ -6368,7 +6424,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </Button>
                 <Button 
                   size="sm"
-                  className="h-8 bg-accent hover:bg-accent/90 text-accent-foreground"
+                  className="h-8 bg-accent hover:bg-accent/90 text-[#8fb300]-foreground"
                   onClick={() => {
                     if (editingDeliverable) {
                       setDeliverables(deliverables.map(d => d.id === tempDeliverable.id ? tempDeliverable : d))
