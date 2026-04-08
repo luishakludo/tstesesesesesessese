@@ -36,7 +36,7 @@ const pageTypes = [
     id: "conversion" as const,
     name: "Privacy",
     description: "Pagina...",
-    image: "/images/privacy-icon.jpg",
+    image: "/images/privacy-icon.png",
   },
   {
     id: "dragonbio" as const,
