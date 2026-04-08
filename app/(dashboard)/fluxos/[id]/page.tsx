@@ -2032,7 +2032,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                      <div className="h-11 w-11 rounded-xl bg-neutral-900 flex items-center justify-center">
                         <Gift className="h-5 w-5 text-white" />
                       </div>
                       <div>
@@ -2040,32 +2040,148 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         <p className="text-sm text-neutral-500">{deliverables.length} cadastrados</p>
                       </div>
                     </div>
-                    <button 
-                      onClick={() => setActiveTab("deliverables")}
-                      className="text-sm font-bold text-[#8fb300] hover:text-[#7a9900] transition-colors"
-                    >
-                      Gerenciar
-                    </button>
+                    {deliverables.length > 0 && (
+                      <button 
+                        onClick={() => setActiveTab("deliverables")}
+                        className="text-sm font-bold text-[#8fb300] hover:text-[#7a9900] transition-colors"
+                      >
+                        Gerenciar
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="p-6">
                   {deliverables.length === 0 ? (
-                    <p className="text-sm text-neutral-500 text-center py-4">Nenhum entregavel configurado ainda</p>
+                    <div className="space-y-4">
+                      <p className="text-sm text-neutral-500 text-center">Nenhum entregavel configurado ainda</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Midia",
+                              type: "media",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
+                            <ImageIcon className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Midia</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Link",
+                              type: "link",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
+                            <Link2 className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Link</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingDeliverable(null)
+                            setDeliverableModalStep("form")
+                            setTempDeliverable({
+                              id: `del-${Date.now()}`,
+                              name: "Grupo VIP",
+                              type: "vip_group",
+                              medias: [],
+                              link: "",
+                              linkText: "",
+                              vipGroupChatId: "",
+                              vipGroupName: "",
+                              vipAutoAdd: true,
+                              vipAutoRemove: true,
+                            })
+                            setDeliverableModalOpen(true)
+                          }}
+                          className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
+                        >
+                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
+                            <Users className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          </div>
+                          <span className="text-sm font-medium text-neutral-700">Grupo VIP</span>
+                        </button>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {deliverables.slice(0, 5).map((d) => (
-                        <span key={d.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-sm text-neutral-700 font-medium">
-                          {d.type === "media" && <ImageIcon className="h-3.5 w-3.5 text-purple-500" />}
-                          {d.type === "link" && <Link2 className="h-3.5 w-3.5 text-blue-500" />}
-                          {d.type === "vip_group" && <Users className="h-3.5 w-3.5 text-amber-500" />}
-                          {d.name}
-                        </span>
-                      ))}
-                      {deliverables.length > 5 && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
-                          +{deliverables.length - 5} mais
-                        </span>
-                      )}
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {deliverables.slice(0, 5).map((d) => (
+                          <button
+                            key={d.id}
+                            onClick={() => {
+                              setEditingDeliverable(d)
+                              setDeliverableModalStep("form")
+                              setTempDeliverable({ ...d })
+                              setDeliverableModalOpen(true)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-50 border border-neutral-200 text-sm text-neutral-700 font-medium hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all"
+                          >
+                            {d.type === "media" && <ImageIcon className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.type === "link" && <Link2 className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.type === "vip_group" && <Users className="h-3.5 w-3.5 text-neutral-900" />}
+                            {d.name}
+                          </button>
+                        ))}
+                        {deliverables.length > 5 && (
+                          <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-neutral-100 text-sm text-neutral-500">
+                            +{deliverables.length - 5} mais
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => {
+                          setEditingDeliverable(null)
+                          setDeliverableModalStep("select")
+                          setTempDeliverable({
+                            id: `del-${Date.now()}`,
+                            name: `Entregavel ${deliverables.length + 1}`,
+                            type: "media",
+                            medias: [],
+                            link: "",
+                            linkText: "",
+                            vipGroupChatId: "",
+                            vipGroupName: "",
+                            vipAutoAdd: true,
+                            vipAutoRemove: true,
+                          })
+                          setDeliverableModalOpen(true)
+                        }}
+                        disabled={deliverables.length >= 10}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all text-sm font-medium text-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar entregavel
+                      </button>
                     </div>
                   )}
                 </div>
