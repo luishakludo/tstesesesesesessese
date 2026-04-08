@@ -2732,8 +2732,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         )}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Resumo de Entregaveis */}
                 <Card className="border-neutral-200 bg-gradient-to-br from-emerald-500/5 to-transparent">
