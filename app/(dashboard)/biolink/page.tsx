@@ -42,7 +42,7 @@ const pageTypes = [
     id: "dragonbio" as const,
     name: "Dragon Bio",
     description: "Sua...",
-    image: "/images/dragonbio-icon.jpg",
+    image: "/images/dragonbio-icon.png",
   },
   {
     id: "checkout" as const,
