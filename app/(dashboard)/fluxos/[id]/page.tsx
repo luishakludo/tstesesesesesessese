@@ -2032,8 +2032,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-neutral-900 flex items-center justify-center">
-                        <Gift className="h-5 w-5 text-white" />
+                      <div className="h-11 w-11 rounded-xl bg-[#bfff00] flex items-center justify-center">
+                        <Gift className="h-5 w-5 text-neutral-900" />
                       </div>
                       <div>
                         <h3 className="font-bold text-neutral-900">Entregaveis</h3>
@@ -2075,8 +2075,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           }}
                           className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
                         >
-                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
-                            <ImageIcon className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <ImageIcon className="h-5 w-5 text-neutral-900 group-hover:text-white" />
                           </div>
                           <span className="text-sm font-medium text-neutral-700">Midia</span>
                         </button>
@@ -2100,8 +2100,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           }}
                           className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
                         >
-                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
-                            <Link2 className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <Link2 className="h-5 w-5 text-neutral-900 group-hover:text-white" />
                           </div>
                           <span className="text-sm font-medium text-neutral-700">Link</span>
                         </button>
@@ -2125,8 +2125,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           }}
                           className="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00] hover:bg-[#bfff00]/5 transition-all group"
                         >
-                          <div className="h-10 w-10 rounded-lg bg-neutral-900 flex items-center justify-center group-hover:bg-[#bfff00] transition-colors">
-                            <Users className="h-5 w-5 text-white group-hover:text-neutral-900" />
+                          <div className="h-10 w-10 rounded-lg bg-[#bfff00] flex items-center justify-center group-hover:bg-neutral-900 transition-colors">
+                            <Users className="h-5 w-5 text-neutral-900 group-hover:text-white" />
                           </div>
                           <span className="text-sm font-medium text-neutral-700">Grupo VIP</span>
                         </button>
@@ -5887,8 +5887,8 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
         </div>
         )}
 
-        {/* Sidebar - Only show for tabs that need it */}
-        {(activeTab === "bots" || activeTab === "welcome") && (
+        {/* Sidebar - Only show for welcome tab */}
+        {activeTab === "welcome" && (
         <div className="w-80 border-l border-neutral-200 bg-white p-6 overflow-auto">
           {/* Welcome Tab Sidebar Options */}
           {activeTab === "welcome" && (
