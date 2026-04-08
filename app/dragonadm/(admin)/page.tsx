@@ -57,9 +57,9 @@ export default function DragonAdmDashboardPage() {
       title: "Receita Total", 
       value: `R$ ${(stats?.totalRevenue || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: "text-[#95e468]",
-      bgColor: "bg-[#95e468]/10",
-      borderColor: "border-[#95e468]/20"
+      color: "text-[#BFFF00]",
+      bgColor: "bg-[#BFFF00]/10",
+      borderColor: "border-[#BFFF00]/20"
     },
   ]
 
@@ -68,9 +68,9 @@ export default function DragonAdmDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#95e468]/10">
-          <div className="w-2 h-2 rounded-full bg-[#95e468]" />
-          <span className="text-xs text-[#95e468]">Online</span>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#BFFF00]/10">
+          <div className="w-2 h-2 rounded-full bg-[#BFFF00]" />
+          <span className="text-xs text-[#BFFF00]">Online</span>
         </div>
       </div>
 
@@ -104,16 +104,16 @@ export default function DragonAdmDashboardPage() {
           <a
             key={i}
             href={action.href}
-            className="group rounded-xl p-4 bg-[#111] border border-white/5 hover:border-[#95e468]/30 transition-all flex items-center gap-4"
+            className="group rounded-xl p-4 bg-[#111] border border-white/5 hover:border-[#BFFF00]/30 transition-all flex items-center gap-4"
           >
-            <div className="w-12 h-12 rounded-lg bg-[#95e468]/10 flex items-center justify-center group-hover:bg-[#95e468]/20 transition-colors">
-              <action.icon className="h-6 w-6 text-[#95e468]" />
+            <div className="w-12 h-12 rounded-lg bg-[#BFFF00]/10 flex items-center justify-center group-hover:bg-[#BFFF00]/20 transition-colors">
+              <action.icon className="h-6 w-6 text-[#BFFF00]" />
             </div>
             <div>
               <h3 className="text-sm font-medium text-white">{action.label}</h3>
               <p className="text-xs text-[#666]">{action.desc}</p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-[#444] ml-auto group-hover:text-[#95e468] transition-colors" />
+            <ArrowUpRight className="w-4 h-4 text-[#444] ml-auto group-hover:text-[#BFFF00] transition-colors" />
           </a>
         ))}
       </div>
