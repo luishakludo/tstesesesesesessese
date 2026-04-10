@@ -137,17 +137,26 @@ export async function GET(request: NextRequest) {
   }
   log("")
   
-  // STEP 5A: Teste com AXIOS (metodo correto)
-  log("STEP 5A: setMyProfilePhoto (AXIOS + form-data)...")
+  // STEP 5A: Teste com AXIOS + InputProfilePhoto (Bot API 9.4+)
+  // O formato correto e: photo = { type: "static", photo: "attach://photo_file" }
+  log("STEP 5A: setMyProfilePhoto (InputProfilePhotoStatic)...")
   
   let test5aOk = false
   let test5aError = ""
   try {
     const form = new FormData()
-    form.append("photo", imageBuffer, {
+    // O campo do arquivo DEVE ter um nome que sera referenciado no attach://
+    form.append("photo_file", imageBuffer, {
       filename: "avatar.jpg",
       contentType: "image/jpeg",
     })
+    // O parametro "photo" e um JSON com InputProfilePhotoStatic
+    form.append("photo", JSON.stringify({
+      type: "static",
+      photo: "attach://photo_file"
+    }))
+    
+    log("FormData: photo_file (buffer) + photo (JSON InputProfilePhotoStatic)")
     
     const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
       headers: {

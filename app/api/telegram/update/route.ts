@@ -134,15 +134,22 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData com form-data (NAO usar fetch, usar axios)
-        console.log("Creating FormData for axios...")
+        // 2. Criar FormData com InputProfilePhotoStatic (Bot API 9.4+)
+        // O formato correto e: photo = { type: "static", photo: "attach://photo_file" }
+        console.log("Creating FormData with InputProfilePhotoStatic...")
         const form = new FormData()
         
-        // Adiciona o arquivo com nome "photo"
-        form.append("photo", buffer, {
+        // O campo do arquivo DEVE ter um nome que sera referenciado no attach://
+        form.append("photo_file", buffer, {
           filename: file.name || "photo.jpg",
           contentType: file.type || "image/jpeg",
         })
+        
+        // O parametro "photo" e um JSON com InputProfilePhotoStatic
+        form.append("photo", JSON.stringify({
+          type: "static",
+          photo: "attach://photo_file"
+        }))
 
         // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)
         console.log("Sending to Telegram setMyProfilePhoto via AXIOS...")
