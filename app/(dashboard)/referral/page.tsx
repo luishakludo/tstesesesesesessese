@@ -881,30 +881,39 @@ export default function ReferralPage() {
 
       {/* Withdraw History Modal */}
       <Dialog open={showWithdrawHistory} onOpenChange={setShowWithdrawHistory}>
-        <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
-          <div className="px-6 pt-6 pb-4 border-b border-white/5">
-            <h3 className="text-xl font-bold text-white">Historico de Saques</h3>
-            <p className="text-sm text-white/40 mt-1">Acompanhe o status das suas solicitacoes</p>
+        <DialogContent className="sm:max-w-[420px] bg-[#0a0a0a] border-[#bfff00]/20 p-0 gap-0 overflow-hidden rounded-2xl">
+          {/* Header com accent verde */}
+          <div className="relative px-5 py-5 border-b border-[#bfff00]/10">
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#bfff00]/40 to-transparent" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#bfff00]/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-[#bfff00]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Historico de Saques</h3>
+                <p className="text-xs text-white/40">Acompanhe suas solicitacoes</p>
+              </div>
+            </div>
           </div>
 
-          <div className="max-h-[400px] overflow-y-auto">
+          <div className="max-h-[380px] overflow-y-auto">
             {withdrawHistory.length === 0 ? (
-              <div className="py-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-white/20" />
+              <div className="py-16 text-center">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#bfff00]/10 flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-[#bfff00]/50" />
                 </div>
-                <p className="text-white/40 text-sm">Nenhum saque solicitado</p>
+                <p className="text-white/30 text-sm">Nenhum saque solicitado ainda</p>
               </div>
             ) : (
-              <div className="divide-y divide-white/5">
+              <div className="p-3 space-y-2">
                 {withdrawHistory.map((withdraw: { id: string; amount: number; status: string; created_at: string; pix_key: string }) => (
-                  <div key={withdraw.id} className="p-4 hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-bold text-white">
+                  <div key={withdraw.id} className="p-4 rounded-xl bg-[#111] border border-[#bfff00]/5 hover:border-[#bfff00]/15 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xl font-bold text-white">
                           R$ {Number(withdraw.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                         </p>
-                        <p className="text-xs text-white/40 mt-0.5">
+                        <p className="text-xs text-white/40 mt-1.5">
                           {new Date(withdraw.created_at).toLocaleDateString("pt-BR", {
                             day: "2-digit",
                             month: "short",
@@ -913,15 +922,18 @@ export default function ReferralPage() {
                             minute: "2-digit"
                           })}
                         </p>
-                        <p className="text-[10px] text-white/30 mt-1">PIX: {withdraw.pix_key}</p>
+                        <div className="flex items-center gap-1.5 mt-2">
+                          <div className="w-1 h-1 rounded-full bg-[#bfff00]/30" />
+                          <p className="text-[11px] text-white/25 truncate">PIX: {withdraw.pix_key}</p>
+                        </div>
                       </div>
                       <span 
                         className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-medium",
-                          withdraw.status === "pending" && "bg-yellow-500/10 text-yellow-400",
-                          withdraw.status === "approved" && "bg-blue-500/10 text-blue-400",
-                          withdraw.status === "paid" && "bg-[#ccff00]/10 text-[#ccff00]",
-                          withdraw.status === "rejected" && "bg-red-500/10 text-red-400"
+                          "px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0",
+                          withdraw.status === "pending" && "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                          withdraw.status === "approved" && "bg-[#bfff00]/10 text-[#bfff00] border border-[#bfff00]/20",
+                          withdraw.status === "paid" && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                          withdraw.status === "rejected" && "bg-red-500/10 text-red-400 border border-red-500/20"
                         )}
                       >
                         {withdraw.status === "pending" && "Pendente"}
@@ -936,10 +948,10 @@ export default function ReferralPage() {
             )}
           </div>
 
-          <div className="p-4 border-t border-white/5">
+          <div className="p-4 border-t border-[#bfff00]/10">
             <Button
               onClick={() => setShowWithdrawHistory(false)}
-              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl"
+              className="w-full h-11 bg-[#bfff00] hover:bg-[#d4ff4d] text-black font-semibold rounded-xl transition-colors"
             >
               Fechar
             </Button>
