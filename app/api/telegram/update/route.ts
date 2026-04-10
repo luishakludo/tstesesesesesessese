@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import FormData from "form-data"
 
 interface TelegramResponse<T> {
   ok: boolean
@@ -90,46 +89,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando undici (mais confiavel no Vercel)
+    // Upload new profile photo usando native FormData (funciona no Edge runtime)
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
       try {
-        const arrayBuffer = await photo.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        // Criar novo FormData nativo para enviar ao Telegram
+        const telegramFormData = new FormData()
         
-        if (buffer.length === 0) {
-          throw new Error("Buffer vazio - arquivo invalido")
-        }
+        // Passar o File diretamente - o fetch vai serializar corretamente
+        telegramFormData.append("photo", photo, photo.name || "photo.png")
         
-        console.log("[v0] UPDATE API - Buffer size:", buffer.length)
-        
-        // Criar boundary unico
-        const boundary = `----FormBoundary${Date.now()}`
-        
-        // Construir body multipart manualmente (mais confiavel)
-        const filename = photo.name || "photo.png"
-        const bodyParts = [
-          `--${boundary}`,
-          `Content-Disposition: form-data; name="photo"; filename="${filename}"`,
-          `Content-Type: image/png`,
-          ``,
-          ``, // placeholder para o buffer
-        ]
-        const headerPart = Buffer.from(bodyParts.join("\r\n"))
-        const footerPart = Buffer.from(`\r\n--${boundary}--\r\n`)
-        
-        // Concatenar tudo
-        const body = Buffer.concat([headerPart, buffer, footerPart])
-        
+        console.log("[v0] UPDATE API - File size:", photo.size)
+        console.log("[v0] UPDATE API - File type:", photo.type)
         console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          headers: {
-            "Content-Type": `multipart/form-data; boundary=${boundary}`,
-            "Content-Length": body.length.toString(),
-          },
-          body: body,
+          body: telegramFormData,
+          // Nao definir Content-Type - o fetch vai setar automaticamente com boundary
         })
         
         const responseText = await response.text()
