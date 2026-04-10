@@ -12,6 +12,7 @@ export async function POST(request: NextRequest) {
   }
 
   log("========== TEST PHOTO API START ==========")
+  log("Telegram Bot API 9.4+ (Feb 2026) - InputProfilePhoto format")
 
   try {
     // 1. Parse FormData
@@ -44,6 +45,17 @@ export async function POST(request: NextRequest) {
     log(`FILE size: ${file.size} bytes`)
     log(`FILE size (KB): ${(file.size / 1024).toFixed(2)} KB`)
 
+    // Validar tipo de imagem (deve ser JPG para static profile photo)
+    const validTypes = ["image/jpeg", "image/jpg", "image/png"]
+    if (!validTypes.includes(file.type)) {
+      log(`ERROR: Invalid image type. Expected JPEG/PNG, got: ${file.type}`)
+      return NextResponse.json({
+        success: false,
+        error: `Tipo de imagem invalido. Use JPEG ou PNG. Recebido: ${file.type}`,
+        logs,
+      })
+    }
+
     // 3. Converter para Buffer
     log("STEP 3: Converting to Buffer...")
     const arrayBuffer = await file.arrayBuffer()
@@ -51,12 +63,33 @@ export async function POST(request: NextRequest) {
     
     const buffer = Buffer.from(arrayBuffer)
     log(`Buffer length: ${buffer.length}`)
-    log(`Buffer first 10 bytes: ${buffer.slice(0, 10).toString("hex")}`)
+    log(`Buffer first 10 bytes (hex): ${buffer.slice(0, 10).toString("hex")}`)
 
-    // 4. Criar FormData com form-data library
-    log("STEP 4: Creating FormData with form-data library...")
+    // Detectar formato real da imagem pelos magic bytes
+    const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8
+    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47
+    log(`Magic bytes detection - JPEG: ${isJpeg}, PNG: ${isPng}`)
+
+    // 4. Criar FormData com form-data library (Bot API 9.4+ format)
+    // setMyProfilePhoto agora requer:
+    // - photo: JSON object { type: "static", photo: "attach://photo_file" }
+    // - photo_file: o arquivo binario
+    log("STEP 4: Creating FormData with Bot API 9.4+ InputProfilePhoto format...")
+    
     const form = new FormData()
-    form.append("photo", buffer, {
+    
+    // O objeto InputProfilePhotoStatic
+    const inputProfilePhoto = {
+      type: "static",
+      photo: "attach://photo_file"
+    }
+    log(`InputProfilePhoto object: ${JSON.stringify(inputProfilePhoto)}`)
+    
+    // Adicionar o objeto photo como JSON
+    form.append("photo", JSON.stringify(inputProfilePhoto))
+    
+    // Adicionar o arquivo binario com o nome referenciado (photo_file)
+    form.append("photo_file", buffer, {
       filename: file.name || "photo.jpg",
       contentType: file.type || "image/jpeg",
     })
@@ -65,7 +98,7 @@ export async function POST(request: NextRequest) {
     log(`FormData headers: ${JSON.stringify(headers)}`)
 
     // 5. Enviar para Telegram
-    log("STEP 5: Sending to Telegram...")
+    log("STEP 5: Sending to Telegram setMyProfilePhoto...")
     const telegramUrl = `https://api.telegram.org/bot${token}/setMyProfilePhoto`
     log(`Telegram URL: ${telegramUrl.replace(token, "TOKEN_HIDDEN")}`)
 
@@ -85,7 +118,7 @@ export async function POST(request: NextRequest) {
     const responseText = await response.text()
     log(`Response text: ${responseText}`)
 
-    let telegramResult: { ok: boolean; description?: string; error_code?: number }
+    let telegramResult: { ok: boolean; description?: string; error_code?: number; result?: unknown }
     try {
       telegramResult = JSON.parse(responseText)
     } catch {
@@ -95,6 +128,9 @@ export async function POST(request: NextRequest) {
     log(`Telegram ok: ${telegramResult.ok}`)
     log(`Telegram description: ${telegramResult.description || "none"}`)
     log(`Telegram error_code: ${telegramResult.error_code || "none"}`)
+    if (telegramResult.result) {
+      log(`Telegram result: ${JSON.stringify(telegramResult.result)}`)
+    }
 
     log("========== TEST PHOTO API END ==========")
 
@@ -106,7 +142,9 @@ export async function POST(request: NextRequest) {
         type: file.type,
         size: file.size,
         bufferLength: buffer.length,
+        detectedFormat: isJpeg ? "JPEG" : isPng ? "PNG" : "unknown",
       },
+      apiVersion: "Bot API 9.4+ (InputProfilePhoto format)",
       logs,
     })
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
 
-// CRITICAL: Node.js runtime - NÃO usar Edge
+// CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     console.log("==========================================")
 
     if (!token || typeof token !== "string") {
-      return NextResponse.json({ error: "Token é obrigatório" }, { status: 400 })
+      return NextResponse.json({ error: "Token e obrigatorio" }, { status: 400 })
     }
 
     const baseUrl = `https://api.telegram.org/bot${token}`
@@ -90,30 +90,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Delete profile photo
+    // Delete profile photo - usando removeMyProfilePhoto (Bot API 9.4+)
     if (deletePhoto) {
       try {
-        const response = await fetch(`${baseUrl}/deleteMyProfilePhoto`, {
+        const response = await fetch(`${baseUrl}/removeMyProfilePhoto`, {
           method: "POST",
         })
         const responseData = await response.json()
         results.photo = responseData.ok
-        console.log("deleteMyProfilePhoto result:", responseData.ok)
+        console.log("removeMyProfilePhoto result:", responseData.ok)
       } catch (err) {
-        console.log("deleteMyProfilePhoto error:", err)
+        console.log("removeMyProfilePhoto error:", err)
         results.photo = false
       }
     }
 
-    // Upload profile photo - MULTIPART/FORM-DATA DIRETO PARA TELEGRAM
+    // Upload profile photo - Bot API 9.4+ (InputProfilePhoto format)
     if (file) {
-      console.log("========== PHOTO UPLOAD START ==========")
+      console.log("========== PHOTO UPLOAD START (Bot API 9.4+) ==========")
       
       // Validar tipo
-      if (!file.type.startsWith("image/")) {
-        console.log("ERROR: not an image, type:", file.type)
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"]
+      if (!validTypes.includes(file.type)) {
+        console.log("ERROR: invalid image type:", file.type)
         results.photo = false
-        results.photoError = "Arquivo deve ser uma imagem"
+        results.photoError = "Arquivo deve ser JPEG ou PNG"
         return NextResponse.json({ success: true, results })
       }
 
@@ -132,16 +133,28 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData usando a biblioteca form-data (funciona no Node.js)
-        console.log("Creating FormData with form-data library...")
+        // 2. Criar FormData com formato Bot API 9.4+ (InputProfilePhoto)
+        console.log("Creating FormData with InputProfilePhoto format...")
         const form = new FormData()
-        form.append("photo", buffer, {
+        
+        // O objeto InputProfilePhotoStatic
+        const inputProfilePhoto = {
+          type: "static",
+          photo: "attach://photo_file"
+        }
+        console.log("InputProfilePhoto:", JSON.stringify(inputProfilePhoto))
+        
+        // Adicionar o objeto photo como JSON string
+        form.append("photo", JSON.stringify(inputProfilePhoto))
+        
+        // Adicionar o arquivo binario com o nome referenciado
+        form.append("photo_file", buffer, {
           filename: file.name || "photo.jpg",
           contentType: file.type || "image/jpeg",
         })
 
-        // 3. Enviar para o Telegram via multipart/form-data
-        console.log("Sending to Telegram with multipart/form-data...")
+        // 3. Enviar para o Telegram
+        console.log("Sending to Telegram setMyProfilePhoto...")
         const telegramUrl = `${baseUrl}/setMyProfilePhoto`
         
         const telegramResponse = await fetch(telegramUrl, {
