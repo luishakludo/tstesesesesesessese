@@ -146,9 +146,10 @@ export async function POST(request: NextRequest) {
         })
         
         // O parametro "photo" e um JSON com InputProfilePhotoStatic
+        // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
         form.append("photo", JSON.stringify({
           type: "static",
-          photo: "attach://photo_file"
+          media: "attach://photo_file"
         }))
 
         // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)

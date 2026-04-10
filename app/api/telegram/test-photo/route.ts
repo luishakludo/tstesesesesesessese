@@ -151,9 +151,10 @@ export async function GET(request: NextRequest) {
       contentType: "image/jpeg",
     })
     // O parametro "photo" e um JSON com InputProfilePhotoStatic
+    // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
     form.append("photo", JSON.stringify({
       type: "static",
-      photo: "attach://photo_file"
+      media: "attach://photo_file"
     }))
     
     log("FormData: photo_file (buffer) + photo (JSON InputProfilePhotoStatic)")
