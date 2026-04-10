@@ -2514,7 +2514,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <p className="text-sm text-neutral-500 mb-6">Crie planos para seus clientes comprarem</p>
                       <button
                         onClick={handleAddPlan}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
                       >
                         <Plus className="h-4 w-4" />
                         Adicionar Plano
@@ -2525,7 +2525,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       {plans.map((plan, index) => (
                         <div
                           key={plan.id}
-                          className="rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden hover:border-neutral-200 transition-colors"
+                          className="rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors"
                         >
                           {/* Plan Header - Collapsible */}
                           <div
@@ -2550,11 +2550,11 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             </div>
                             <div className="flex items-center gap-2">
                               <button
+                                className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleRemovePlan(plan.id)
                                 }}
-                                className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </button>
@@ -3052,27 +3052,32 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="p-6">
 
                 {!upsellEnabled ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <TrendingUp className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500">Ative o Upsell para configurar sequencias</p>
-                    </CardContent>
-                  </Card>
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                      <TrendingUp className="h-8 w-8 text-neutral-400" />
+                    </div>
+                    <h4 className="font-bold text-neutral-900 mb-1">Upsell desativado</h4>
+                    <p className="text-sm text-neutral-500">Ative o upsell acima para configurar sequencias de ofertas</p>
+                  </div>
                 ) : upsellSequences.length === 0 ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500 mb-4">Nenhuma sequencia configurada</p>
-                      <Button onClick={handleAddUpsellSequence} className="bg-accent hover:bg-accent/90">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Adicionar Sequencia
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
+                      <Plus className="h-8 w-8 text-neutral-400" />
+                    </div>
+                    <h4 className="font-bold text-neutral-900 mb-1">Nenhuma sequencia configurada</h4>
+                    <p className="text-sm text-neutral-500 mb-6">Crie uma sequencia de upsell para aumentar suas vendas</p>
+                    <button
+                      onClick={handleAddUpsellSequence}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Sequencia
+                    </button>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {upsellSequences.map((seq, index) => (
-                      <Card key={seq.id} className="border-neutral-200">
+                      <div key={seq.id} className="rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 transition-colors">
                         {/* Sequence Header */}
                         <div
                           className="flex items-center justify-between p-4 cursor-pointer"
@@ -3084,40 +3089,38 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             ) : (
                               <ChevronRight className="h-4 w-4 text-neutral-500" />
                             )}
-                            <span className="font-medium">{seq.name || `Upsell ${index + 1}`}</span>
+                            <span className="font-medium text-neutral-900">{seq.name || `Upsell ${index + 1}`}</span>
                             {(seq.plans?.length || 0) > 0 && (
-                              <span className="text-xs text-neutral-500 bg-secondary/50 px-2 py-0.5 rounded">
+                              <span className="text-xs text-neutral-500 bg-white px-2 py-0.5 rounded border border-neutral-200">
                                 {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                            <button
+                              className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-white transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleDuplicateUpsellSequence(seq)
                               }}
                             >
-                              <Copy className="h-4 w-4 text-neutral-500" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                              <Copy className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleRemoveUpsellSequence(seq.id)
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                              <Trash2 className="h-4 w-4" />
+                            </button>
                           </div>
                         </div>
 
                         {/* Expanded Content */}
                         {expandedSequence === seq.id && (
-                          <CardContent className="pt-0 space-y-6">
+                          <div className="px-4 pb-4 space-y-6 border-t border-border pt-4">
                             {/* Nome do Upsell */}
                             <div className="space-y-2">
                               <Label>Nome do Upsell</Label>
@@ -3434,21 +3437,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </div>
                               )}
                             </div>
-                          </CardContent>
+                          </div>
                         )}
-                      </Card>
+                      </div>
                     ))}
 
                     {/* Add Sequence Button */}
                     {upsellSequences.length < 20 && (
-                      <Button
-                        variant="outline"
-                        className="w-full border-dashed"
+                      <button
                         onClick={handleAddUpsellSequence}
+                        className="w-full py-4 rounded-xl border-2 border-dashed border-neutral-200 hover:border-[#bfff00]/50 hover:bg-[#bfff00]/5 text-neutral-500 hover:text-neutral-700 transition-all flex items-center justify-center gap-2 text-sm font-medium"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4" />
                         Adicionar Sequencia
-                      </Button>
+                      </button>
                     )}
                   </div>
                 )}
@@ -3490,22 +3492,18 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                 {/* Sub-tabs */}
                 <div className="px-6 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center gap-2">
-                  <Button
-                    variant={downsellSubTab === "geral" ? "default" : "outline"}
-                    size="sm"
+                  <button
                     onClick={() => setDownsellSubTab("geral")}
-                    className={downsellSubTab === "geral" ? "bg-pink-500 hover:bg-pink-600" : ""}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${downsellSubTab === "geral" ? "bg-pink-500 text-white shadow-sm" : "bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900"}`}
                   >
                     Geral
-                  </Button>
-                  <Button
-                    variant={downsellSubTab === "pix" ? "default" : "outline"}
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setDownsellSubTab("pix")}
-                    className={downsellSubTab === "pix" ? "bg-orange-500 hover:bg-orange-600" : ""}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${downsellSubTab === "pix" ? "bg-orange-500 text-white shadow-sm" : "bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900"}`}
                   >
                     PIX Gerado
-                  </Button>
+                  </button>
                   <span className="ml-auto text-xs text-neutral-500">
                     {downsellSubTab === "geral" 
                       ? "Sequencias para todos os leads que nao compraram"
