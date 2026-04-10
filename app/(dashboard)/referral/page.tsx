@@ -881,68 +881,76 @@ export default function ReferralPage() {
 
       {/* Withdraw History Modal */}
       <Dialog open={showWithdrawHistory} onOpenChange={setShowWithdrawHistory}>
-        <DialogContent className="sm:max-w-[500px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
-          <div className="px-6 pt-6 pb-4 border-b border-white/5">
-            <h3 className="text-xl font-bold text-white">Historico de Saques</h3>
-            <p className="text-sm text-white/40 mt-1">Acompanhe o status das suas solicitacoes</p>
-          </div>
-
-          <div className="max-h-[400px] overflow-y-auto">
-            {withdrawHistory.length === 0 ? (
-              <div className="py-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center">
-                  <Clock className="w-8 h-8 text-white/20" />
-                </div>
-                <p className="text-white/40 text-sm">Nenhum saque solicitado</p>
+        <DialogContent className="sm:max-w-[400px] bg-[#1c1c1e] border-[#2a2a2e] p-0 gap-0 overflow-hidden rounded-[20px] [&>button]:text-gray-400 [&>button]:hover:text-white">
+          <div className="p-5">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-12 h-12 rounded-xl bg-[#bfff00]/10 flex items-center justify-center border border-[#bfff00]/20">
+                <Wallet className="h-6 w-6 text-[#bfff00]" />
               </div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {withdrawHistory.map((withdraw: { id: string; amount: number; status: string; created_at: string; pix_key: string }) => (
-                  <div key={withdraw.id} className="p-4 hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-lg font-bold text-white">
-                          R$ {Number(withdraw.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                        </p>
-                        <p className="text-xs text-white/40 mt-0.5">
-                          {new Date(withdraw.created_at).toLocaleDateString("pt-BR", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit"
-                          })}
-                        </p>
-                        <p className="text-[10px] text-white/30 mt-1">PIX: {withdraw.pix_key}</p>
-                      </div>
-                      <span 
-                        className={cn(
-                          "px-3 py-1.5 rounded-full text-xs font-medium",
-                          withdraw.status === "pending" && "bg-yellow-500/10 text-yellow-400",
-                          withdraw.status === "approved" && "bg-blue-500/10 text-blue-400",
-                          withdraw.status === "paid" && "bg-[#ccff00]/10 text-[#ccff00]",
-                          withdraw.status === "rejected" && "bg-red-500/10 text-red-400"
-                        )}
-                      >
-                        {withdraw.status === "pending" && "Pendente"}
-                        {withdraw.status === "approved" && "Aprovado"}
-                        {withdraw.status === "paid" && "Pago"}
-                        {withdraw.status === "rejected" && "Rejeitado"}
-                      </span>
-                    </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Historico de Saques</h2>
+                <p className="text-xs text-gray-400">Acompanhe suas solicitacoes</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="max-h-[320px] overflow-y-auto -mx-5 px-5">
+              {withdrawHistory.length === 0 ? (
+                <div className="py-10 text-center">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-xl bg-[#2a2a2e] flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-gray-500" />
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  <p className="text-gray-400 text-sm">Nenhum saque solicitado</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {withdrawHistory.map((withdraw: { id: string; amount: number; status: string; created_at: string; pix_key: string }) => (
+                    <div key={withdraw.id} className="p-4 rounded-xl bg-[#2a2a2e] border border-[#3a3a3e]">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-lg font-bold text-white">
+                            R$ {Number(withdraw.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-[11px] text-gray-500 mt-1">
+                            {new Date(withdraw.created_at).toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit"
+                            })}
+                          </p>
+                          <p className="text-[10px] text-gray-600 mt-1.5 font-mono truncate">PIX: {withdraw.pix_key}</p>
+                        </div>
+                        <span 
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-[11px] font-medium shrink-0",
+                            withdraw.status === "pending" && "bg-amber-500/10 text-amber-400",
+                            withdraw.status === "approved" && "bg-[#bfff00]/10 text-[#bfff00]",
+                            withdraw.status === "paid" && "bg-emerald-500/10 text-emerald-400",
+                            withdraw.status === "rejected" && "bg-red-500/10 text-red-400"
+                          )}
+                        >
+                          {withdraw.status === "pending" && "Pendente"}
+                          {withdraw.status === "approved" && "Aprovado"}
+                          {withdraw.status === "paid" && "Pago"}
+                          {withdraw.status === "rejected" && "Rejeitado"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <div className="p-4 border-t border-white/5">
-            <Button
+            {/* Footer */}
+            <button
               onClick={() => setShowWithdrawHistory(false)}
-              className="w-full h-12 bg-white/5 hover:bg-white/10 text-white font-medium rounded-xl"
+              className="w-full flex items-center justify-center bg-[#bfff00] text-[#1c1c1e] h-11 rounded-xl font-semibold text-sm hover:bg-[#d4ff4d] transition-colors mt-5"
             >
               Fechar
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
