@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
-import FormData from "form-data"
 
 export const runtime = "nodejs"
 
@@ -142,31 +141,33 @@ export async function GET(request: NextRequest) {
   let test5aOk = false
   let test5aError = ""
   try {
+    // Usar FormData nativo do Node.js (funciona melhor com fetch)
     const form = new FormData()
-    form.append("photo", imageBuffer, {
-      filename: "avatar.jpg",
-      contentType: "image/jpeg",
-    })
+    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
+    form.append("photo", blob, "avatar.jpg")
     
     const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
       method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text}`)
+    log(`Response: ${text || "(vazio)"}`)
     
-    const data = JSON.parse(text)
-    test5aOk = data.ok
-    test5aError = data.description || ""
-    
-    if (data.ok) {
-      log("SUCESSO!")
+    if (text) {
+      const data = JSON.parse(text)
+      test5aOk = data.ok
+      test5aError = data.description || ""
+      
+      if (data.ok) {
+        log("SUCESSO!")
+      } else {
+        log(`FALHOU: ${data.description}`)
+      }
     } else {
-      log(`FALHOU: ${data.description}`)
+      log("FALHOU: Resposta vazia do Telegram")
+      test5aError = "Resposta vazia"
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
@@ -181,10 +182,8 @@ export async function GET(request: NextRequest) {
   let test5bError = ""
   try {
     const form = new FormData()
-    form.append("photo_file", imageBuffer, {
-      filename: "avatar.jpg",
-      contentType: "image/jpeg",
-    })
+    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
+    form.append("photo_file", blob, "avatar.jpg")
     form.append("photo", JSON.stringify({
       type: "static",
       photo: "attach://photo_file"
@@ -192,23 +191,26 @@ export async function GET(request: NextRequest) {
     
     const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
       method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text}`)
+    log(`Response: ${text || "(vazio)"}`)
     
-    const data = JSON.parse(text)
-    test5bOk = data.ok
-    test5bError = data.description || ""
-    
-    if (data.ok) {
-      log("SUCESSO!")
+    if (text) {
+      const data = JSON.parse(text)
+      test5bOk = data.ok
+      test5bError = data.description || ""
+      
+      if (data.ok) {
+        log("SUCESSO!")
+      } else {
+        log(`FALHOU: ${data.description}`)
+      }
     } else {
-      log(`FALHOU: ${data.description}`)
+      log("FALHOU: Resposta vazia do Telegram")
+      test5bError = "Resposta vazia"
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
@@ -224,30 +226,31 @@ export async function GET(request: NextRequest) {
   try {
     const form = new FormData()
     form.append("chat_id", botUserId)
-    form.append("photo", imageBuffer, {
-      filename: "test.jpg",
-      contentType: "image/jpeg",
-    })
+    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
+    form.append("photo", blob, "test.jpg")
     
     const res = await fetch(`${baseUrl}/sendPhoto`, {
       method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text.substring(0, 200)}...`)
+    log(`Response: ${text ? text.substring(0, 200) + "..." : "(vazio)"}`)
     
-    const data = JSON.parse(text)
-    test5cOk = data.ok
-    test5cError = data.description || ""
-    
-    if (data.ok) {
-      log("SUCESSO!")
+    if (text) {
+      const data = JSON.parse(text)
+      test5cOk = data.ok
+      test5cError = data.description || ""
+      
+      if (data.ok) {
+        log("SUCESSO!")
+      } else {
+        log(`FALHOU: ${data.description}`)
+      }
     } else {
-      log(`FALHOU: ${data.description}`)
+      log("FALHOU: Resposta vazia do Telegram")
+      test5cError = "Resposta vazia"
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
