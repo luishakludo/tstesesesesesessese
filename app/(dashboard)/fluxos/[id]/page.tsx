@@ -5323,7 +5323,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Mensagem */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-4">
                         <Label className="text-neutral-500">Mensagem de Renovacao</Label>
                         <Textarea
                           value={renewalMessage}
@@ -5339,19 +5339,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Notificacoes no Dia da Expiracao */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-amber-500" />
-                      <span className="font-semibold">Notificacoes no Dia da Expiracao</span>
-                    </div>
-                    <Switch checked={notifyOnDayEnabled} onCheckedChange={(c) => { setNotifyOnDayEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {/* Notificacoes no Dia da Expiracao */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <Clock className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Notificacoes no Dia da Expiracao</p>
+                          <p className="text-xs text-neutral-500">Envie notificacoes no dia que a assinatura expirar</p>
+                        </div>
+                      </div>
+                      <Switch checked={notifyOnDayEnabled} onCheckedChange={(c) => { setNotifyOnDayEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {notifyOnDayEnabled && (
                     <>
@@ -5418,7 +5421,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Atencao */}
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 mt-4">
                         <p className="text-sm">
                           <span className="font-semibold text-amber-500">Atencao:</span>{" "}
                           <span className="text-neutral-500">Estas notificacoes usam a mesma mensagem e midia configuradas em "Notificacoes Antes de Expirar" acima, mas sao enviadas nos horarios especificos do dia da expiracao.</span>
@@ -5426,19 +5429,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Mensagem Quando Expirar */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                      <span className="font-semibold">Mensagem Quando Expirar</span>
-                    </div>
-                    <Switch checked={expireMessageEnabled} onCheckedChange={(c) => { setExpireMessageEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {/* Mensagem Quando Expirar */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Mensagem Quando Expirar</p>
+                          <p className="text-xs text-neutral-500">Mensagem enviada quando a assinatura expira</p>
+                        </div>
+                      </div>
+                      <Switch checked={expireMessageEnabled} onCheckedChange={(c) => { setExpireMessageEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {expireMessageEnabled && (
                     <>
@@ -5563,7 +5569,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Mensagem de Expiracao */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-4">
                         <Label className="text-neutral-500">Mensagem de Expiracao</Label>
                         <Textarea
                           value={expireMessage}
@@ -5579,69 +5585,68 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Planos de Renovacao */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <DollarSign className="h-5 w-5 text-[#8fb300]" />
-                    <span className="font-semibold">Planos de Renovacao</span>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-500">Usar planos do fluxo</span>
-                    <Switch checked={useFlowPlans} onCheckedChange={(c) => { setUseFlowPlans(c); setHasChanges(true) }} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-neutral-500">Desconto na renovacao</Label>
-                    <Select value={renewalDiscount} onValueChange={(v) => { setRenewalDiscount(v); setHasChanges(true) }}>
-                      <SelectTrigger className="bg-white border-neutral-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0%">Sem desconto</SelectItem>
-                        <SelectItem value="10%">10%</SelectItem>
-                        <SelectItem value="15%">15%</SelectItem>
-                        <SelectItem value="20%">20%</SelectItem>
-                        <SelectItem value="25%">25%</SelectItem>
-                        <SelectItem value="30%">30%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-neutral-500">Desconto aplicado aos planos na oferta de renovacao</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Acoes ao Expirar */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-neutral-500" />
-                    <span className="font-semibold">Acoes ao Expirar</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
-                      <div>
-                        <p className="font-medium">Expulsar do grupo</p>
-                        <p className="text-sm text-neutral-500">Remove o usuario do grupo VIP quando expirar</p>
+                  {/* Planos de Renovacao */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-9 w-9 rounded-lg bg-[#bfff00]/20 flex items-center justify-center">
+                        <DollarSign className="h-4 w-4 text-[#8fb300]" />
                       </div>
-                      <Switch checked={kickFromGroup} onCheckedChange={(c) => { setKickFromGroup(c); setHasChanges(true) }} />
+                      <p className="font-semibold text-neutral-900">Planos de Renovacao</p>
                     </div>
 
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
-                      <div>
-                        <p className="font-medium">Remover status VIP</p>
-                        <p className="text-sm text-neutral-500">Marca o lead como nao-VIP no sistema</p>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-neutral-500">Usar planos do fluxo</span>
+                      <Switch checked={useFlowPlans} onCheckedChange={(c) => { setUseFlowPlans(c); setHasChanges(true) }} />
                     </div>
-                    <Switch checked={removeVipStatus} onCheckedChange={(c) => { setRemoveVipStatus(c); setHasChanges(true) }} />
+
+                    <div className="space-y-2">
+                      <Label className="text-neutral-500 text-sm">Desconto na renovacao</Label>
+                      <Select value={renewalDiscount} onValueChange={(v) => { setRenewalDiscount(v); setHasChanges(true) }}>
+                        <SelectTrigger className="bg-white border-neutral-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0%">Sem desconto</SelectItem>
+                          <SelectItem value="10%">10%</SelectItem>
+                          <SelectItem value="15%">15%</SelectItem>
+                          <SelectItem value="20%">20%</SelectItem>
+                          <SelectItem value="25%">25%</SelectItem>
+                          <SelectItem value="30%">30%</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-neutral-500">Desconto aplicado aos planos na oferta de renovacao</p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  {/* Acoes ao Expirar */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-9 w-9 rounded-lg bg-neutral-200 flex items-center justify-center">
+                        <Users className="h-4 w-4 text-neutral-600" />
+                      </div>
+                      <p className="font-semibold text-neutral-900">Acoes ao Expirar</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-neutral-100">
+                        <div>
+                          <p className="font-medium text-sm text-neutral-900">Expulsar do grupo</p>
+                          <p className="text-xs text-neutral-500">Remove o usuario do grupo VIP quando expirar</p>
+                        </div>
+                        <Switch checked={kickFromGroup} onCheckedChange={(c) => { setKickFromGroup(c); setHasChanges(true) }} />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-neutral-100">
+                        <div>
+                          <p className="font-medium text-sm text-neutral-900">Remover status VIP</p>
+                          <p className="text-xs text-neutral-500">Marca o lead como nao-VIP no sistema</p>
+                        </div>
+                        <Switch checked={removeVipStatus} onCheckedChange={(c) => { setRemoveVipStatus(c); setHasChanges(true) }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
