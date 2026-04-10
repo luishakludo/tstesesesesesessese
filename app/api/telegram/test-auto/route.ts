@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSupabaseAdmin, supabase } from "@/lib/supabase"
+import { getSupabaseAdmin } from "@/lib/supabase"
 
 export const runtime = "nodejs"
 
@@ -66,61 +66,42 @@ export async function GET(request: NextRequest) {
     log(`Imagem criada: ${pngRedPixel.length} bytes`)
     log("")
 
-    // 3. Upload para Supabase Storage
-    log("PASSO 3: Fazendo upload para Supabase Storage...")
+    // 3. Criar FormData nativo com Blob (Node.js 18+)
+    log("PASSO 3: Criando FormData nativo com Blob...")
     
-    const uniqueId = `test_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    const filePath = `bot-photos/${uniqueId}.png`
-    log(`File path: ${filePath}`)
+    const blob = new Blob([pngRedPixel], { type: "image/png" })
+    const formData = new FormData()
+    formData.append("photo", blob, "profile.png")
     
-    const { error: uploadError } = await supabase.storage
-      .from("flow-media")
-      .upload(filePath, pngRedPixel, {
-        contentType: "image/png",
-        upsert: true,
-      })
-    
-    if (uploadError) {
-      log(`ERRO NO UPLOAD SUPABASE: ${uploadError.message}`)
-      return new NextResponse(logs.join("\n"), { headers: { "Content-Type": "text/plain" } })
-    }
-    
-    log("Upload para Supabase OK!")
+    log(`Blob size: ${blob.size} bytes`)
+    log(`Blob type: ${blob.type}`)
     log("")
 
-    // 4. Pegar URL publica
-    log("PASSO 4: Pegando URL publica...")
-    
-    const { data: urlData } = supabase.storage.from("flow-media").getPublicUrl(filePath)
-    const publicUrl = urlData.publicUrl
-    log(`URL publica: ${publicUrl}`)
-    log("")
-
-    // 5. Enviar para o Telegram usando URL
-    log("PASSO 5: Enviando para Telegram (setMyProfilePhoto com URL)...")
+    // 4. Enviar para o Telegram usando multipart/form-data nativo
+    log("PASSO 4: Enviando para Telegram (setMyProfilePhoto com FormData nativo)...")
     
     const telegramUrl = `https://api.telegram.org/bot${bot.token}/setMyProfilePhoto`
     log(`URL: ${telegramUrl.replace(bot.token, "TOKEN_HIDDEN")}`)
-    log(`Body: { photo: "${publicUrl}" }`)
+    log("Metodo: POST com FormData nativo (multipart/form-data automatico)")
     
     const response = await fetch(telegramUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photo: publicUrl }),
+      body: formData,
+      // NAO definir Content-Type manualmente - fetch faz automaticamente com boundary
     })
     
     log(`Status: ${response.status} ${response.statusText}`)
     log("")
 
-    // 6. Ler resposta
-    log("PASSO 6: Lendo resposta do Telegram...")
+    // 5. Ler resposta
+    log("PASSO 5: Lendo resposta do Telegram...")
     
     const responseText = await response.text()
     log(`Resposta RAW: ${responseText}`)
     log("")
 
-    // 7. Parsear resposta
-    log("PASSO 7: Analisando resposta...")
+    // 6. Parsear resposta
+    log("PASSO 6: Analisando resposta...")
     
     try {
       const result = JSON.parse(responseText)
