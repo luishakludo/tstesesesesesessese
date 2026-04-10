@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import FormData from "form-data"
 
-// CRITICAL: Node.js runtime - NÃO usar Edge
+// CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
@@ -16,20 +16,18 @@ export async function POST(request: NextRequest) {
     const file = data.get("photo") as File | null
     const deletePhoto = data.get("deletePhoto") === "true"
 
-    // DEBUG OBRIGATORIO
     console.log("========== TELEGRAM UPDATE API ==========")
     console.log("TOKEN EXISTS:", !!token)
-    console.log("TOKEN LENGTH:", token?.length)
-    console.log("FILE:", file)
-    console.log("NAME:", file?.name)
-    console.log("TYPE:", file?.type)
-    console.log("SIZE:", file?.size)
-    console.log("FILE instanceof File:", file instanceof File)
+    console.log("FILE EXISTS:", !!file)
+    if (file) {
+      console.log("FILE name:", file.name)
+      console.log("FILE type:", file.type)
+      console.log("FILE size:", file.size, "bytes")
+    }
     console.log("==========================================")
 
     if (!token || typeof token !== "string") {
-      console.log("ERROR: Token missing")
-      return NextResponse.json({ error: "Token é obrigatório" }, { status: 400 })
+      return NextResponse.json({ error: "Token e obrigatorio" }, { status: 400 })
     }
 
     const baseUrl = `https://api.telegram.org/bot${token}`
@@ -92,30 +90,31 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Delete profile photo
+    // Delete profile photo - usando removeMyProfilePhoto (Bot API 9.4+)
     if (deletePhoto) {
       try {
-        const response = await fetch(`${baseUrl}/deleteMyProfilePhoto`, {
+        const response = await fetch(`${baseUrl}/removeMyProfilePhoto`, {
           method: "POST",
         })
         const responseData = await response.json()
         results.photo = responseData.ok
-        console.log("deleteMyProfilePhoto result:", responseData.ok)
+        console.log("removeMyProfilePhoto result:", responseData.ok)
       } catch (err) {
-        console.log("deleteMyProfilePhoto error:", err)
+        console.log("removeMyProfilePhoto error:", err)
         results.photo = false
       }
     }
 
-    // Upload profile photo - VIA SUPABASE STORAGE + URL PUBLICA
+    // Upload profile photo - Bot API 9.4+ (InputProfilePhoto format)
     if (file) {
-      console.log("========== PHOTO UPLOAD START ==========")
+      console.log("========== PHOTO UPLOAD START (Bot API 9.4+) ==========")
       
       // Validar tipo
-      if (!file.type.startsWith("image/")) {
-        console.log("ERROR: not an image, type:", file.type)
+      const validTypes = ["image/jpeg", "image/jpg", "image/png"]
+      if (!validTypes.includes(file.type)) {
+        console.log("ERROR: invalid image type:", file.type)
         results.photo = false
-        results.photoError = "Arquivo deve ser uma imagem"
+        results.photoError = "Arquivo deve ser JPEG ou PNG"
         return NextResponse.json({ success: true, results })
       }
 
@@ -128,45 +127,41 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // 1. Convert File → Uint8Array para Supabase
-        console.log("Converting File to buffer...")
+        // 1. Converter File para Buffer
+        console.log("Converting File to Buffer...")
         const arrayBuffer = await file.arrayBuffer()
-        const buffer = new Uint8Array(arrayBuffer)
-        console.log("Buffer created, length:", buffer.length)
+        const buffer = Buffer.from(arrayBuffer)
+        console.log("Buffer length:", buffer.length)
 
-        // 2. Gerar nome unico para o arquivo
-        const ext = file.name?.split(".").pop() || "jpg"
-        const uniqueId = `bot_${Date.now()}_${Math.random().toString(36).substring(7)}`
-        const filePath = `bot-photos/${uniqueId}.${ext}`
-        console.log("File path:", filePath)
-
-        // 3. Upload para Supabase Storage (bucket flow-media)
-        console.log("Uploading to Supabase Storage...")
-        const { error: uploadError } = await supabase.storage
-          .from("flow-media")
-          .upload(filePath, buffer, {
-            contentType: file.type,
-            upsert: true,
-          })
-
-        if (uploadError) {
-          console.log("Supabase upload error:", uploadError)
-          results.photo = false
-          results.photoError = `Erro no upload: ${uploadError.message}`
-          return NextResponse.json({ success: true, results })
+        // 2. Criar FormData com formato Bot API 9.4+ (InputProfilePhoto)
+        console.log("Creating FormData with InputProfilePhoto format...")
+        const form = new FormData()
+        
+        // O objeto InputProfilePhotoStatic
+        const inputProfilePhoto = {
+          type: "static",
+          photo: "attach://photo_file"
         }
+        console.log("InputProfilePhoto:", JSON.stringify(inputProfilePhoto))
+        
+        // Adicionar o objeto photo como JSON string
+        form.append("photo", JSON.stringify(inputProfilePhoto))
+        
+        // Adicionar o arquivo binario com o nome referenciado
+        form.append("photo_file", buffer, {
+          filename: file.name || "photo.jpg",
+          contentType: file.type || "image/jpeg",
+        })
 
-        // 4. Pegar URL publica
-        const { data: urlData } = supabase.storage.from("flow-media").getPublicUrl(filePath)
-        const publicUrl = urlData.publicUrl
-        console.log("Public URL:", publicUrl)
-
-        // 5. Enviar para o Telegram usando URL publica
-        console.log("Sending to Telegram with URL...")
-        const telegramResponse = await fetch(`${baseUrl}/setMyProfilePhoto`, {
+        // 3. Enviar para o Telegram
+        console.log("Sending to Telegram setMyProfilePhoto...")
+        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
+        
+        const telegramResponse = await fetch(telegramUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photo: publicUrl }),
+          headers: form.getHeaders(),
+          // @ts-expect-error - form-data stream works with fetch in Node.js
+          body: form,
         })
 
         const responseText = await telegramResponse.text()
