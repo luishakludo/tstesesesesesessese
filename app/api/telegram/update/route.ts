@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import FormData from "form-data"
+import { request as undiciRequest } from "undici"
 
 // IMPORTANTE: Forcar runtime nodejs para suportar upload de arquivos
 export const runtime = "nodejs"
@@ -93,9 +95,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando FormData nativo do Web API
+    // Upload new profile photo usando form-data + undici (metodo que funciona com Telegram)
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
+      console.log("[v0] UPDATE API - Photo details:", {
+        name: photo.name,
+        size: photo.size,
+        type: photo.type,
+      })
       
       // Validacoes
       if (!photo.type.startsWith("image/")) {
@@ -113,26 +120,34 @@ export async function POST(request: NextRequest) {
       }
       
       try {
-        // Converter File para Blob com ArrayBuffer
+        // Converter File para Buffer (OBRIGATORIO para form-data funcionar)
         const arrayBuffer = await photo.arrayBuffer()
-        const blob = new Blob([arrayBuffer], { type: photo.type })
+        const buffer = Buffer.from(arrayBuffer)
         
-        console.log("[v0] UPDATE API - Blob size:", blob.size)
-        console.log("[v0] UPDATE API - Blob type:", blob.type)
+        console.log("[v0] UPDATE API - Buffer created, size:", buffer.length)
         
-        // Criar FormData nativo para enviar ao Telegram
-        const telegramFormData = new FormData()
-        telegramFormData.append("photo", blob, photo.name || "photo.png")
-        
-        console.log("[v0] UPDATE API - Sending to Telegram...")
-        
-        const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
-          method: "POST",
-          body: telegramFormData,
+        // Usar form-data library (funciona com Telegram)
+        const form = new FormData()
+        form.append("photo", buffer, {
+          filename: photo.name || "photo.png",
+          contentType: photo.type || "image/png",
+          knownLength: buffer.length,
         })
         
-        const responseText = await response.text()
-        console.log("[v0] UPDATE API - Response status:", response.status)
+        console.log("[v0] UPDATE API - FormData created")
+        console.log("[v0] UPDATE API - FormData headers:", form.getHeaders())
+        
+        // Usar undici para enviar (melhor compatibilidade com multipart)
+        console.log("[v0] UPDATE API - Sending to Telegram via undici...")
+        
+        const response = await undiciRequest(`${baseUrl}/setMyProfilePhoto`, {
+          method: "POST",
+          headers: form.getHeaders(),
+          body: form.getBuffer(),
+        })
+        
+        const responseText = await response.body.text()
+        console.log("[v0] UPDATE API - Response status:", response.statusCode)
         console.log("[v0] UPDATE API - Response text:", responseText)
         
         let telegramResponse: { ok: boolean; description?: string }
