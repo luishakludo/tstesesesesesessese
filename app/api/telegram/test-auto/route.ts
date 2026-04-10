@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
-import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase"
 
 export const runtime = "nodejs"
 
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     // 1. Buscar token do bot no banco
     log("PASSO 1: Buscando bot no banco de dados...")
     
-    const supabase = await createClient()
+    const supabase = getSupabaseAdmin()
     const botId = request.nextUrl.searchParams.get("botId")
     
     let query = supabase.from("bots").select("id, name, token")
