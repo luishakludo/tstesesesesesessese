@@ -665,19 +665,18 @@ export default function ReferralPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Withdraw Modal - Redesigned */}
+      {/* Withdraw Modal - Matching original design */}
       <Dialog open={showWithdrawModal} onOpenChange={setShowWithdrawModal}>
-        <DialogContent className="sm:max-w-[420px] bg-gradient-to-b from-[#1a1d24] to-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl">
-          {/* Header minimalista */}
-          <div className="px-6 pt-6 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl font-black text-white tracking-tight">Saque</span>
-                <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
-              </div>
+        <DialogContent className="sm:max-w-[420px] bg-[#12141a] border-[#2a2d35] p-0 gap-0 overflow-hidden rounded-2xl [&>button]:text-gray-500 [&>button]:hover:text-white">
+          <div className="px-6 pt-6 pb-6">
+            {/* Header with title and step */}
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-2xl font-bold text-white">Saque</h2>
+              <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
             </div>
+
             {/* Progress dots */}
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-2 mb-6">
               {[1, 2, 3, 4].map((step) => (
                 <div 
                   key={step}
@@ -692,189 +691,189 @@ export default function ReferralPage() {
                 />
               ))}
             </div>
-          </div>
 
-          {/* Content */}
-          <div className="px-6 py-5">
-            {withdrawStep === 1 && (
-              <div className="space-y-6">
-                {/* Saldo display */}
-                <div className="relative rounded-2xl overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#ccff00]/10 via-[#ccff00]/5 to-transparent" />
-                  <div className="absolute inset-0 border border-[#ccff00]/20 rounded-2xl" />
-                  <div className="relative p-6 text-center">
-                    <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Saldo Disponivel</p>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-[#ccff00]/60 text-lg font-medium">R$</span>
-                      <span className="text-5xl font-black text-[#ccff00] tabular-nums">
-                        {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </span>
+            {/* Content */}
+            <div className="space-y-5">
+              {withdrawStep === 1 && (
+                <>
+                  {/* Saldo display card with gradient */}
+                  <div className="relative rounded-2xl overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#ccff00]/10 via-[#ccff00]/5 to-transparent" />
+                    <div className="absolute inset-0 border border-[#ccff00]/20 rounded-2xl" />
+                    <div className="relative p-6 text-center">
+                      <p className="text-xs uppercase tracking-widest text-[#ccff00]/60 mb-3">Saldo Disponivel</p>
+                      <div className="flex items-baseline justify-center gap-1">
+                        <span className="text-[#ccff00]/60 text-lg font-medium">R$</span>
+                        <span className="text-5xl font-black text-[#ccff00] tabular-nums">
+                          {availableBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <div className="mt-4 flex items-center justify-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
+                        <span className="text-[11px] text-white/50">Min. R$ 10,00</span>
+                      </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-center gap-1.5">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#ccff00]" />
-                      <span className="text-[11px] text-white/50">Min. R$ 10,00</span>
+                  </div>
+                  
+                  {/* Input de valor */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm text-white/60 font-medium">Valor do saque</label>
+                      <button 
+                        type="button"
+                        onClick={() => setWithdrawData({ ...withdrawData, amount: availableBalance.toFixed(2).replace(".", ",") })}
+                        className="text-sm text-[#ccff00] hover:text-[#d4ff4d] font-semibold transition-colors"
+                      >
+                        Sacar tudo
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ccff00] font-semibold">R$</span>
+                      <Input
+                        type="text"
+                        placeholder="0,00"
+                        value={withdrawData.amount}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9,]/g, "")
+                          setWithdrawData({ ...withdrawData, amount: value })
+                        }}
+                        className="bg-[#1a1d24] border-[#2a2d35] hover:border-[#3a3d45] focus:border-[#ccff00]/40 text-[#ccff00]/70 placeholder:text-[#ccff00]/30 h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {withdrawStep === 2 && (
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Identificacao</span>
+                    <h4 className="text-xl font-bold text-white mt-1">Qual seu nome?</h4>
+                    <p className="text-sm text-white/40 mt-1">Use o nome completo do titular da conta</p>
+                  </div>
+                  <Input
+                    placeholder="Nome completo"
+                    value={withdrawData.name}
+                    onChange={(e) => setWithdrawData({ ...withdrawData, name: e.target.value })}
+                    className="bg-[#1a1d24] border-[#2a2d35] hover:border-[#3a3d45] focus:border-[#ccff00]/40 text-white h-14 text-lg rounded-xl transition-colors"
+                  />
+                </div>
+              )}
+
+              {withdrawStep === 3 && (
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Documento</span>
+                    <h4 className="text-xl font-bold text-white mt-1">Informe seu CPF</h4>
+                    <p className="text-sm text-white/40 mt-1">Necessario para validar a transferencia</p>
+                  </div>
+                  <Input
+                    placeholder="000.000.000-00"
+                    value={withdrawData.cpf}
+                    onChange={(e) => setWithdrawData({ ...withdrawData, cpf: formatCPF(e.target.value) })}
+                    className="bg-[#1a1d24] border-[#2a2d35] hover:border-[#3a3d45] focus:border-[#ccff00]/40 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
+                    maxLength={14}
+                  />
+                </div>
+              )}
+
+              {withdrawStep === 4 && (
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Destino</span>
+                    <h4 className="text-xl font-bold text-white mt-1">Chave PIX</h4>
+                    <p className="text-sm text-white/40 mt-1">Use a chave CPF para maior seguranca</p>
+                  </div>
+                  <Input
+                    placeholder="Sua chave PIX"
+                    value={withdrawData.pixKey}
+                    onChange={(e) => setWithdrawData({ ...withdrawData, pixKey: e.target.value })}
+                    className="bg-[#1a1d24] border-[#2a2d35] hover:border-[#3a3d45] focus:border-[#ccff00]/40 text-white h-14 text-lg rounded-xl transition-colors"
+                  />
+
+                  {/* Resumo compacto */}
+                  <div className="mt-6 p-4 rounded-xl bg-[#0d0f12] border border-[#ccff00]/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Resumo</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/50">{withdrawData.name}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-white/50 font-mono">{withdrawData.cpf}</span>
+                      </div>
+                      <div className="h-px bg-[#ccff00]/10 my-2" />
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-white/40 text-sm">Total</span>
+                        <span className="text-2xl font-bold text-[#ccff00]">R$ {withdrawData.amount}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                
-                {/* Input de valor */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs text-white/50 font-medium">Valor do saque</label>
-                    <button 
-                      type="button"
-                      onClick={() => setWithdrawData({ ...withdrawData, amount: availableBalance.toFixed(2).replace(".", ",") })}
-                      className="text-[10px] text-[#ccff00] hover:text-[#ccff00]/80 font-medium transition-colors"
-                    >
-                      Sacar tudo
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#ccff00]/50 font-medium">R$</span>
-                    <Input
-                      type="text"
-                      placeholder="0,00"
-                      value={withdrawData.amount}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^0-9,]/g, "")
-                        setWithdrawData({ ...withdrawData, amount: value })
-                      }}
-                      className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-xl font-semibold pl-12 pr-4 rounded-xl transition-colors"
-                    />
-                  </div>
+              )}
+
+              {withdrawError && (
+                <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <p className="text-xs text-red-400">{withdrawError}</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {withdrawStep === 2 && (
-              <div className="space-y-5">
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Identificacao</span>
-                  <h4 className="text-xl font-bold text-white mt-1">Qual seu nome?</h4>
-                  <p className="text-sm text-white/40 mt-1">Use o nome completo do titular da conta</p>
-                </div>
-                <Input
-                  placeholder="Nome completo"
-                  value={withdrawData.name}
-                  onChange={(e) => setWithdrawData({ ...withdrawData, name: e.target.value })}
-                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
-                />
-              </div>
-            )}
-
-            {withdrawStep === 3 && (
-              <div className="space-y-5">
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Documento</span>
-                  <h4 className="text-xl font-bold text-white mt-1">Informe seu CPF</h4>
-                  <p className="text-sm text-white/40 mt-1">Necessario para validar a transferencia</p>
-                </div>
-                <Input
-                  placeholder="000.000.000-00"
-                  value={withdrawData.cpf}
-                  onChange={(e) => setWithdrawData({ ...withdrawData, cpf: formatCPF(e.target.value) })}
-                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg font-mono rounded-xl transition-colors tracking-wider"
-                  maxLength={14}
-                />
-              </div>
-            )}
-
-            {withdrawStep === 4 && (
-              <div className="space-y-5">
-                <div>
-                  <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Destino</span>
-                  <h4 className="text-xl font-bold text-white mt-1">Chave PIX</h4>
-                  <p className="text-sm text-white/40 mt-1">Use a chave CPF para maior seguranca</p>
-                </div>
-                <Input
-                  placeholder="Sua chave PIX"
-                  value={withdrawData.pixKey}
-                  onChange={(e) => setWithdrawData({ ...withdrawData, pixKey: e.target.value })}
-                  className="bg-[#0d0f12] border-[#ccff00]/20 hover:border-[#ccff00]/40 focus:border-[#ccff00]/60 text-white h-14 text-lg rounded-xl transition-colors"
-                />
-
-                {/* Resumo compacto */}
-                <div className="mt-6 p-4 rounded-xl bg-[#0d0f12] border border-[#ccff00]/10">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs uppercase tracking-widest text-[#ccff00]/50">Resumo</span>
-                  </div>
-                  <div className="space-y-2.5">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/50">{withdrawData.name}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-white/50 font-mono">{withdrawData.cpf}</span>
-                    </div>
-                    <div className="h-px bg-[#ccff00]/10 my-2" />
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-white/40 text-sm">Total</span>
-                      <span className="text-2xl font-bold text-[#ccff00]">R$ {withdrawData.amount}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {withdrawError && (
-              <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-xs text-red-400">{withdrawError}</p>
-              </div>
-            )}
-          </div>
-
-          {/* Footer minimalista */}
-          <div className="px-6 pb-6 pt-2 flex gap-3">
-            {withdrawStep > 1 && (
-              <Button
-                variant="ghost"
-                onClick={() => setWithdrawStep(s => s - 1)}
-                className="flex-1 h-12 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium"
-              >
-                Voltar
-              </Button>
-            )}
-            {withdrawStep < 4 ? (
-              <Button
-                onClick={() => {
-                  if (withdrawStep === 1) {
-                    const amount = parseFloat(withdrawData.amount.replace(",", "."))
-                    if (isNaN(amount) || amount < 10) {
-                      setWithdrawError("Valor minimo de R$ 10,00")
+            {/* Footer */}
+            <div className="flex gap-3 mt-6">
+              {withdrawStep > 1 && (
+                <Button
+                  variant="ghost"
+                  onClick={() => setWithdrawStep(s => s - 1)}
+                  className="flex-1 h-12 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium"
+                >
+                  Voltar
+                </Button>
+              )}
+              {withdrawStep < 4 ? (
+                <Button
+                  onClick={() => {
+                    if (withdrawStep === 1) {
+                      const amount = parseFloat(withdrawData.amount.replace(",", "."))
+                      if (isNaN(amount) || amount < 10) {
+                        setWithdrawError("Valor minimo de R$ 10,00")
+                        return
+                      }
+                      if (amount > availableBalance) {
+                        setWithdrawError("Saldo insuficiente")
+                        return
+                      }
+                    }
+                    if (withdrawStep === 2 && !withdrawData.name.trim()) {
+                      setWithdrawError("Informe seu nome completo")
                       return
                     }
-                    if (amount > availableBalance) {
-                      setWithdrawError("Saldo insuficiente")
+                    if (withdrawStep === 3 && withdrawData.cpf.replace(/\D/g, "").length !== 11) {
+                      setWithdrawError("CPF invalido")
                       return
                     }
-                  }
-                  if (withdrawStep === 2 && !withdrawData.name.trim()) {
-                    setWithdrawError("Informe seu nome completo")
-                    return
-                  }
-                  if (withdrawStep === 3 && withdrawData.cpf.replace(/\D/g, "").length !== 11) {
-                    setWithdrawError("CPF invalido")
-                    return
-                  }
-                  setWithdrawError("")
-                  setWithdrawStep(s => s + 1)
-                }}
-                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl transition-all"
-              >
-                Continuar
-              </Button>
-            ) : (
-              <Button
-                onClick={handleWithdrawSubmit}
-                disabled={isWithdrawing || !withdrawData.pixKey}
-                className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl disabled:opacity-50 transition-all"
-              >
-                {isWithdrawing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Confirmar Saque"
-                )}
-              </Button>
-            )}
+                    setWithdrawError("")
+                    setWithdrawStep(s => s + 1)
+                  }}
+                  className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl transition-all"
+                >
+                  Continuar
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleWithdrawSubmit}
+                  disabled={isWithdrawing || !withdrawData.pixKey}
+                  className="flex-1 h-12 bg-[#ccff00] hover:bg-[#d4ff33] text-black font-semibold rounded-xl disabled:opacity-50 transition-all"
+                >
+                  {isWithdrawing ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Confirmar Saque"
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

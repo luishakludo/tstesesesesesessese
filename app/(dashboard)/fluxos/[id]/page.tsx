@@ -2990,22 +2990,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Upsell Tab */}
           {activeTab === "upsell" && (
             <div className="space-y-6">
-              {/* Header Card - Config */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#BEFF00]/10">
-                          <TrendingUp className="h-5 w-5 text-[#8fb300]" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">Upsell</p>
-                          <p className="text-sm text-neutral-500">
-                            Aumente suas vendas com ofertas especiais
-                          </p>
-                        </div>
+              {/* Upsell Main Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
+                        <TrendingUp className="h-5 w-5 text-neutral-900" />
                       </div>
+                      <div>
+                        <h3 className="font-bold text-neutral-900">Upsell</h3>
+                        <p className="text-sm text-neutral-500">Aumente suas vendas com ofertas especiais</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{upsellSequences.length}/20</span>
                       <Switch
                         checked={upsellEnabled}
                         onCheckedChange={(checked) => {
@@ -3014,10 +3013,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
+                  </div>
+                </div>
 
-                    {upsellEnabled && (
-                      <div className="space-y-2 pt-2">
-                        <Label className="text-sm font-medium">Entrega do Upsell</Label>
+                {upsellEnabled && (
+                  <div className="px-6 py-4 bg-neutral-50 border-b border-neutral-100">
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-neutral-700">Entrega do Upsell</Label>
                         <Select
                           value={upsellDeliveryType}
                           onValueChange={(value: "same" | "custom") => {
@@ -3025,7 +3028,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             setHasChanges(true)
                           }}
                         >
-                          <SelectTrigger className="bg-white border-neutral-200">
+                          <SelectTrigger className="bg-white border-neutral-200 mt-1.5">
                             <div className="flex items-center gap-2">
                               <RefreshCw className="h-4 w-4 text-neutral-500" />
                               <SelectValue />
@@ -3037,33 +3040,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {upsellEnabled && (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="pt-6 space-y-3">
-                      <p className="text-sm font-medium text-[#8fb300]">Como funciona?</p>
-                      <p className="text-sm text-neutral-500">
-                        Upsell e enviado apos o cliente pagar, oferecendo produtos complementares.
-                      </p>
-                      <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
-                        <li>Ate 20 sequencias</li>
-                        <li>Ofertas premium</li>
-                        <li>Aumento do ticket medio</li>
-                      </ul>
-                    </CardContent>
-                  </Card>
+                      <div className="flex-1 p-3 rounded-xl bg-[#bfff00]/10 border border-[#bfff00]/20">
+                        <p className="text-xs font-medium text-[#8fb300] mb-1">Como funciona?</p>
+                        <p className="text-xs text-neutral-600">Upsell e enviado apos o cliente pagar, oferecendo produtos complementares.</p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </div>
 
-              {/* Sequences Section */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Sequencias de Upsell</h3>
-                  <span className="text-sm text-neutral-500">{upsellSequences.length}/20</span>
-                </div>
+                {/* Sequences Section */}
+                <div className="p-6">
 
                 {!upsellEnabled ? (
                   <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
@@ -3466,6 +3452,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     )}
                   </div>
                 )}
+                </div>
               </div>
             </div>
           )}
@@ -3473,111 +3460,94 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Downsell Tab */}
           {activeTab === "downsell" && (
             <div className="space-y-6">
-              {/* Sub-tabs */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={downsellSubTab === "geral" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDownsellSubTab("geral")}
-                  className={downsellSubTab === "geral" ? "bg-accent hover:bg-accent/90" : ""}
-                >
-                  Geral
-                </Button>
-                <Button
-                  variant={downsellSubTab === "pix" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDownsellSubTab("pix")}
-                  className={downsellSubTab === "pix" ? "bg-orange-500 hover:bg-orange-600" : ""}
-                >
-                  PIX Gerado
-                </Button>
-              </div>
-
-              {/* Sub-tab description */}
-              <p className="text-sm text-neutral-500">
-                {downsellSubTab === "geral" 
-                  ? "Sequencias enviadas apos o /start para todos os leads que nao compraram. Ative o \"PIX Gerado\" para diferenciar quem gerou pagamento."
-                  : "Sequencias enviadas quando o lead gera pagamento mas nao paga. Quando ativo, substitui o downsell geral para esses leads."
-                }
-              </p>
-
-              {/* Main content */}
-              <div className="flex gap-6">
-                {/* Left Sidebar - Config */}
-                <div className="w-72 space-y-4">
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="pt-6 space-y-4">
-                      <div className="flex items-center gap-3">
-                        <TrendingDown className="h-5 w-5 text-pink-500" />
-                        <span className="font-semibold text-pink-500">Downsell</span>
+              {/* Downsell Main Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/25">
+                        <TrendingDown className="h-5 w-5 text-white" />
                       </div>
-                      <p className="text-sm text-neutral-500">
-                        Recupere vendas com ofertas alternativas
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm">Ativar Downsell</span>
-                        <Switch
-                          checked={downsellEnabled}
-                          onCheckedChange={(checked) => {
-                            setDownsellEnabled(checked)
-                            setHasChanges(true)
-                          }}
-                        />
+                      <div>
+                        <h3 className="font-bold text-neutral-900">Downsell</h3>
+                        <p className="text-sm text-neutral-500">Recupere vendas com ofertas alternativas</p>
                       </div>
-
-                      {downsellEnabled && (
-                        <>
-                          {/* Info box */}
-                          <div className="rounded-lg border border-neutral-200 p-4 space-y-3">
-                            <p className="text-sm font-medium text-pink-500">Como funciona?</p>
-                            <p className="text-sm text-neutral-500">
-                              Downsell e enviado automaticamente a cada X minutos apos o /start se o cliente nao comprar.
-                            </p>
-                            <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
-                              <li>Ate 20 sequencias</li>
-                              <li>Ofertas alternativas</li>
-                              <li>Recuperacao de vendas</li>
-                            </ul>
-                          </div>
-
-                          {/* Entrega do Downsell */}
-                          <div className="space-y-2 pt-2">
-                            <Label className="text-sm font-medium">Entrega do Downsell</Label>
-                            <Select
-                              value={downsellDeliveryType}
-                              onValueChange={(value: "same" | "custom") => {
-                                setDownsellDeliveryType(value)
-                                setHasChanges(true)
-                              }}
-                            >
-                              <SelectTrigger className="bg-white border-neutral-200">
-                                <div className="flex items-center gap-2">
-                                  <RefreshCw className="h-4 w-4 text-neutral-500" />
-                                  <SelectValue />
-                                </div>
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="same">Mesmo do fluxo principal</SelectItem>
-                                <SelectItem value="custom">Entrega personalizada</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
+                        {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length}/20
+                      </span>
+                      <Switch
+                        checked={downsellEnabled}
+                        onCheckedChange={(checked) => {
+                          setDownsellEnabled(checked)
+                          setHasChanges(true)
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Main Content - Sequences */}
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold">
-                      {downsellSubTab === "geral" ? "Sequencias Gerais" : "Sequencias Pix Gerado"}
-                    </h3>
-                    <span className="text-sm text-neutral-500">
-                      {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length}/20
-                    </span>
+                {/* Sub-tabs */}
+                <div className="px-6 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center gap-2">
+                  <Button
+                    variant={downsellSubTab === "geral" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDownsellSubTab("geral")}
+                    className={downsellSubTab === "geral" ? "bg-pink-500 hover:bg-pink-600" : ""}
+                  >
+                    Geral
+                  </Button>
+                  <Button
+                    variant={downsellSubTab === "pix" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setDownsellSubTab("pix")}
+                    className={downsellSubTab === "pix" ? "bg-orange-500 hover:bg-orange-600" : ""}
+                  >
+                    PIX Gerado
+                  </Button>
+                  <span className="ml-auto text-xs text-neutral-500">
+                    {downsellSubTab === "geral" 
+                      ? "Sequencias para todos os leads que nao compraram"
+                      : "Sequencias para quem gerou PIX mas nao pagou"
+                    }
+                  </span>
+                </div>
+
+                {downsellEnabled && (
+                  <div className="px-6 py-4 bg-neutral-50 border-b border-neutral-100">
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-neutral-700">Entrega do Downsell</Label>
+                        <Select
+                          value={downsellDeliveryType}
+                          onValueChange={(value: "same" | "custom") => {
+                            setDownsellDeliveryType(value)
+                            setHasChanges(true)
+                          }}
+                        >
+                          <SelectTrigger className="bg-white border-neutral-200 mt-1.5">
+                            <div className="flex items-center gap-2">
+                              <RefreshCw className="h-4 w-4 text-neutral-500" />
+                              <SelectValue />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="same">Mesmo do fluxo principal</SelectItem>
+                            <SelectItem value="custom">Entrega personalizada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1 p-3 rounded-xl bg-pink-500/10 border border-pink-500/20">
+                        <p className="text-xs font-medium text-pink-500 mb-1">Como funciona?</p>
+                        <p className="text-xs text-neutral-600">Downsell e enviado automaticamente se o cliente nao comprar.</p>
+                      </div>
+                    </div>
                   </div>
+                )}
+
+                {/* Sequences Section */}
+                <div className="p-6">
 
                   {!downsellEnabled ? (
                     <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
@@ -3975,93 +3945,82 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
           {/* Order Bump Tab */}
           {activeTab === "orderbump" && (
-            <div className="flex gap-6">
-              {/* Left Sidebar */}
-              <div className="w-72 space-y-4">
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-3">
+            <div className="space-y-6">
+              {/* Order Bump Main Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
-                        <Wallet className="h-5 w-5 text-purple-500" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                        <Wallet className="h-5 w-5 text-white" />
                       </div>
-                      <span className="font-semibold">Order Bump</span>
+                      <div>
+                        <h3 className="font-bold text-neutral-900">Order Bump</h3>
+                        <p className="text-sm text-neutral-500">Produto adicional oferecido no checkout antes do pagamento</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-neutral-500">
-                      Produto adicional oferecido no checkout antes do pagamento
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Como funciona */}
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-3">
-                    <p className="text-sm font-medium text-amber-500">Como funciona?</p>
-                    <p className="text-sm text-neutral-500">
-                      Configure um Order Bump diferente para cada etapa do funil:
-                    </p>
-                    <ul className="text-sm text-neutral-500 space-y-2">
-                      <li><span className="text-blue-400 font-medium">Inicial:</span> Exibido junto aos planos principais</li>
-                      <li><span className="text-[#8fb300] font-medium">Upsell:</span> Exibido nas ofertas de upsell</li>
-                      <li><span className="text-pink-500 font-medium">Downsell:</span> Exibido nas ofertas de downsell</li>
-                      <li><span className="text-emerald-500 font-medium">Packs:</span> Exibido na compra de packs avulsos</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-
-                {/* Aplicar Order Bump Inicial */}
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-3">
-                    <p className="text-sm font-medium">Aplicar Order Bump Inicial tambem em:</p>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-neutral-200"
-                          checked={applyInicialTo.upsell}
-                          onChange={(e) => {
-                            setApplyInicialTo({...applyInicialTo, upsell: e.target.checked})
-                            setHasChanges(true)
-                          }}
-                        />
-                        <TrendingUp className="h-4 w-4 text-[#8fb300]" />
-                        <span className="text-sm text-[#8fb300]">Upsell</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-neutral-200"
-                          checked={applyInicialTo.downsell}
-                          onChange={(e) => {
-                            setApplyInicialTo({...applyInicialTo, downsell: e.target.checked})
-                            setHasChanges(true)
-                          }}
-                        />
-                        <TrendingDown className="h-4 w-4 text-pink-500" />
-                        <span className="text-sm text-pink-500">Downsell</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          className="rounded border-neutral-200"
-                          checked={applyInicialTo.packs}
-                          onChange={(e) => {
-                            setApplyInicialTo({...applyInicialTo, packs: e.target.checked})
-                            setHasChanges(true)
-                          }}
-                        />
-                        <Package className="h-4 w-4 text-emerald-500" />
-                        <span className="text-sm text-emerald-500">Packs</span>
-                      </label>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">4 etapas</span>
                     </div>
-                    <p className="text-xs text-neutral-500">
-                      Marcando, o Order Bump do Fluxo Inicial sera usado tambem nesses fluxos
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                  </div>
+                </div>
 
-              {/* Main Content - 4 Order Bump Cards */}
-              <div className="flex-1 space-y-4">
+                {/* Info and settings */}
+                <div className="px-6 py-4 bg-neutral-50 border-b border-neutral-100">
+                  <div className="flex items-center gap-6">
+                    <div className="flex-1 p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                      <p className="text-xs font-medium text-purple-600 mb-1">Como funciona?</p>
+                      <p className="text-xs text-neutral-600">Configure Order Bumps diferentes para cada etapa do funil.</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-neutral-700 mb-2">Aplicar Order Bump Inicial em:</p>
+                      <div className="flex gap-3">
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-neutral-300 text-[#bfff00] focus:ring-[#bfff00]"
+                            checked={applyInicialTo.upsell}
+                            onChange={(e) => {
+                              setApplyInicialTo({...applyInicialTo, upsell: e.target.checked})
+                              setHasChanges(true)
+                            }}
+                          />
+                          <TrendingUp className="h-3.5 w-3.5 text-[#8fb300]" />
+                          <span className="text-xs text-[#8fb300]">Upsell</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-neutral-300 text-pink-500 focus:ring-pink-500"
+                            checked={applyInicialTo.downsell}
+                            onChange={(e) => {
+                              setApplyInicialTo({...applyInicialTo, downsell: e.target.checked})
+                              setHasChanges(true)
+                            }}
+                          />
+                          <TrendingDown className="h-3.5 w-3.5 text-pink-500" />
+                          <span className="text-xs text-pink-500">Downsell</span>
+                        </label>
+                        <label className="flex items-center gap-1.5 cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-neutral-300 text-emerald-500 focus:ring-emerald-500"
+                            checked={applyInicialTo.packs}
+                            onChange={(e) => {
+                              setApplyInicialTo({...applyInicialTo, packs: e.target.checked})
+                              setHasChanges(true)
+                            }}
+                          />
+                          <Package className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="text-xs text-emerald-500">Packs</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Bump Cards */}
+                <div className="p-6 space-y-4">
                 {/* Fluxo Inicial */}
                 <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                   <CardHeader className="pb-2">
@@ -4493,26 +4452,29 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     </CardContent>
                   )}
                 </Card>
+                </div>
               </div>
             </div>
           )}
 
           {/* Packs Tab */}
           {activeTab === "packs" && (
-            <div className="flex gap-6">
-              {/* Left Sidebar */}
-              <div className="w-72 space-y-4">
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-4">
+            <div className="space-y-6">
+              {/* Packs Main Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Wallet className="h-5 w-5 text-emerald-500" />
-                      <span className="font-semibold">Packs</span>
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <Package className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-neutral-900">Packs</h3>
+                        <p className="text-sm text-neutral-500">Venda conteudos avulsos alem das assinaturas</p>
+                      </div>
                     </div>
-                    <p className="text-sm text-neutral-500">
-                      Venda conteudos avulsos alem das assinaturas
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Ativar Packs</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{packsList.length}/20</span>
                       <Switch
                         checked={packsEnabled}
                         onCheckedChange={(checked) => {
@@ -4521,69 +4483,57 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                         }}
                       />
                     </div>
-
-                    {packsEnabled && (
-                      <>
-                        <div className="space-y-2">
-                          <Label className="text-sm text-neutral-500">Texto do Botao</Label>
-                          <div className="flex items-center gap-2 rounded-lg bg-secondary/50 p-3 border border-neutral-200">
-                            <span className="text-lg">📦</span>
-                            <Input
-                              value={packsButtonText}
-                              onChange={(e) => {
-                                setPacksButtonText(e.target.value)
-                                setHasChanges(true)
-                              }}
-                              className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0 font-medium"
-                            />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Como funciona */}
-                <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                  <CardContent className="pt-6 space-y-3">
-                    <p className="text-sm font-medium">Como funciona?</p>
-                    <p className="text-sm text-neutral-500">
-                      Packs sao conteudos avulsos que o cliente pode comprar alem das assinaturas.
-                    </p>
-                    <ul className="text-sm text-neutral-500 space-y-1 list-disc list-inside">
-                      <li>Ate 20 packs por fluxo</li>
-                      <li>Cada pack com seu canal/grupo de entrega</li>
-                      <li>Pagamento via PIX</li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Main Content - Packs List */}
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Lista de Packs</h3>
-                  <span className="text-sm text-neutral-500">{packsList.length}/20</span>
+                  </div>
                 </div>
 
+                {packsEnabled && (
+                  <div className="px-6 py-4 bg-neutral-50 border-b border-neutral-100">
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1">
+                        <Label className="text-sm font-medium text-neutral-700">Texto do Botao</Label>
+                        <div className="flex items-center gap-2 rounded-lg bg-white p-3 border border-neutral-200 mt-1.5">
+                          <span className="text-lg">📦</span>
+                          <Input
+                            value={packsButtonText}
+                            onChange={(e) => {
+                              setPacksButtonText(e.target.value)
+                              setHasChanges(true)
+                            }}
+                            className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0 font-medium"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex-1 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <p className="text-xs font-medium text-emerald-600 mb-1">Como funciona?</p>
+                        <p className="text-xs text-neutral-600">Packs sao conteudos avulsos que o cliente pode comprar alem das assinaturas.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Packs List */}
+                <div className="p-6">
                 {!packsEnabled ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Wallet className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500">Ative os Packs para configurar</p>
-                    </CardContent>
-                  </Card>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="h-14 w-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
+                      <Package className="h-7 w-7 text-neutral-400" />
+                    </div>
+                    <p className="text-neutral-500">Ative os Packs para configurar</p>
+                  </div>
                 ) : packsList.length === 0 ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500 mb-4">Nenhum pack configurado</p>
-                      <Button onClick={handleAddPack} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Adicionar Pack
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="h-14 w-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
+                      <Plus className="h-7 w-7 text-neutral-400" />
+                    </div>
+                    <p className="text-neutral-500 mb-4">Nenhum pack configurado</p>
+                    <button
+                      onClick={handleAddPack}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar Pack
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {packsList.map((pack, index) => (
@@ -4855,6 +4805,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                     )}
                   </div>
                 )}
+                </div>
               </div>
             </div>
           )}
@@ -5139,32 +5090,37 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {/* Subscription Tab */}
           {activeTab === "subscription" && (
             <div className="space-y-6">
-              {/* Header */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <RefreshCw className="h-5 w-5 text-[#8fb300]" />
-                    <span className="font-semibold text-lg">Sistema de Renovacao</span>
-                  </div>
-                  <p className="text-sm text-neutral-500">
-                    Configure notificacoes de renovacao e acoes quando a assinatura expirar.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Entrega Especifica para Renovacao */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
+              {/* Subscription Main Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
+                <div className="px-6 py-5 border-b border-neutral-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <Link2 className="h-5 w-5 text-emerald-500" />
+                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/25">
+                        <RefreshCw className="h-5 w-5 text-white" />
+                      </div>
                       <div>
-                        <p className="font-semibold">Entrega Especifica para Renovacao</p>
-                        <p className="text-sm text-neutral-500">Configure um grupo/canal diferente para entregas de renovacao. Util quando a venda inicial usa "link externo" ou "taxa" mas a renovacao deve entregar direto no grupo VIP.</p>
+                        <h3 className="font-bold text-neutral-900">Sistema de Renovacao</h3>
+                        <p className="text-sm text-neutral-500">Configure notificacoes de renovacao e acoes quando a assinatura expirar</p>
                       </div>
                     </div>
-                    <Switch checked={renewalDeliveryEnabled} onCheckedChange={(c) => { setRenewalDeliveryEnabled(c); setHasChanges(true) }} />
                   </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Entrega Especifica para Renovacao */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                          <Link2 className="h-4 w-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Entrega Especifica para Renovacao</p>
+                          <p className="text-xs text-neutral-500">Configure um grupo/canal diferente para entregas de renovacao</p>
+                        </div>
+                      </div>
+                      <Switch checked={renewalDeliveryEnabled} onCheckedChange={(c) => { setRenewalDeliveryEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {renewalDeliveryEnabled && deliverables.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-neutral-200">
@@ -5193,25 +5149,28 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   )}
 
                   {renewalDeliveryEnabled && deliverables.length === 0 && (
-                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 mt-3">
                       <p className="text-sm text-amber-500">
                         Nenhum entregavel cadastrado. Crie entregaveis na aba "Entregaveis" para poder selecionar aqui.
                       </p>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Notificacoes Antes de Expirar */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-amber-500" />
-                      <span className="font-semibold">Notificacoes Antes de Expirar</span>
-                    </div>
-                    <Switch checked={notifyBeforeExpireEnabled} onCheckedChange={(c) => { setNotifyBeforeExpireEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {/* Notificacoes Antes de Expirar */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <Clock className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Notificacoes Antes de Expirar</p>
+                          <p className="text-xs text-neutral-500">Envie lembretes antes da assinatura expirar</p>
+                        </div>
+                      </div>
+                      <Switch checked={notifyBeforeExpireEnabled} onCheckedChange={(c) => { setNotifyBeforeExpireEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {notifyBeforeExpireEnabled && (
                     <>
@@ -5364,7 +5323,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Mensagem */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-4">
                         <Label className="text-neutral-500">Mensagem de Renovacao</Label>
                         <Textarea
                           value={renewalMessage}
@@ -5380,19 +5339,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Notificacoes no Dia da Expiracao */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Clock className="h-5 w-5 text-amber-500" />
-                      <span className="font-semibold">Notificacoes no Dia da Expiracao</span>
-                    </div>
-                    <Switch checked={notifyOnDayEnabled} onCheckedChange={(c) => { setNotifyOnDayEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {/* Notificacoes no Dia da Expiracao */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                          <Clock className="h-4 w-4 text-amber-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Notificacoes no Dia da Expiracao</p>
+                          <p className="text-xs text-neutral-500">Envie notificacoes no dia que a assinatura expirar</p>
+                        </div>
+                      </div>
+                      <Switch checked={notifyOnDayEnabled} onCheckedChange={(c) => { setNotifyOnDayEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {notifyOnDayEnabled && (
                     <>
@@ -5459,7 +5421,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Atencao */}
-                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4">
+                      <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-4 mt-4">
                         <p className="text-sm">
                           <span className="font-semibold text-amber-500">Atencao:</span>{" "}
                           <span className="text-neutral-500">Estas notificacoes usam a mesma mensagem e midia configuradas em "Notificacoes Antes de Expirar" acima, mas sao enviadas nos horarios especificos do dia da expiracao.</span>
@@ -5467,19 +5429,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Mensagem Quando Expirar */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <AlertTriangle className="h-5 w-5 text-destructive" />
-                      <span className="font-semibold">Mensagem Quando Expirar</span>
-                    </div>
-                    <Switch checked={expireMessageEnabled} onCheckedChange={(c) => { setExpireMessageEnabled(c); setHasChanges(true) }} />
                   </div>
+
+                  {/* Mensagem Quando Expirar */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-red-500/10 flex items-center justify-center">
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-900">Mensagem Quando Expirar</p>
+                          <p className="text-xs text-neutral-500">Mensagem enviada quando a assinatura expira</p>
+                        </div>
+                      </div>
+                      <Switch checked={expireMessageEnabled} onCheckedChange={(c) => { setExpireMessageEnabled(c); setHasChanges(true) }} />
+                    </div>
 
                   {expireMessageEnabled && (
                     <>
@@ -5604,7 +5569,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
 
                       {/* Mensagem de Expiracao */}
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-4">
                         <Label className="text-neutral-500">Mensagem de Expiracao</Label>
                         <Textarea
                           value={expireMessage}
@@ -5620,72 +5585,73 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       </div>
                     </>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* Planos de Renovacao */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <DollarSign className="h-5 w-5 text-[#8fb300]" />
-                    <span className="font-semibold">Planos de Renovacao</span>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-neutral-500">Usar planos do fluxo</span>
-                    <Switch checked={useFlowPlans} onCheckedChange={(c) => { setUseFlowPlans(c); setHasChanges(true) }} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-neutral-500">Desconto na renovacao</Label>
-                    <Select value={renewalDiscount} onValueChange={(v) => { setRenewalDiscount(v); setHasChanges(true) }}>
-                      <SelectTrigger className="bg-white border-neutral-200">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0%">Sem desconto</SelectItem>
-                        <SelectItem value="10%">10%</SelectItem>
-                        <SelectItem value="15%">15%</SelectItem>
-                        <SelectItem value="20%">20%</SelectItem>
-                        <SelectItem value="25%">25%</SelectItem>
-                        <SelectItem value="30%">30%</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-neutral-500">Desconto aplicado aos planos na oferta de renovacao</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Acoes ao Expirar */}
-              <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Users className="h-5 w-5 text-neutral-500" />
-                    <span className="font-semibold">Acoes ao Expirar</span>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
-                      <div>
-                        <p className="font-medium">Expulsar do grupo</p>
-                        <p className="text-sm text-neutral-500">Remove o usuario do grupo VIP quando expirar</p>
+                  {/* Planos de Renovacao */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-9 w-9 rounded-lg bg-[#bfff00]/20 flex items-center justify-center">
+                        <DollarSign className="h-4 w-4 text-[#8fb300]" />
                       </div>
-                      <Switch checked={kickFromGroup} onCheckedChange={(c) => { setKickFromGroup(c); setHasChanges(true) }} />
+                      <p className="font-semibold text-neutral-900">Planos de Renovacao</p>
                     </div>
 
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
-                      <div>
-                        <p className="font-medium">Remover status VIP</p>
-                        <p className="text-sm text-neutral-500">Marca o lead como nao-VIP no sistema</p>
-                      </div>
-                      <Switch checked={removeVipStatus} onCheckedChange={(c) => { setRemoveVipStatus(c); setHasChanges(true) }} />
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm text-neutral-500">Usar planos do fluxo</span>
+                      <Switch checked={useFlowPlans} onCheckedChange={(c) => { setUseFlowPlans(c); setHasChanges(true) }} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-neutral-500 text-sm">Desconto na renovacao</Label>
+                      <Select value={renewalDiscount} onValueChange={(v) => { setRenewalDiscount(v); setHasChanges(true) }}>
+                        <SelectTrigger className="bg-white border-neutral-200">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0%">Sem desconto</SelectItem>
+                          <SelectItem value="10%">10%</SelectItem>
+                          <SelectItem value="15%">15%</SelectItem>
+                          <SelectItem value="20%">20%</SelectItem>
+                          <SelectItem value="25%">25%</SelectItem>
+                          <SelectItem value="30%">30%</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-neutral-500">Desconto aplicado aos planos na oferta de renovacao</p>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+
+                  {/* Acoes ao Expirar */}
+                  <div className="p-4 rounded-xl bg-neutral-50 border border-neutral-100">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-9 w-9 rounded-lg bg-neutral-200 flex items-center justify-center">
+                        <Users className="h-4 w-4 text-neutral-600" />
+                      </div>
+                      <p className="font-semibold text-neutral-900">Acoes ao Expirar</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-neutral-100">
+                        <div>
+                          <p className="font-medium text-sm text-neutral-900">Expulsar do grupo</p>
+                          <p className="text-xs text-neutral-500">Remove o usuario do grupo VIP quando expirar</p>
+                        </div>
+                        <Switch checked={kickFromGroup} onCheckedChange={(c) => { setKickFromGroup(c); setHasChanges(true) }} />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-white border border-neutral-100">
+                        <div>
+                          <p className="font-medium text-sm text-neutral-900">Remover status VIP</p>
+                          <p className="text-xs text-neutral-500">Marca o lead como nao-VIP no sistema</p>
+                        </div>
+                        <Switch checked={removeVipStatus} onCheckedChange={(c) => { setRemoveVipStatus(c); setHasChanges(true) }} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
-
+          
           {/* Deliverables Tab */}
           {activeTab === "deliverables" && (
             <div className="space-y-6">
