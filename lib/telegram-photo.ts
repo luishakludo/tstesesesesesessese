@@ -7,6 +7,16 @@ export interface UpdateBotPhotoResult {
   response?: unknown
 }
 
+export interface UpdateBotPhotoOptions {
+  /** Numero maximo de tentativas (default: 3) */
+  maxRetries?: number
+  /** Tamanho maximo em bytes (default: 5MB) */
+  maxSize?: number
+}
+
+const DEFAULT_MAX_SIZE = 5 * 1024 * 1024 // 5MB
+const DEFAULT_MAX_RETRIES = 3
+
 /**
  * Atualiza a foto de perfil de um bot do Telegram
  * 
@@ -17,63 +27,103 @@ export interface UpdateBotPhotoResult {
  * 
  * @param imageBuffer - Buffer da imagem (JPEG ou PNG)
  * @param token - Token do bot do Telegram
+ * @param options - Opcoes de configuracao (retry, tamanho max)
  * @returns Resultado da operacao
  */
 export async function updateBotProfilePhoto(
   imageBuffer: Buffer,
-  token: string
+  token: string,
+  options: UpdateBotPhotoOptions = {}
 ): Promise<UpdateBotPhotoResult> {
-  const baseUrl = `https://api.telegram.org/bot${token}`
+  const { maxRetries = DEFAULT_MAX_RETRIES, maxSize = DEFAULT_MAX_SIZE } = options
   
-  try {
-    const form = new FormData()
-    
-    // Anexar o buffer da imagem com nome "photo_file"
-    form.append("photo_file", imageBuffer, {
-      filename: "avatar.jpg",
-      contentType: "image/jpeg",
-    })
-    
-    // O parametro "photo" deve ser um JSON com InputProfilePhotoStatic
-    // FORMATO CORRETO: { type: "static", photo: "attach://photo_file" }
-    const photoJson = JSON.stringify({
-      type: "static",
-      photo: "attach://photo_file"
-    })
-    form.append("photo", photoJson, { contentType: "application/json" })
-    
-    const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
-      headers: {
-        ...form.getHeaders()
-      },
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity
-    })
-    
-    if (response.data.ok) {
-      return {
-        success: true,
-        response: response.data
-      }
-    } else {
-      return {
-        success: false,
-        error: response.data.description || "Unknown error",
-        response: response.data
-      }
-    }
-  } catch (err) {
-    if (axios.isAxiosError(err)) {
-      return {
-        success: false,
-        error: err.response?.data?.description || err.message,
-        response: err.response?.data
-      }
-    }
+  // Validacao de tamanho
+  if (imageBuffer.length > maxSize) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : String(err)
+      error: `Imagem muito grande: ${(imageBuffer.length / 1024 / 1024).toFixed(2)}MB (max: ${(maxSize / 1024 / 1024).toFixed(0)}MB)`
     }
+  }
+  
+  // Validacao minima (imagem vazia)
+  if (imageBuffer.length < 100) {
+    return {
+      success: false,
+      error: "Buffer de imagem invalido ou vazio"
+    }
+  }
+  const baseUrl = `https://api.telegram.org/bot${token}`
+  
+  let lastError: string | undefined
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const form = new FormData()
+      
+      // Anexar o buffer da imagem com nome "photo_file"
+      form.append("photo_file", imageBuffer, {
+        filename: "avatar.jpg",
+        contentType: "image/jpeg",
+      })
+      
+      // O parametro "photo" deve ser um JSON com InputProfilePhotoStatic
+      // FORMATO CORRETO: { type: "static", photo: "attach://photo_file" }
+      const photoJson = JSON.stringify({
+        type: "static",
+        photo: "attach://photo_file"
+      })
+      form.append("photo", photoJson, { contentType: "application/json" })
+      
+      const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
+        headers: {
+          ...form.getHeaders()
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+        timeout: 30000 // 30 segundos timeout
+      })
+      
+      if (response.data.ok) {
+        return {
+          success: true,
+          response: response.data
+        }
+      } else {
+        lastError = response.data.description || "Unknown error"
+        // Se nao for erro de rede, nao faz retry
+        if (!lastError.includes("retry") && !lastError.includes("timeout")) {
+          return {
+            success: false,
+            error: lastError,
+            response: response.data
+          }
+        }
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        lastError = err.response?.data?.description || err.message
+        // Retry apenas em erros de rede/timeout
+        if (err.code !== "ECONNRESET" && err.code !== "ETIMEDOUT" && !err.message.includes("timeout")) {
+          return {
+            success: false,
+            error: lastError,
+            response: err.response?.data
+          }
+        }
+      } else {
+        lastError = err instanceof Error ? err.message : String(err)
+      }
+    }
+    
+    // Espera exponencial antes de retry (1s, 2s, 4s...)
+    if (attempt < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000))
+    }
+  }
+  
+  return {
+    success: false,
+    error: `Falha apos ${maxRetries} tentativas: ${lastError}`
   }
 }
 
