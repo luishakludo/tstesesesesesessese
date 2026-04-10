@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
+import axios from "axios"
 
 // CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
@@ -133,9 +134,8 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData com payload_json (formato CORRETO do Telegram)
-        // IMPORTANTE: O campo "photo" no attach:// DEVE corresponder ao nome do campo do arquivo
-        console.log("Creating FormData with payload_json format...")
+        // 2. Criar FormData com form-data (NAO usar fetch, usar axios)
+        console.log("Creating FormData for axios...")
         const form = new FormData()
         
         // Adiciona o arquivo com nome "photo"
@@ -143,38 +143,23 @@ export async function POST(request: NextRequest) {
           filename: file.name || "photo.jpg",
           contentType: file.type || "image/jpeg",
         })
-        
-        // Adiciona payload_json referenciando o arquivo via attach://photo
-        form.append("payload_json", JSON.stringify({
-          photo: {
-            type: "photo",
-            media: "attach://photo"
-          }
-        }))
 
-        console.log("FormData prepared with payload_json and attach://photo reference")
-
-        // 3. Enviar para o Telegram
-        console.log("Sending to Telegram setMyProfilePhoto...")
+        // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)
+        console.log("Sending to Telegram setMyProfilePhoto via AXIOS...")
         const telegramUrl = `${baseUrl}/setMyProfilePhoto`
         
-        const telegramResponse = await fetch(telegramUrl, {
-          method: "POST",
-          headers: form.getHeaders(),
-          // @ts-expect-error - form-data stream works with fetch in Node.js
-          body: form,
+        const response = await axios.post(telegramUrl, form, {
+          headers: {
+            ...form.getHeaders()
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
         })
 
-        const responseText = await telegramResponse.text()
-        console.log("TELEGRAM RESPONSE STATUS:", telegramResponse.status)
-        console.log("TELEGRAM RESPONSE:", responseText)
+        console.log("TELEGRAM RESPONSE STATUS:", response.status)
+        console.log("TELEGRAM RESPONSE:", response.data)
 
-        let telegramResult: { ok: boolean; description?: string }
-        try {
-          telegramResult = JSON.parse(responseText)
-        } catch {
-          telegramResult = { ok: false, description: responseText }
-        }
+        const telegramResult = response.data as { ok: boolean; description?: string }
 
         results.photo = telegramResult.ok
         
@@ -189,7 +174,12 @@ export async function POST(request: NextRequest) {
         console.log("========== PHOTO UPLOAD EXCEPTION ==========")
         console.log("EXCEPTION:", err)
         results.photo = false
-        results.photoError = String(err)
+        if (axios.isAxiosError(err)) {
+          console.log("Axios error response:", err.response?.data)
+          results.photoError = err.response?.data?.description || String(err)
+        } else {
+          results.photoError = String(err)
+        }
       }
     }
 
