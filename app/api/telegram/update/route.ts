@@ -1,41 +1,45 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
-import { request as undiciRequest } from "undici"
 
-// IMPORTANTE: Forcar runtime nodejs para suportar upload de arquivos
+// CRITICAL: Node.js runtime - NÃO usar Edge
 export const runtime = "nodejs"
-
-interface TelegramResponse<T> {
-  ok: boolean
-  result?: T
-  description?: string
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const reqFormData = await request.formData()
-    const token = reqFormData.get("token") as string
-    const name = reqFormData.get("name") as string | null
-    const description = reqFormData.get("description") as string | null
-    const shortDescription = reqFormData.get("shortDescription") as string | null
-    const photo = reqFormData.get("photo") as File | null
-    const deletePhoto = reqFormData.get("deletePhoto") === "true"
+    // 1. Parse incoming FormData
+    const data = await request.formData()
+    
+    const token = data.get("token") as string
+    const name = data.get("name") as string | null
+    const description = data.get("description") as string | null
+    const shortDescription = data.get("shortDescription") as string | null
+    const file = data.get("photo") as File | null
+    const deletePhoto = data.get("deletePhoto") === "true"
 
-    console.log("[v0] UPDATE API - Received request")
-    console.log("[v0] UPDATE API - token exists:", !!token)
-    console.log("[v0] UPDATE API - name:", name)
-    console.log("[v0] UPDATE API - photo:", photo ? `File: ${photo.name}, size: ${photo.size}, type: ${photo.type}` : "null")
-    console.log("[v0] UPDATE API - photo instanceof File:", photo instanceof File)
+    // DEBUG OBRIGATORIO
+    console.log("========== TELEGRAM UPDATE API ==========")
+    console.log("TOKEN EXISTS:", !!token)
+    console.log("TOKEN LENGTH:", token?.length)
+    console.log("FILE:", file)
+    console.log("NAME:", file?.name)
+    console.log("TYPE:", file?.type)
+    console.log("SIZE:", file?.size)
+    console.log("FILE instanceof File:", file instanceof File)
+    console.log("==========================================")
 
     if (!token || typeof token !== "string") {
-      return NextResponse.json(
-        { error: "Token é obrigatório" },
-        { status: 400 }
-      )
+      console.log("ERROR: Token missing")
+      return NextResponse.json({ error: "Token é obrigatório" }, { status: 400 })
     }
 
     const baseUrl = `https://api.telegram.org/bot${token}`
-    const results: { name?: boolean; description?: boolean; shortDescription?: boolean; photo?: boolean; photoError?: string } = {}
+    const results: { 
+      name?: boolean
+      description?: boolean
+      shortDescription?: boolean
+      photo?: boolean
+      photoError?: string 
+    } = {}
 
     // Update bot name
     if (name !== undefined && name !== null) {
@@ -45,9 +49,11 @@ export async function POST(request: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name }),
         })
-        const data: TelegramResponse<boolean> = await response.json()
-        results.name = data.ok
-      } catch {
+        const responseData = await response.json()
+        results.name = responseData.ok
+        console.log("setMyName result:", responseData.ok)
+      } catch (err) {
+        console.log("setMyName error:", err)
         results.name = false
       }
     }
@@ -60,9 +66,11 @@ export async function POST(request: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ description }),
         })
-        const data: TelegramResponse<boolean> = await response.json()
-        results.description = data.ok
-      } catch {
+        const responseData = await response.json()
+        results.description = responseData.ok
+        console.log("setMyDescription result:", responseData.ok)
+      } catch (err) {
+        console.log("setMyDescription error:", err)
         results.description = false
       }
     }
@@ -75,9 +83,11 @@ export async function POST(request: NextRequest) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ short_description: shortDescription }),
         })
-        const data: TelegramResponse<boolean> = await response.json()
-        results.shortDescription = data.ok
-      } catch {
+        const responseData = await response.json()
+        results.shortDescription = responseData.ok
+        console.log("setMyShortDescription result:", responseData.ok)
+      } catch (err) {
+        console.log("setMyShortDescription error:", err)
         results.shortDescription = false
       }
     }
@@ -88,95 +98,108 @@ export async function POST(request: NextRequest) {
         const response = await fetch(`${baseUrl}/deleteMyProfilePhoto`, {
           method: "POST",
         })
-        const data: TelegramResponse<boolean> = await response.json()
-        results.photo = data.ok
-      } catch {
+        const responseData = await response.json()
+        results.photo = responseData.ok
+        console.log("deleteMyProfilePhoto result:", responseData.ok)
+      } catch (err) {
+        console.log("deleteMyProfilePhoto error:", err)
         results.photo = false
       }
     }
 
-    // Upload new profile photo usando form-data + undici (metodo que funciona com Telegram)
-    if (photo) {
-      console.log("[v0] UPDATE API - Photo upload starting...")
-      console.log("[v0] UPDATE API - Photo details:", {
-        name: photo.name,
-        size: photo.size,
-        type: photo.type,
-      })
+    // Upload profile photo - SOLUCAO DEFINITIVA
+    if (file) {
+      console.log("========== PHOTO UPLOAD START ==========")
       
-      // Validacoes
-      if (!photo.type.startsWith("image/")) {
+      // Verificar se file existe
+      if (!file) {
+        console.log("ERROR: file is null/undefined")
         results.photo = false
-        results.photoError = "Arquivo deve ser uma imagem (PNG, JPG)"
+        results.photoError = "Arquivo não recebido"
         return NextResponse.json({ success: true, results })
       }
-      
-      // Telegram limite: 5MB para foto de perfil
-      const maxSize = 5 * 1024 * 1024
-      if (photo.size > maxSize) {
+
+      // Validar tipo
+      if (!file.type.startsWith("image/")) {
+        console.log("ERROR: not an image, type:", file.type)
         results.photo = false
-        results.photoError = `Imagem muito grande (${(photo.size / 1024 / 1024).toFixed(2)}MB). Máximo: 5MB`
+        results.photoError = "Arquivo deve ser uma imagem"
         return NextResponse.json({ success: true, results })
       }
-      
+
+      // Validar tamanho (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        console.log("ERROR: file too large:", file.size)
+        results.photo = false
+        results.photoError = "Imagem maior que 5MB"
+        return NextResponse.json({ success: true, results })
+      }
+
       try {
-        // Converter File para Buffer (OBRIGATORIO para form-data funcionar)
-        const arrayBuffer = await photo.arrayBuffer()
+        // 2. Convert File → Buffer (REQUIRED)
+        console.log("Converting File to Buffer...")
+        const arrayBuffer = await file.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
-        
-        console.log("[v0] UPDATE API - Buffer created, size:", buffer.length)
-        
-        // Usar form-data library (funciona com Telegram)
+        console.log("Buffer created, length:", buffer.length)
+
+        // 3. Use "form-data" library (NOT native FormData)
+        console.log("Creating form-data...")
         const form = new FormData()
         form.append("photo", buffer, {
-          filename: photo.name || "photo.png",
-          contentType: photo.type || "image/png",
-          knownLength: buffer.length,
+          filename: file.name || "photo.jpg",
+          contentType: file.type || "image/jpeg",
         })
+        console.log("form-data created")
+        console.log("form.getHeaders():", form.getHeaders())
+
+        // 4. Send request to Telegram
+        console.log("Sending to Telegram:", `${baseUrl}/setMyProfilePhoto`)
         
-        console.log("[v0] UPDATE API - FormData created")
-        console.log("[v0] UPDATE API - FormData headers:", form.getHeaders())
-        
-        // Usar undici para enviar (melhor compatibilidade com multipart)
-        console.log("[v0] UPDATE API - Sending to Telegram via undici...")
-        
-        const response = await undiciRequest(`${baseUrl}/setMyProfilePhoto`, {
+        const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
           headers: form.getHeaders(),
-          body: form.getBuffer(),
+          // @ts-expect-error - form-data is compatible with fetch body
+          body: form,
         })
-        
-        const responseText = await response.body.text()
-        console.log("[v0] UPDATE API - Response status:", response.statusCode)
-        console.log("[v0] UPDATE API - Response text:", responseText)
-        
-        let telegramResponse: { ok: boolean; description?: string }
+
+        const responseText = await response.text()
+        console.log("TELEGRAM RESPONSE STATUS:", response.status)
+        console.log("TELEGRAM RESPONSE:", responseText)
+
+        let telegramResult: { ok: boolean; description?: string }
         try {
-          telegramResponse = JSON.parse(responseText)
+          telegramResult = JSON.parse(responseText)
         } catch {
-          telegramResponse = { ok: false, description: `Parse error: ${responseText}` }
+          telegramResult = { ok: false, description: responseText }
         }
+
+        results.photo = telegramResult.ok
         
-        results.photo = telegramResponse.ok
-        if (!telegramResponse.ok) {
-          results.photoError = telegramResponse.description || "Unknown error"
-          console.log("[v0] UPDATE API - Photo upload FAILED:", telegramResponse.description)
+        if (telegramResult.ok) {
+          console.log("========== PHOTO UPLOAD SUCCESS ==========")
         } else {
-          console.log("[v0] UPDATE API - Photo upload SUCCESS")
+          console.log("========== PHOTO UPLOAD FAILED ==========")
+          console.log("ERROR:", telegramResult.description)
+          results.photoError = telegramResult.description || "Erro desconhecido"
         }
       } catch (err) {
-        console.log("[v0] UPDATE API - Photo upload EXCEPTION:", err)
+        console.log("========== PHOTO UPLOAD EXCEPTION ==========")
+        console.log("EXCEPTION:", err)
         results.photo = false
         results.photoError = String(err)
       }
     }
+
+    console.log("========== FINAL RESULTS ==========")
+    console.log("results:", JSON.stringify(results, null, 2))
 
     return NextResponse.json({
       success: true,
       results,
     })
   } catch (error) {
-    console.error("Error updating telegram bot:", error)
+    console.error("========== API ERROR ==========")
+    console.error("Error:", error)
     return NextResponse.json(
       { error: "Erro ao atualizar bot" },
       { status: 500 }
