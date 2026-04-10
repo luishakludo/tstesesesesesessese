@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import FormData from "form-data"
-import axios from "axios"
+import { updateBotProfilePhoto } from "@/lib/telegram-photo"
 
 // CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
@@ -106,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload profile photo - Bot API 9.4+ (InputProfilePhoto format)
+    // Upload profile photo - usando funcao centralizada (Bot API 9.4+)
     if (file) {
       console.log("========== PHOTO UPLOAD START (Bot API 9.4+) ==========")
       
@@ -127,89 +126,20 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, results })
       }
 
-      try {
-        // 1. Converter File para Buffer
-        console.log("Converting File to Buffer...")
-        const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
-        console.log("Buffer length:", buffer.length)
+      // Converter File para Buffer e usar funcao centralizada
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData com InputProfilePhotoStatic (Bot API 9.4+)
-        // O formato correto e: photo = { type: "static", photo: "attach://photo_file" }
-        console.log("Creating FormData with InputProfilePhotoStatic...")
-        const form = new FormData()
-        
-        // O campo do arquivo DEVE ter um nome que sera referenciado no attach://
-        form.append("photo_file", buffer, {
-          filename: file.name || "photo.jpg",
-          contentType: file.type || "image/jpeg",
-        })
-        
-        // O parametro "photo" e um JSON com InputProfilePhotoStatic
-        // IMPORTANTE: o campo dentro do JSON deve ser "photo" (nao "media")!
-        // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
-        const photoJson = JSON.stringify({
-          type: "static",
-          photo: "attach://photo_file"
-        })
-        form.append("photo", photoJson, { contentType: "application/json" })
-        
-        // DEBUG: Verificar campos do FormData
-        console.log("FormData fields:")
-        console.log(`  - photo_file: Buffer (${buffer.length} bytes)`)
-        console.log(`  - photo: ${photoJson}`)
-        console.log(`Content-Type: ${form.getHeaders()["content-type"]}`)
-        
-        // Verificar se os campos existem no FormData
-        const formKeys: string[] = []
-        // @ts-expect-error - _streams e interno do form-data
-        if (form._streams) {
-          // @ts-expect-error
-          for (const stream of form._streams) {
-            if (typeof stream === "string" && stream.includes("name=")) {
-              const match = stream.match(/name="([^"]+)"/)
-              if (match) formKeys.push(match[1])
-            }
-          }
-        }
-        console.log(`FormData keys: [${formKeys.join(", ")}]`)
-
-        // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)
-        console.log("Sending to Telegram setMyProfilePhoto via AXIOS...")
-        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
-        
-        const response = await axios.post(telegramUrl, form, {
-          headers: {
-            ...form.getHeaders()
-          },
-          maxContentLength: Infinity,
-          maxBodyLength: Infinity
-        })
-
-        console.log("TELEGRAM RESPONSE STATUS:", response.status)
-        console.log("TELEGRAM RESPONSE:", response.data)
-
-        const telegramResult = response.data as { ok: boolean; description?: string }
-
-        results.photo = telegramResult.ok
-        
-        if (telegramResult.ok) {
-          console.log("========== PHOTO UPLOAD SUCCESS ==========")
-        } else {
-          console.log("========== PHOTO UPLOAD FAILED ==========")
-          console.log("ERROR:", telegramResult.description)
-          results.photoError = telegramResult.description || "Erro desconhecido"
-        }
-      } catch (err) {
-        console.log("========== PHOTO UPLOAD EXCEPTION ==========")
-        console.log("EXCEPTION:", err)
-        results.photo = false
-        if (axios.isAxiosError(err)) {
-          console.log("Axios error response:", err.response?.data)
-          results.photoError = err.response?.data?.description || String(err)
-        } else {
-          results.photoError = String(err)
-        }
+      const photoResult = await updateBotProfilePhoto(buffer, token)
+      
+      results.photo = photoResult.success
+      if (photoResult.success) {
+        console.log("========== PHOTO UPLOAD SUCCESS ==========")
+      } else {
+        console.log("========== PHOTO UPLOAD FAILED ==========")
+        console.log("ERROR:", photoResult.error)
+        results.photoError = photoResult.error || "Erro desconhecido"
       }
     }
 

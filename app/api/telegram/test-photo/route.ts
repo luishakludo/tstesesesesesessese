@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
       contentType: "image/jpeg",
     })
     // O parametro "photo" e um JSON com InputProfilePhotoStatic
-    // IMPORTANTE: o campo dentro do JSON deve ser "photo" (nao "media")!
+    // FORMATO CORRETO CONFIRMADO: { type: "static", photo: "attach://photo_file" }
     // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
     const photoJson = JSON.stringify({
       type: "static",
@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
     if (rawBody.includes('name="photo"')) {
       log("OK: Campo 'photo' encontrado no body")
       // Verificar se o JSON esta la
-      if (rawBody.includes('{"type":"static","media":"attach://photo_file"}')) {
+      if (rawBody.includes('{"type":"static","photo":"attach://photo_file"}')) {
         log("OK: JSON do InputProfilePhotoStatic esta correto!")
       } else {
         log("ALERTA: JSON nao encontrado ou diferente do esperado")
