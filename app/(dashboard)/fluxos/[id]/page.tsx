@@ -3052,78 +3052,72 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="p-6">
 
                 {!upsellEnabled ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="h-14 w-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
-                      <TrendingUp className="h-7 w-7 text-neutral-400" />
-                    </div>
-                    <p className="text-neutral-500">Ative o Upsell para configurar sequencias</p>
-                  </div>
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <TrendingUp className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500">Ative o Upsell para configurar sequencias</p>
+                    </CardContent>
+                  </Card>
                 ) : upsellSequences.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="h-14 w-14 rounded-2xl bg-[#bfff00]/20 flex items-center justify-center mb-4">
-                      <Plus className="h-7 w-7 text-[#8fb300]" />
-                    </div>
-                    <p className="text-neutral-500 mb-4">Nenhuma sequencia configurada</p>
-                    <button 
-                      onClick={handleAddUpsellSequence} 
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Adicionar Sequencia
-                    </button>
-                  </div>
+                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
+                    <CardContent className="flex flex-col items-center justify-center py-16">
+                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
+                      <p className="text-neutral-500 mb-4">Nenhuma sequencia configurada</p>
+                      <Button onClick={handleAddUpsellSequence} className="bg-accent hover:bg-accent/90">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Sequencia
+                      </Button>
+                    </CardContent>
+                  </Card>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {upsellSequences.map((seq, index) => (
-                      <div key={seq.id} className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+                      <Card key={seq.id} className="border-neutral-200">
                         {/* Sequence Header */}
                         <div
-                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+                          className="flex items-center justify-between p-4 cursor-pointer"
                           onClick={() => setExpandedSequence(expandedSequence === seq.id ? null : seq.id)}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="h-9 w-9 rounded-lg bg-[#bfff00]/20 flex items-center justify-center">
-                              <TrendingUp className="h-4 w-4 text-[#8fb300]" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-neutral-900">{seq.name || `Upsell ${index + 1}`}</p>
-                              {(seq.plans?.length || 0) > 0 && (
-                                <p className="text-xs text-neutral-500">
-                                  {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
-                                </p>
-                              )}
-                            </div>
+                            {expandedSequence === seq.id ? (
+                              <ChevronDown className="h-4 w-4 text-neutral-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-neutral-500" />
+                            )}
+                            <span className="font-medium">{seq.name || `Upsell ${index + 1}`}</span>
+                            {(seq.plans?.length || 0) > 0 && (
+                              <span className="text-xs text-neutral-500 bg-secondary/50 px-2 py-0.5 rounded">
+                                {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              className="p-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleDuplicateUpsellSequence(seq)
                               }}
                             >
-                              <Copy className="h-4 w-4 text-neutral-400" />
-                            </button>
-                            <button
-                              className="p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              <Copy className="h-4 w-4 text-neutral-500" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleRemoveUpsellSequence(seq.id)
                               }}
                             >
-                              <Trash2 className="h-4 w-4 text-red-400" />
-                            </button>
-                            {expandedSequence === seq.id ? (
-                              <ChevronDown className="h-5 w-5 text-neutral-400 ml-2" />
-                            ) : (
-                              <ChevronRight className="h-5 w-5 text-neutral-400 ml-2" />
-                            )}
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
                           </div>
                         </div>
 
                         {/* Expanded Content */}
                         {expandedSequence === seq.id && (
-                          <div className="px-4 pb-4 pt-0 space-y-5 border-t border-neutral-100">
+                          <CardContent className="pt-0 space-y-6">
                             {/* Nome do Upsell */}
                             <div className="space-y-2">
                               <Label>Nome do Upsell</Label>
