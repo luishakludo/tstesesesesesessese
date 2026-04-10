@@ -147,10 +147,31 @@ export async function POST(request: NextRequest) {
         
         // O parametro "photo" e um JSON com InputProfilePhotoStatic
         // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
-        form.append("photo", JSON.stringify({
+        const photoJson = JSON.stringify({
           type: "static",
           media: "attach://photo_file"
-        }))
+        })
+        form.append("photo", photoJson)
+        
+        // DEBUG: Verificar campos do FormData
+        console.log("FormData fields:")
+        console.log(`  - photo_file: Buffer (${buffer.length} bytes)`)
+        console.log(`  - photo: ${photoJson}`)
+        console.log(`Content-Type: ${form.getHeaders()["content-type"]}`)
+        
+        // Verificar se os campos existem no FormData
+        const formKeys: string[] = []
+        // @ts-expect-error - _streams e interno do form-data
+        if (form._streams) {
+          // @ts-expect-error
+          for (const stream of form._streams) {
+            if (typeof stream === "string" && stream.includes("name=")) {
+              const match = stream.match(/name="([^"]+)"/)
+              if (match) formKeys.push(match[1])
+            }
+          }
+        }
+        console.log(`FormData keys: [${formKeys.join(", ")}]`)
 
         // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)
         console.log("Sending to Telegram setMyProfilePhoto via AXIOS...")

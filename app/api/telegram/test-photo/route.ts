@@ -152,12 +152,40 @@ export async function GET(request: NextRequest) {
     })
     // O parametro "photo" e um JSON com InputProfilePhotoStatic
     // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
-    form.append("photo", JSON.stringify({
+    const photoJson = JSON.stringify({
       type: "static",
       media: "attach://photo_file"
-    }))
+    })
+    form.append("photo", photoJson)
     
-    log("FormData: photo_file (buffer) + photo (JSON InputProfilePhotoStatic)")
+    log("FormData fields:")
+    log(`  - photo_file: Buffer (${imageBuffer.length} bytes)`)
+    log(`  - photo: ${photoJson}`)
+    
+    // DEBUG CRITICO: Verificar campos do FormData
+    const formKeys: string[] = []
+    const boundaryMatch = form.getHeaders()["content-type"]?.match(/boundary=(.+)/)
+    log(`Content-Type: ${form.getHeaders()["content-type"]}`)
+    
+    // Listar todas as chaves do FormData (form-data lib)
+    // @ts-expect-error - _streams e interno do form-data
+    if (form._streams) {
+      // @ts-expect-error
+      for (const stream of form._streams) {
+        if (typeof stream === "string" && stream.includes("name=")) {
+          const match = stream.match(/name="([^"]+)"/)
+          if (match) formKeys.push(match[1])
+        }
+      }
+    }
+    log(`FormData keys encontradas: [${formKeys.join(", ")}]`)
+    
+    if (!formKeys.includes("photo")) {
+      log("ALERTA: Campo 'photo' NAO encontrado no FormData!")
+    }
+    if (!formKeys.includes("photo_file")) {
+      log("ALERTA: Campo 'photo_file' NAO encontrado no FormData!")
+    }
     
     const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
       headers: {
