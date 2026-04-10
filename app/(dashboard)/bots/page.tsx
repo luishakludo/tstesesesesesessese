@@ -364,10 +364,12 @@ export default function BotsPage() {
     }
   }
 
-  // Salvar configurações
+  // Salvar configurações - versao rapida e simples
   async function handleSaveConfig() {
     if (!configBot) return
     setIsSaving(true)
+    
+    const hadPhoto = !!cfgPhoto
     
     try {
       // Usar FormData para suportar upload de foto
@@ -393,7 +395,19 @@ export default function BotsPage() {
         name: cfgName.trim() || configBot.name,
       })
       
-      // Buscar dados atualizados do Telegram para atualizar o cache
+      const photoFailed = hadPhoto && result.results?.photo === false
+      const photoError = result.results?.photoError
+      
+      // Se upload de foto falhou, mostrar erro
+      if (photoFailed) {
+        toast({
+          title: "Erro na foto",
+          description: `Erro do Telegram: ${photoError || "desconhecido"}. Tente PNG quadrado < 5MB.`,
+          variant: "destructive",
+        })
+      }
+      
+      // Buscar dados atualizados do Telegram (rapido, sem retry)
       const validateResponse = await fetch("/api/telegram/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -403,38 +417,43 @@ export default function BotsPage() {
       if (validateResponse.ok) {
         const validateData = await validateResponse.json()
         if (validateData.bot) {
-          // Atualizar o cache com os novos dados do Telegram
+          // Adicionar cache-busting se teve foto
+          let photoUrl = validateData.bot.photo_url
+          if (photoUrl && hadPhoto && !photoFailed) {
+            photoUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+          }
+          
           setTelegramDataCache(prev => ({
             ...prev,
-            [configBot.id]: validateData.bot
+            [configBot.id]: {
+              ...validateData.bot,
+              photo_url: photoUrl
+            }
           }))
           
-          // Atualizar o configBot com os novos dados
           const updatedBot: ExtendedBot = { 
             ...configBot, 
             name: cfgName.trim() || configBot.name,
             description: validateData.bot.description,
             short_description: validateData.bot.short_description,
-            photo_url: validateData.bot.photo_url,
+            photo_url: photoUrl,
           }
           setConfigBot(updatedBot)
         }
       }
       
+      // Limpar estados
       setCfgPhoto(null)
       setCfgPhotoPreview(null)
       
-      const photoFailed = cfgPhoto && result.results?.photo === false
-      const photoError = result.results?.photoError
-      
-      toast({
-        title: photoFailed ? "Erro na foto" : "Sucesso",
-        description: photoFailed 
-          ? `Erro do Telegram: ${photoError || "desconhecido"}. Tente PNG quadrado < 5MB.`
-          : "Alterações salvas com sucesso!",
-        variant: photoFailed ? "destructive" : "default",
-      })
-    } catch {
+      if (!photoFailed) {
+        toast({
+          title: "Sucesso",
+          description: hadPhoto ? "Foto e configurações salvas!" : "Alterações salvas com sucesso!",
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error saving config:", error)
       toast({
         title: "Erro",
         description: "Erro ao salvar alterações",
@@ -765,12 +784,19 @@ export default function BotsPage() {
                       className="hidden"
                     />
                     <div 
-                      className="relative inline-block group cursor-pointer mb-2"
+                      className="relative inline-block group mb-2 cursor-pointer"
                       onClick={() => photoInputRef.current?.click()}
                     >
-                      {cfgPhotoPreview || (configBot as ExtendedBot).photo_url ? (
+                      {/* Preview ou foto atual */}
+                      {cfgPhotoPreview ? (
                         <img
-                          src={cfgPhotoPreview || (configBot as ExtendedBot).photo_url!}
+                          src={cfgPhotoPreview}
+                          alt={configBot.name}
+                          className="w-16 h-16 rounded-xl object-cover border-2 border-[#bfff00]"
+                        />
+                      ) : (configBot as ExtendedBot).photo_url ? (
+                        <img
+                          src={`${(configBot as ExtendedBot).photo_url}${(configBot as ExtendedBot).photo_url!.includes('?') ? '&' : '?'}t=${Date.now()}`}
                           alt={configBot.name}
                           className="w-16 h-16 rounded-xl object-cover border-2 border-[#3a3a3e]"
                         />
@@ -779,6 +805,7 @@ export default function BotsPage() {
                           <BotIcon className="h-7 w-7 text-[#bfff00]" />
                         </div>
                       )}
+                      {/* Hover overlay */}
                       <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Camera className="h-4 w-4 text-white" />
                       </div>
@@ -1086,15 +1113,19 @@ export default function BotsPage() {
                       </span>
                     </div>
 
-                    {/* Foto do bot */}
+                    {/* Foto do bot com cache-busting */}
                     <div className="mt-5">
                       {isLoadingTelegramData && !telegramDataCache[bot.id] ? (
                         <div className="w-16 h-16 rounded-xl bg-[#2a2a2e] animate-pulse" />
                       ) : extendedBot.photo_url ? (
                         <img
-                          src={extendedBot.photo_url}
+                          src={`${extendedBot.photo_url}${extendedBot.photo_url.includes('?') ? '&' : '?'}cb=${bot.id}`}
                           alt={bot.name}
                           className="w-16 h-16 rounded-xl object-cover border-2 border-[#3a3a3e]"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                          }}
                         />
                       ) : (
                         <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${

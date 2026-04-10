@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
 
+// IMPORTANTE: Forcar runtime nodejs (form-data NAO funciona no edge)
+export const runtime = "nodejs"
+
 interface TelegramResponse<T> {
   ok: boolean
   result?: T
@@ -9,13 +12,13 @@ interface TelegramResponse<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const token = formData.get("token") as string
-    const name = formData.get("name") as string | null
-    const description = formData.get("description") as string | null
-    const shortDescription = formData.get("shortDescription") as string | null
-    const photo = formData.get("photo") as File | null
-    const deletePhoto = formData.get("deletePhoto") === "true"
+    const reqFormData = await request.formData()
+    const token = reqFormData.get("token") as string
+    const name = reqFormData.get("name") as string | null
+    const description = reqFormData.get("description") as string | null
+    const shortDescription = reqFormData.get("shortDescription") as string | null
+    const photo = reqFormData.get("photo") as File | null
+    const deletePhoto = reqFormData.get("deletePhoto") === "true"
 
     console.log("[v0] UPDATE API - Received request")
     console.log("[v0] UPDATE API - token exists:", !!token)
@@ -90,46 +93,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando undici (mais confiavel no Vercel)
+    // Upload new profile photo usando form-data (lib) com Buffer
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
       try {
+        // CONVERSAO REAL: File -> ArrayBuffer -> Buffer
         const arrayBuffer = await photo.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
         
-        if (buffer.length === 0) {
-          throw new Error("Buffer vazio - arquivo invalido")
-        }
-        
         console.log("[v0] UPDATE API - Buffer size:", buffer.length)
+        console.log("[v0] UPDATE API - File type:", photo.type)
         
-        // Criar boundary unico
-        const boundary = `----FormBoundary${Date.now()}`
+        // Usar form-data library com Buffer (NAO Blob)
+        const form = new FormData()
+        form.append("photo", buffer, {
+          filename: photo.name || "photo.png",
+          contentType: photo.type || "image/png",
+        })
         
-        // Construir body multipart manualmente (mais confiavel)
-        const filename = photo.name || "photo.png"
-        const bodyParts = [
-          `--${boundary}`,
-          `Content-Disposition: form-data; name="photo"; filename="${filename}"`,
-          `Content-Type: image/png`,
-          ``,
-          ``, // placeholder para o buffer
-        ]
-        const headerPart = Buffer.from(bodyParts.join("\r\n"))
-        const footerPart = Buffer.from(`\r\n--${boundary}--\r\n`)
+        // IMPORTANTE: Usar getBuffer() em vez de passar o form diretamente
+        // fetch no Node.js nao aceita stream, precisa de Buffer
+        const formBuffer = form.getBuffer()
+        const formHeaders = form.getHeaders()
         
-        // Concatenar tudo
-        const body = Buffer.concat([headerPart, buffer, footerPart])
-        
+        console.log("[v0] UPDATE API - Form buffer size:", formBuffer.length)
         console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          headers: {
-            "Content-Type": `multipart/form-data; boundary=${boundary}`,
-            "Content-Length": body.length.toString(),
-          },
-          body: body,
+          headers: formHeaders,
+          body: formBuffer,
         })
         
         const responseText = await response.text()
