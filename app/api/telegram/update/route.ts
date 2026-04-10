@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import FormData from "form-data"
 
 // CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
@@ -127,72 +128,52 @@ export async function POST(request: NextRequest) {
 
       try {
         // 1. Converter File para Buffer
-        console.log("Converting File to ArrayBuffer...")
+        console.log("Converting File to Buffer...")
         const arrayBuffer = await file.arrayBuffer()
-        console.log("ArrayBuffer length:", arrayBuffer.byteLength)
+        const buffer = Buffer.from(arrayBuffer)
+        console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData NATIVO do Node.js (funciona com fetch)
-        // A biblioteca form-data usa streams que nao funcionam bem com fetch nativo
-        console.log("Creating native FormData...")
-        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
+        // 2. Criar FormData com payload_json (formato CORRETO do Telegram)
+        // IMPORTANTE: O campo "photo" no attach:// DEVE corresponder ao nome do campo do arquivo
+        console.log("Creating FormData with payload_json format...")
+        const form = new FormData()
         
-        // Tentar formato Bot API 9.4+ primeiro (InputProfilePhotoStatic)
-        console.log("Trying Bot API 9.4+ format (InputProfilePhotoStatic)...")
-        const form94 = new FormData()
-        const blob94 = new Blob([arrayBuffer], { type: file.type || "image/jpeg" })
-        form94.append("photo_file", blob94, file.name || "photo.jpg")
-        form94.append("photo", JSON.stringify({
-          type: "static",
-          photo: "attach://photo_file"
+        // Adiciona o arquivo com nome "photo"
+        form.append("photo", buffer, {
+          filename: file.name || "photo.jpg",
+          contentType: file.type || "image/jpeg",
+        })
+        
+        // Adiciona payload_json referenciando o arquivo via attach://photo
+        form.append("payload_json", JSON.stringify({
+          photo: {
+            type: "photo",
+            media: "attach://photo"
+          }
         }))
 
-        const response94 = await fetch(telegramUrl, {
+        console.log("FormData prepared with payload_json and attach://photo reference")
+
+        // 3. Enviar para o Telegram
+        console.log("Sending to Telegram setMyProfilePhoto...")
+        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
+        
+        const telegramResponse = await fetch(telegramUrl, {
           method: "POST",
-          body: form94,
+          headers: form.getHeaders(),
+          // @ts-expect-error - form-data stream works with fetch in Node.js
+          body: form,
         })
 
-        const text94 = await response94.text()
-        console.log("TELEGRAM 9.4+ RESPONSE STATUS:", response94.status)
-        console.log("TELEGRAM 9.4+ RESPONSE:", text94 || "(vazio)")
+        const responseText = await telegramResponse.text()
+        console.log("TELEGRAM RESPONSE STATUS:", telegramResponse.status)
+        console.log("TELEGRAM RESPONSE:", responseText)
 
         let telegramResult: { ok: boolean; description?: string }
-        if (text94) {
-          try {
-            telegramResult = JSON.parse(text94)
-          } catch {
-            telegramResult = { ok: false, description: text94 }
-          }
-        } else {
-          telegramResult = { ok: false, description: "Resposta vazia do Telegram" }
-        }
-
-        // Se falhar com o formato 9.4+, tentar formato legado (envio direto do arquivo)
-        if (!telegramResult.ok) {
-          console.log("========== TRYING LEGACY FORMAT ==========")
-          console.log("Bot API 9.4+ format failed, trying direct file upload...")
-          
-          const legacyForm = new FormData()
-          const legacyBlob = new Blob([arrayBuffer], { type: file.type || "image/jpeg" })
-          legacyForm.append("photo", legacyBlob, file.name || "photo.jpg")
-          
-          const legacyResponse = await fetch(telegramUrl, {
-            method: "POST",
-            body: legacyForm,
-          })
-          
-          const legacyText = await legacyResponse.text()
-          console.log("LEGACY RESPONSE STATUS:", legacyResponse.status)
-          console.log("LEGACY RESPONSE:", legacyText || "(vazio)")
-          
-          if (legacyText) {
-            try {
-              telegramResult = JSON.parse(legacyText)
-            } catch {
-              telegramResult = { ok: false, description: legacyText }
-            }
-          } else {
-            telegramResult = { ok: false, description: "Resposta vazia (legacy)" }
-          }
+        try {
+          telegramResult = JSON.parse(responseText)
+        } catch {
+          telegramResult = { ok: false, description: responseText }
         }
 
         results.photo = telegramResult.ok

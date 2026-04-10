@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
+import FormData from "form-data"
 
 export const runtime = "nodejs"
 
@@ -135,39 +136,45 @@ export async function GET(request: NextRequest) {
   }
   log("")
   
-  // STEP 5A: Teste com multipart direto (metodo classico)
-  log("STEP 5A: setMyProfilePhoto (multipart direto)...")
+  // STEP 5A: Teste com payload_json (formato CORRETO do Telegram)
+  log("STEP 5A: setMyProfilePhoto (payload_json + attach://photo)...")
   
   let test5aOk = false
   let test5aError = ""
   try {
-    // Usar FormData nativo do Node.js (funciona melhor com fetch)
     const form = new FormData()
-    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
-    form.append("photo", blob, "avatar.jpg")
+    // Campo "photo" com o arquivo
+    form.append("photo", imageBuffer, {
+      filename: "avatar.jpg",
+      contentType: "image/jpeg",
+    })
+    // payload_json referenciando attach://photo (DEVE corresponder ao nome do campo)
+    form.append("payload_json", JSON.stringify({
+      photo: {
+        type: "photo",
+        media: "attach://photo"
+      }
+    }))
     
     const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
       method: "POST",
+      headers: form.getHeaders(),
+      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text || "(vazio)"}`)
+    log(`Response: ${text}`)
     
-    if (text) {
-      const data = JSON.parse(text)
-      test5aOk = data.ok
-      test5aError = data.description || ""
-      
-      if (data.ok) {
-        log("SUCESSO!")
-      } else {
-        log(`FALHOU: ${data.description}`)
-      }
+    const data = JSON.parse(text)
+    test5aOk = data.ok
+    test5aError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
     } else {
-      log("FALHOU: Resposta vazia do Telegram")
-      test5aError = "Resposta vazia"
+      log(`FALHOU: ${data.description}`)
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
@@ -175,42 +182,37 @@ export async function GET(request: NextRequest) {
   }
   log("")
   
-  // STEP 5B: Teste com InputProfilePhoto (Bot API 9.4+)
-  log("STEP 5B: setMyProfilePhoto (InputProfilePhoto)...")
+  // STEP 5B: Teste com formato alternativo (multipart simples)
+  log("STEP 5B: setMyProfilePhoto (multipart simples - fallback)...")
   
   let test5bOk = false
   let test5bError = ""
   try {
     const form = new FormData()
-    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
-    form.append("photo_file", blob, "avatar.jpg")
-    form.append("photo", JSON.stringify({
-      type: "static",
-      photo: "attach://photo_file"
-    }))
+    form.append("photo", imageBuffer, {
+      filename: "avatar.jpg",
+      contentType: "image/jpeg",
+    })
     
     const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
       method: "POST",
+      headers: form.getHeaders(),
+      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text || "(vazio)"}`)
+    log(`Response: ${text}`)
     
-    if (text) {
-      const data = JSON.parse(text)
-      test5bOk = data.ok
-      test5bError = data.description || ""
-      
-      if (data.ok) {
-        log("SUCESSO!")
-      } else {
-        log(`FALHOU: ${data.description}`)
-      }
+    const data = JSON.parse(text)
+    test5bOk = data.ok
+    test5bError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
     } else {
-      log("FALHOU: Resposta vazia do Telegram")
-      test5bError = "Resposta vazia"
+      log(`FALHOU: ${data.description}`)
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
@@ -226,31 +228,30 @@ export async function GET(request: NextRequest) {
   try {
     const form = new FormData()
     form.append("chat_id", botUserId)
-    const blob = new Blob([imageBuffer], { type: "image/jpeg" })
-    form.append("photo", blob, "test.jpg")
+    form.append("photo", imageBuffer, {
+      filename: "test.jpg",
+      contentType: "image/jpeg",
+    })
     
     const res = await fetch(`${baseUrl}/sendPhoto`, {
       method: "POST",
+      headers: form.getHeaders(),
+      // @ts-expect-error form-data stream
       body: form,
     })
     
     const text = await res.text()
     log(`Status: ${res.status}`)
-    log(`Response: ${text ? text.substring(0, 200) + "..." : "(vazio)"}`)
+    log(`Response: ${text.substring(0, 200)}...`)
     
-    if (text) {
-      const data = JSON.parse(text)
-      test5cOk = data.ok
-      test5cError = data.description || ""
-      
-      if (data.ok) {
-        log("SUCESSO!")
-      } else {
-        log(`FALHOU: ${data.description}`)
-      }
+    const data = JSON.parse(text)
+    test5cOk = data.ok
+    test5cError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
     } else {
-      log("FALHOU: Resposta vazia do Telegram")
-      test5cError = "Resposta vazia"
+      log(`FALHOU: ${data.description}`)
     }
   } catch (err) {
     log(`EXCEPTION: ${err}`)
