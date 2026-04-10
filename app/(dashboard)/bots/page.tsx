@@ -377,6 +377,7 @@ export default function BotsPage() {
       formData.append("description", cfgDescription.trim())
       formData.append("shortDescription", cfgShortDescription.trim())
       
+      const hadPhoto = !!cfgPhoto
       if (cfgPhoto) {
         formData.append("photo", cfgPhoto)
       }
@@ -393,6 +394,11 @@ export default function BotsPage() {
         name: cfgName.trim() || configBot.name,
       })
       
+      // Se teve upload de foto, aguardar um pouco para o Telegram propagar a mudanca
+      if (hadPhoto && result.results?.photo === true) {
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+      
       // Buscar dados atualizados do Telegram para atualizar o cache
       const validateResponse = await fetch("/api/telegram/validate", {
         method: "POST",
@@ -403,10 +409,19 @@ export default function BotsPage() {
       if (validateResponse.ok) {
         const validateData = await validateResponse.json()
         if (validateData.bot) {
+          // Adicionar cache-busting na URL da foto para forçar reload
+          let photoUrl = validateData.bot.photo_url
+          if (photoUrl && hadPhoto) {
+            photoUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
+          }
+          
           // Atualizar o cache com os novos dados do Telegram
           setTelegramDataCache(prev => ({
             ...prev,
-            [configBot.id]: validateData.bot
+            [configBot.id]: {
+              ...validateData.bot,
+              photo_url: photoUrl
+            }
           }))
           
           // Atualizar o configBot com os novos dados
@@ -415,7 +430,7 @@ export default function BotsPage() {
             name: cfgName.trim() || configBot.name,
             description: validateData.bot.description,
             short_description: validateData.bot.short_description,
-            photo_url: validateData.bot.photo_url,
+            photo_url: photoUrl,
           }
           setConfigBot(updatedBot)
         }
@@ -424,7 +439,7 @@ export default function BotsPage() {
       setCfgPhoto(null)
       setCfgPhotoPreview(null)
       
-      const photoFailed = cfgPhoto && result.results?.photo === false
+      const photoFailed = hadPhoto && result.results?.photo === false
       const photoError = result.results?.photoError
       
       toast({
