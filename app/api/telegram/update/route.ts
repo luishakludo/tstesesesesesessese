@@ -89,26 +89,54 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo
+    // Upload new profile photo usando multipart manual
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
       try {
-        // Converter File para ArrayBuffer e criar um Blob
         const arrayBuffer = await photo.arrayBuffer()
-        const blob = new Blob([arrayBuffer], { type: photo.type || "image/png" })
+        const uint8Array = new Uint8Array(arrayBuffer)
         
-        console.log("[v0] UPDATE API - Blob size:", blob.size)
-        console.log("[v0] UPDATE API - Blob type:", blob.type)
+        console.log("[v0] UPDATE API - File size:", uint8Array.length)
+        console.log("[v0] UPDATE API - File type:", photo.type)
         
-        // Criar FormData com o Blob
-        const telegramFormData = new FormData()
-        telegramFormData.append("photo", blob, photo.name || "photo.png")
+        // Criar multipart body manualmente (mais confiavel no Node.js)
+        const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`
+        const filename = photo.name || "photo.png"
+        const contentType = photo.type || "image/png"
         
+        // Header part
+        const headerStr = [
+          `--${boundary}`,
+          `Content-Disposition: form-data; name="photo"; filename="${filename}"`,
+          `Content-Type: ${contentType}`,
+          "",
+          ""
+        ].join("\r\n")
+        
+        // Footer part  
+        const footerStr = `\r\n--${boundary}--\r\n`
+        
+        // Converter strings para Uint8Array
+        const encoder = new TextEncoder()
+        const headerBytes = encoder.encode(headerStr)
+        const footerBytes = encoder.encode(footerStr)
+        
+        // Concatenar tudo
+        const bodyLength = headerBytes.length + uint8Array.length + footerBytes.length
+        const body = new Uint8Array(bodyLength)
+        body.set(headerBytes, 0)
+        body.set(uint8Array, headerBytes.length)
+        body.set(footerBytes, headerBytes.length + uint8Array.length)
+        
+        console.log("[v0] UPDATE API - Total body size:", body.length)
         console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          body: telegramFormData,
+          headers: {
+            "Content-Type": `multipart/form-data; boundary=${boundary}`,
+          },
+          body: body,
         })
         
         const responseText = await response.text()
