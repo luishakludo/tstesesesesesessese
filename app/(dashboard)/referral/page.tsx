@@ -671,7 +671,7 @@ export default function ReferralPage() {
           <div className="px-6 pt-6 pb-6">
             {/* Header with title and step */}
             <div className="flex items-center gap-3 mb-4">
-              <h2 className="text-2xl font-black italic text-white">Saque</h2>
+              <h2 className="text-2xl font-bold text-white">Saque</h2>
               <span className="text-xs text-white/40 font-mono bg-white/5 px-2 py-0.5 rounded">{withdrawStep}/4</span>
             </div>
 
