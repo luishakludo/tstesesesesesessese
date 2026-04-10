@@ -133,25 +133,25 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData com formato Bot API 9.4+ (InputProfilePhoto)
+        // 2. Criar FormData - Bot API 9.4+ usa InputProfilePhotoStatic
+        // O formato correto é enviar o "photo" como JSON com type e photo referenciando o arquivo
         console.log("Creating FormData with InputProfilePhoto format...")
         const form = new FormData()
         
-        // O objeto InputProfilePhotoStatic
-        const inputProfilePhoto = {
-          type: "static",
-          photo: "attach://photo_file"
-        }
-        console.log("InputProfilePhoto:", JSON.stringify(inputProfilePhoto))
-        
-        // Adicionar o objeto photo como JSON string
-        form.append("photo", JSON.stringify(inputProfilePhoto))
-        
-        // Adicionar o arquivo binario com o nome referenciado
+        // Primeiro, adiciona o arquivo binário
         form.append("photo_file", buffer, {
           filename: file.name || "photo.jpg",
           contentType: file.type || "image/jpeg",
         })
+        
+        // Depois, adiciona o objeto InputProfilePhotoStatic como JSON
+        // O campo "photo" dentro do objeto referencia o arquivo via attach://
+        form.append("photo", JSON.stringify({
+          type: "static",
+          photo: "attach://photo_file"
+        }))
+
+        console.log("FormData prepared with attach:// reference")
 
         // 3. Enviar para o Telegram
         console.log("Sending to Telegram setMyProfilePhoto...")
@@ -173,6 +173,35 @@ export async function POST(request: NextRequest) {
           telegramResult = JSON.parse(responseText)
         } catch {
           telegramResult = { ok: false, description: responseText }
+        }
+
+        // Se falhar com o formato 9.4+, tentar formato legado (envio direto do arquivo)
+        if (!telegramResult.ok) {
+          console.log("========== TRYING LEGACY FORMAT ==========")
+          console.log("Bot API 9.4+ format failed, trying direct file upload...")
+          
+          const legacyForm = new FormData()
+          legacyForm.append("photo", buffer, {
+            filename: file.name || "photo.jpg",
+            contentType: file.type || "image/jpeg",
+          })
+          
+          const legacyResponse = await fetch(telegramUrl, {
+            method: "POST",
+            headers: legacyForm.getHeaders(),
+            // @ts-expect-error - form-data stream works with fetch in Node.js
+            body: legacyForm,
+          })
+          
+          const legacyText = await legacyResponse.text()
+          console.log("LEGACY RESPONSE STATUS:", legacyResponse.status)
+          console.log("LEGACY RESPONSE:", legacyText)
+          
+          try {
+            telegramResult = JSON.parse(legacyText)
+          } catch {
+            telegramResult = { ok: false, description: legacyText }
+          }
         }
 
         results.photo = telegramResult.ok

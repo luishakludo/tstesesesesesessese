@@ -5,9 +5,12 @@ import FormData from "form-data"
 export const runtime = "nodejs"
 
 // GET - Pagina de diagnostico automatica (so acessar no navegador)
+// Uso: /api/telegram/test-photo?token=BOT_TOKEN
+//   ou /api/telegram/test-photo?botId=UUID_DO_BOT
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const botId = searchParams.get("botId")
+  const directToken = searchParams.get("token")
   
   const logs: string[] = []
   const log = (msg: string) => {
@@ -20,12 +23,21 @@ export async function GET(request: NextRequest) {
   log("========================================")
   log("")
   
-  // STEP 1: Buscar bot do banco automaticamente
-  log("STEP 1: Buscando bot no banco...")
+  // STEP 1: Buscar bot do banco OU usar token direto
+  log("STEP 1: Obtendo token do bot...")
   
   let bot: { id: string; token: string; name: string; username?: string } | null = null
   
-  if (botId) {
+  // Se passou token direto, usar ele
+  if (directToken) {
+    log("Usando token passado via query parameter")
+    bot = {
+      id: "direct-token",
+      token: directToken,
+      name: "Token Direto",
+      username: undefined
+    }
+  } else if (botId) {
     const { data, error } = await supabase
       .from("bots")
       .select("id, token, name, username")
@@ -46,7 +58,10 @@ export async function GET(request: NextRequest) {
     
     if (error || !data) {
       log("ERROR: Nenhum bot encontrado no banco")
-      return renderHTML(logs, "Nenhum bot no banco")
+      log("")
+      log("DICA: Passe o token diretamente:")
+      log("/api/telegram/test-photo?token=SEU_BOT_TOKEN")
+      return renderHTML(logs, "Nenhum bot no banco. Use ?token=SEU_BOT_TOKEN para testar diretamente.")
     }
     bot = data
   }
@@ -257,7 +272,8 @@ export async function GET(request: NextRequest) {
   
   log(conclusion)
   log("")
-  log("Para testar outro bot: ?botId=SEU_BOT_ID")
+  log("Para testar com token: ?token=SEU_BOT_TOKEN")
+  log("Para testar bot do banco: ?botId=SEU_BOT_ID")
   
   return renderHTML(logs, conclusion)
 }
