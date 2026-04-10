@@ -9,16 +9,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import {
   Plus, Search, Bot as BotIcon, MoreVertical, Trash2, Settings,
-  Loader2, CheckCircle2, LayoutGrid, List, ChevronRight, Signal, X, AtSign, Save, Camera, Users, DollarSign, Workflow, Power, RefreshCw
+  Loader2, CheckCircle2, LayoutGrid, List, ChevronRight, Signal, X, AtSign, Save, Users, DollarSign, Workflow, Power, RefreshCw
 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useRef } from "react"
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useBots, type Bot } from "@/lib/bot-context"
 import { useToast } from "@/hooks/use-toast"
 import { supabase } from "@/lib/supabase"
+import { AvatarUpload } from "@/components/avatar-upload"
 
 interface TelegramBotData {
   telegram_bot_id: number
@@ -64,7 +64,6 @@ export default function BotsPage() {
   const [isLoadingConfig, setIsLoadingConfig] = useState(false)
   const [cfgPhoto, setCfgPhoto] = useState<File | null>(null)
   const [cfgPhotoPreview, setCfgPhotoPreview] = useState<string | null>(null)
-  const photoInputRef = useRef<HTMLInputElement>(null)
   
   // Cache de dados do Telegram (foto, username, etc.)
   const [telegramDataCache, setTelegramDataCache] = useState<Record<string, TelegramBotData>>({})
@@ -351,117 +350,22 @@ export default function BotsPage() {
     setCfgPhotoPreview(null)
   }
 
-  // Handler para seleção de foto
-  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    console.log("[v0] ========== PHOTO SELECT START ==========")
-    console.log("[v0] handlePhotoSelect chamado")
-    console.log("[v0] e.target.files:", e.target.files)
-    console.log("[v0] e.target.files?.length:", e.target.files?.length)
-    
-    const file = e.target.files?.[0]
-    
-    console.log("[v0] file extraido:", file)
-    console.log("[v0] file instanceof File:", file instanceof File)
-    
-    if (file) {
-      console.log("[v0] FILE DETAILS:")
-      console.log("[v0]   - name:", file.name)
-      console.log("[v0]   - size:", file.size, "bytes")
-      console.log("[v0]   - size (KB):", (file.size / 1024).toFixed(2), "KB")
-      console.log("[v0]   - size (MB):", (file.size / 1024 / 1024).toFixed(2), "MB")
-      console.log("[v0]   - type:", file.type)
-      console.log("[v0]   - lastModified:", file.lastModified)
-      console.log("[v0]   - lastModifiedDate:", new Date(file.lastModified).toISOString())
-      
-      console.log("[v0] Chamando setCfgPhoto(file)...")
-      setCfgPhoto(file)
-      console.log("[v0] setCfgPhoto chamado com sucesso")
-      
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        console.log("[v0] FileReader onloadend - preview gerado")
-        console.log("[v0] Preview length:", (reader.result as string)?.length || 0)
-        setCfgPhotoPreview(reader.result as string)
-        console.log("[v0] setCfgPhotoPreview chamado")
-      }
-      reader.onerror = (err) => {
-        console.log("[v0] FileReader ERROR:", err)
-      }
-      reader.readAsDataURL(file)
-      console.log("[v0] FileReader.readAsDataURL iniciado")
-    } else {
-      console.log("[v0] NENHUM ARQUIVO SELECIONADO!")
-    }
-    console.log("[v0] ========== PHOTO SELECT END ==========")
-  }
-
-  // Salvar configurações - versao rapida e simples
+  // Salvar configuracoes
   async function handleSaveConfig() {
-    console.log("[v0] ========== SAVE CONFIG START ==========")
-    console.log("[v0] handleSaveConfig chamado")
-    console.log("[v0] configBot:", configBot?.id, configBot?.name)
-    
-    if (!configBot) {
-      console.log("[v0] ERROR: configBot is null/undefined!")
-      return
-    }
+    if (!configBot) return
     
     setIsSaving(true)
-    console.log("[v0] isSaving setado para true")
-    
     const hadPhoto = !!cfgPhoto
-    console.log("[v0] hadPhoto:", hadPhoto)
-    console.log("[v0] cfgPhoto atual:", cfgPhoto)
-    
-    if (cfgPhoto) {
-      console.log("[v0] CFGPHOTO DETAILS ANTES DO ENVIO:")
-      console.log("[v0]   - name:", cfgPhoto.name)
-      console.log("[v0]   - size:", cfgPhoto.size, "bytes")
-      console.log("[v0]   - type:", cfgPhoto.type)
-      console.log("[v0]   - instanceof File:", cfgPhoto instanceof File)
-      console.log("[v0]   - instanceof Blob:", cfgPhoto instanceof Blob)
-    }
     
     try {
-      // Usar FormData para suportar upload de foto
-      console.log("[v0] Criando FormData...")
       const formData = new FormData()
       formData.append("token", configBot.token)
       formData.append("name", cfgName.trim())
       formData.append("description", cfgDescription.trim())
       formData.append("shortDescription", cfgShortDescription.trim())
       
-      console.log("[v0] FormData criado com campos basicos")
-      console.log("[v0]   - token length:", configBot.token.length)
-      console.log("[v0]   - name:", cfgName.trim())
-      
       if (cfgPhoto) {
-        console.log("[v0] ADICIONANDO FOTO AO FORMDATA...")
         formData.append("photo", cfgPhoto)
-        console.log("[v0] Foto adicionada ao FormData")
-        
-        // Verificar se a foto foi adicionada corretamente
-        const photoFromForm = formData.get("photo")
-        console.log("[v0] photoFromForm:", photoFromForm)
-        console.log("[v0] photoFromForm instanceof File:", photoFromForm instanceof File)
-        if (photoFromForm instanceof File) {
-          console.log("[v0] photoFromForm details:")
-          console.log("[v0]   - name:", photoFromForm.name)
-          console.log("[v0]   - size:", photoFromForm.size)
-          console.log("[v0]   - type:", photoFromForm.type)
-        }
-      } else {
-        console.log("[v0] Nenhuma foto para adicionar")
-      }
-      
-      console.log("[v0] Enviando fetch para /api/telegram/update...")
-      console.log("[v0] FormData entries:")
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          console.log(`[v0]   ${key}: File(${value.name}, ${value.size} bytes, ${value.type})`)
-        } else {
-          console.log(`[v0]   ${key}: ${String(value).substring(0, 50)}...`)
-        }
       }
       
       const response = await fetch("/api/telegram/update", {
@@ -469,33 +373,16 @@ export default function BotsPage() {
         body: formData,
       })
       
-      console.log("[v0] Response recebido:")
-      console.log("[v0]   - status:", response.status)
-      console.log("[v0]   - ok:", response.ok)
-      console.log("[v0]   - statusText:", response.statusText)
-      
       const result = await response.json()
-      console.log("[v0] Result JSON:", JSON.stringify(result, null, 2))
       
-      // Atualizar no banco local
-      console.log("[v0] Atualizando bot no banco local...")
       await updateBot(configBot.id, {
         name: cfgName.trim() || configBot.name,
       })
-      console.log("[v0] Bot atualizado no banco local")
       
       const photoFailed = hadPhoto && result.results?.photo === false
       const photoError = result.results?.photoError
       
-      console.log("[v0] RESULTADO DO UPLOAD DE FOTO:")
-      console.log("[v0]   - hadPhoto:", hadPhoto)
-      console.log("[v0]   - result.results?.photo:", result.results?.photo)
-      console.log("[v0]   - photoFailed:", photoFailed)
-      console.log("[v0]   - photoError:", photoError)
-      
-      // Se upload de foto falhou, mostrar erro
       if (photoFailed) {
-        console.log("[v0] FOTO FALHOU! Mostrando toast de erro...")
         toast({
           title: "Erro na foto",
           description: `Erro do Telegram: ${photoError || "desconhecido"}. Tente PNG quadrado < 5MB.`,
@@ -503,30 +390,22 @@ export default function BotsPage() {
         })
       }
       
-      // Buscar dados atualizados do Telegram (rapido, sem retry)
-      console.log("[v0] Buscando dados atualizados do Telegram...")
+      // Buscar dados atualizados do Telegram
       const validateResponse = await fetch("/api/telegram/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: configBot.token }),
       })
       
-      console.log("[v0] validateResponse.ok:", validateResponse.ok)
-      
       if (validateResponse.ok) {
         const validateData = await validateResponse.json()
-        console.log("[v0] validateData.bot:", validateData.bot ? "existe" : "null")
-        console.log("[v0] validateData.bot.photo_url:", validateData.bot?.photo_url)
         
         if (validateData.bot) {
-          // Adicionar cache-busting se teve foto
           let photoUrl = validateData.bot.photo_url
           if (photoUrl && hadPhoto && !photoFailed) {
             photoUrl = `${photoUrl}${photoUrl.includes('?') ? '&' : '?'}t=${Date.now()}`
-            console.log("[v0] photoUrl com cache-busting:", photoUrl)
           }
           
-          console.log("[v0] Atualizando telegramDataCache...")
           setTelegramDataCache(prev => ({
             ...prev,
             [configBot.id]: {
@@ -542,42 +421,26 @@ export default function BotsPage() {
             short_description: validateData.bot.short_description,
             photo_url: photoUrl,
           }
-          console.log("[v0] setConfigBot com updatedBot:", updatedBot.photo_url)
           setConfigBot(updatedBot)
         }
       }
       
-      // Limpar estados
-      console.log("[v0] Limpando estados de foto...")
-      console.log("[v0] ANTES - cfgPhoto:", cfgPhoto)
-      console.log("[v0] ANTES - cfgPhotoPreview:", cfgPhotoPreview ? "existe" : "null")
       setCfgPhoto(null)
       setCfgPhotoPreview(null)
-      console.log("[v0] Estados de foto limpos")
       
       if (!photoFailed) {
-        console.log("[v0] Mostrando toast de sucesso")
         toast({
           title: "Sucesso",
-          description: hadPhoto ? "Foto e configurações salvas!" : "Alterações salvas com sucesso!",
+          description: hadPhoto ? "Foto e configuracoes salvas!" : "Alteracoes salvas com sucesso!",
         })
       }
-      
-      console.log("[v0] ========== SAVE CONFIG SUCCESS ==========")
-    } catch (error) {
-      console.error("[v0] ========== SAVE CONFIG ERROR ==========")
-      console.error("[v0] Error saving config:", error)
-      console.error("[v0] Error type:", typeof error)
-      console.error("[v0] Error name:", (error as Error)?.name)
-      console.error("[v0] Error message:", (error as Error)?.message)
-      console.error("[v0] Error stack:", (error as Error)?.stack)
+    } catch {
       toast({
         title: "Erro",
-        description: "Erro ao salvar alterações",
+        description: "Erro ao salvar alteracoes",
         variant: "destructive",
       })
     } finally {
-      console.log("[v0] Finally block - setIsSaving(false)")
       setIsSaving(false)
     }
   }
@@ -893,44 +756,30 @@ export default function BotsPage() {
                       }}
                     />
                     
-                    {/* Foto clicavel */}
-                    <input
-                      type="file"
-                      ref={photoInputRef}
-                      onChange={handlePhotoSelect}
-                      accept="image/*"
-                      className="hidden"
+                    {/* Foto com drag & drop e crop */}
+                    <AvatarUpload
+                      currentPhoto={
+                        cfgPhotoPreview || 
+                        ((configBot as ExtendedBot).photo_url 
+                          ? `${(configBot as ExtendedBot).photo_url}${(configBot as ExtendedBot).photo_url!.includes('?') ? '&' : '?'}t=${Date.now()}`
+                          : null
+                        )
+                      }
+                      onPhotoSelect={(file) => {
+                        setCfgPhoto(file)
+                        // Gerar preview imediato
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setCfgPhotoPreview(reader.result as string)
+                        }
+                        reader.readAsDataURL(file)
+                      }}
+                      size="md"
+                      showStatus
+                      statusActive={configBot.status === "active"}
+                      placeholder={<BotIcon className="h-7 w-7 text-[#bfff00]" />}
+                      className="mb-2"
                     />
-                    <div 
-                      className="relative inline-block group mb-2 cursor-pointer"
-                      onClick={() => photoInputRef.current?.click()}
-                    >
-                      {/* Preview ou foto atual */}
-                      {cfgPhotoPreview ? (
-                        <img
-                          src={cfgPhotoPreview}
-                          alt={configBot.name}
-                          className="w-16 h-16 rounded-xl object-cover border-2 border-[#bfff00]"
-                        />
-                      ) : (configBot as ExtendedBot).photo_url ? (
-                        <img
-                          src={`${(configBot as ExtendedBot).photo_url}${(configBot as ExtendedBot).photo_url!.includes('?') ? '&' : '?'}t=${Date.now()}`}
-                          alt={configBot.name}
-                          className="w-16 h-16 rounded-xl object-cover border-2 border-[#3a3a3e]"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-xl bg-[#bfff00]/10 flex items-center justify-center border-2 border-[#3a3a3e]">
-                          <BotIcon className="h-7 w-7 text-[#bfff00]" />
-                        </div>
-                      )}
-                      {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Camera className="h-4 w-4 text-white" />
-                      </div>
-                      <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-[#1c1c1e] ${
-                        configBot.status === "active" ? "bg-[#bfff00]" : "bg-gray-500"
-                      }`} />
-                    </div>
                     
                     <h2 className="text-base font-bold text-white">Configuracoes do Bot</h2>
                     <p className="text-[11px] text-gray-400">Clique na foto para alterar</p>
