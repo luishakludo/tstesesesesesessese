@@ -67,20 +67,17 @@ export async function updateBotProfilePhoto(
       })
       
       // O parametro "photo" deve ser um JSON com InputProfilePhotoStatic
-      // FORMATO CORRETO: { type: "static", photo: "attach://photo_file" }
-      const photoJson = JSON.stringify({
+      // FORMATO CORRETO VALIDADO: { type: "static", photo: "attach://photo_file" }
+      form.append("photo", JSON.stringify({
         type: "static",
         photo: "attach://photo_file"
-      })
-      form.append("photo", photoJson, { contentType: "application/json" })
+      }))
       
       const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
-        headers: {
-          ...form.getHeaders()
-        },
+        headers: form.getHeaders(),
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
-        timeout: 30000 // 30 segundos timeout
+        timeout: 15000 // 15 segundos timeout (padrao recomendado)
       })
       
       if (response.data.ok) {
