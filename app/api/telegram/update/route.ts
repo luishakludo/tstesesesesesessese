@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import FormData from "form-data"
+import { supabase } from "@/lib/supabase"
 
 // CRITICAL: Node.js runtime - NÃO usar Edge
 export const runtime = "nodejs"
@@ -107,18 +107,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload profile photo - SOLUCAO DEFINITIVA
+    // Upload profile photo - VIA SUPABASE STORAGE + URL PUBLICA
     if (file) {
       console.log("========== PHOTO UPLOAD START ==========")
       
-      // Verificar se file existe
-      if (!file) {
-        console.log("ERROR: file is null/undefined")
-        results.photo = false
-        results.photoError = "Arquivo não recebido"
-        return NextResponse.json({ success: true, results })
-      }
-
       // Validar tipo
       if (!file.type.startsWith("image/")) {
         console.log("ERROR: not an image, type:", file.type)
@@ -136,34 +128,49 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // 2. Convert File → Buffer (REQUIRED)
-        console.log("Converting File to Buffer...")
+        // 1. Convert File → Uint8Array para Supabase
+        console.log("Converting File to buffer...")
         const arrayBuffer = await file.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        const buffer = new Uint8Array(arrayBuffer)
         console.log("Buffer created, length:", buffer.length)
 
-        // 3. Use "form-data" library (NOT native FormData)
-        console.log("Creating form-data...")
-        const form = new FormData()
-        form.append("photo", buffer, {
-          filename: file.name || "photo.jpg",
-          contentType: file.type || "image/jpeg",
-        })
-        console.log("form-data created")
-        console.log("form.getHeaders():", form.getHeaders())
+        // 2. Gerar nome unico para o arquivo
+        const ext = file.name?.split(".").pop() || "jpg"
+        const uniqueId = `bot_${Date.now()}_${Math.random().toString(36).substring(7)}`
+        const filePath = `bot-photos/${uniqueId}.${ext}`
+        console.log("File path:", filePath)
 
-        // 4. Send request to Telegram
-        console.log("Sending to Telegram:", `${baseUrl}/setMyProfilePhoto`)
-        
-        const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
+        // 3. Upload para Supabase Storage (bucket flow-media)
+        console.log("Uploading to Supabase Storage...")
+        const { error: uploadError } = await supabase.storage
+          .from("flow-media")
+          .upload(filePath, buffer, {
+            contentType: file.type,
+            upsert: true,
+          })
+
+        if (uploadError) {
+          console.log("Supabase upload error:", uploadError)
+          results.photo = false
+          results.photoError = `Erro no upload: ${uploadError.message}`
+          return NextResponse.json({ success: true, results })
+        }
+
+        // 4. Pegar URL publica
+        const { data: urlData } = supabase.storage.from("flow-media").getPublicUrl(filePath)
+        const publicUrl = urlData.publicUrl
+        console.log("Public URL:", publicUrl)
+
+        // 5. Enviar para o Telegram usando URL publica
+        console.log("Sending to Telegram with URL...")
+        const telegramResponse = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          headers: form.getHeaders(),
-          // @ts-expect-error - form-data is compatible with fetch body
-          body: form,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photo: publicUrl }),
         })
 
-        const responseText = await response.text()
-        console.log("TELEGRAM RESPONSE STATUS:", response.status)
+        const responseText = await telegramResponse.text()
+        console.log("TELEGRAM RESPONSE STATUS:", telegramResponse.status)
         console.log("TELEGRAM RESPONSE:", responseText)
 
         let telegramResult: { ok: boolean; description?: string }
