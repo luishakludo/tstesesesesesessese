@@ -111,14 +111,18 @@ export async function POST(request: NextRequest) {
           contentType: photo.type || "image/png",
         })
         
-        console.log("[v0] UPDATE API - Sending to Telegram with form-data lib...")
+        // IMPORTANTE: Usar getBuffer() em vez de passar o form diretamente
+        // fetch no Node.js nao aceita stream, precisa de Buffer
+        const formBuffer = form.getBuffer()
+        const formHeaders = form.getHeaders()
+        
+        console.log("[v0] UPDATE API - Form buffer size:", formBuffer.length)
+        console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          // IMPORTANTE: usar getHeaders() para multipart funcionar
-          headers: form.getHeaders(),
-          // @ts-expect-error form-data stream e compativel com fetch body
-          body: form,
+          headers: formHeaders,
+          body: formBuffer,
         })
         
         const responseText = await response.text()
