@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import FormData from "form-data"
 
-// IMPORTANTE: Forcar runtime nodejs (form-data NAO funciona no edge)
+// IMPORTANTE: Forcar runtime nodejs para suportar upload de arquivos
 export const runtime = "nodejs"
 
 interface TelegramResponse<T> {
@@ -24,6 +23,7 @@ export async function POST(request: NextRequest) {
     console.log("[v0] UPDATE API - token exists:", !!token)
     console.log("[v0] UPDATE API - name:", name)
     console.log("[v0] UPDATE API - photo:", photo ? `File: ${photo.name}, size: ${photo.size}, type: ${photo.type}` : "null")
+    console.log("[v0] UPDATE API - photo instanceof File:", photo instanceof File)
 
     if (!token || typeof token !== "string") {
       return NextResponse.json(
@@ -93,36 +93,42 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando form-data (lib) com Buffer
+    // Upload new profile photo usando FormData nativo do Web API
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
+      
+      // Validacoes
+      if (!photo.type.startsWith("image/")) {
+        results.photo = false
+        results.photoError = "Arquivo deve ser uma imagem (PNG, JPG)"
+        return NextResponse.json({ success: true, results })
+      }
+      
+      // Telegram limite: 5MB para foto de perfil
+      const maxSize = 5 * 1024 * 1024
+      if (photo.size > maxSize) {
+        results.photo = false
+        results.photoError = `Imagem muito grande (${(photo.size / 1024 / 1024).toFixed(2)}MB). Máximo: 5MB`
+        return NextResponse.json({ success: true, results })
+      }
+      
       try {
-        // CONVERSAO REAL: File -> ArrayBuffer -> Buffer
+        // Converter File para Blob com ArrayBuffer
         const arrayBuffer = await photo.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+        const blob = new Blob([arrayBuffer], { type: photo.type })
         
-        console.log("[v0] UPDATE API - Buffer size:", buffer.length)
-        console.log("[v0] UPDATE API - File type:", photo.type)
+        console.log("[v0] UPDATE API - Blob size:", blob.size)
+        console.log("[v0] UPDATE API - Blob type:", blob.type)
         
-        // Usar form-data library com Buffer (NAO Blob)
-        const form = new FormData()
-        form.append("photo", buffer, {
-          filename: photo.name || "photo.png",
-          contentType: photo.type || "image/png",
-        })
+        // Criar FormData nativo para enviar ao Telegram
+        const telegramFormData = new FormData()
+        telegramFormData.append("photo", blob, photo.name || "photo.png")
         
-        // IMPORTANTE: Usar getBuffer() em vez de passar o form diretamente
-        // fetch no Node.js nao aceita stream, precisa de Buffer
-        const formBuffer = form.getBuffer()
-        const formHeaders = form.getHeaders()
-        
-        console.log("[v0] UPDATE API - Form buffer size:", formBuffer.length)
         console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          headers: formHeaders,
-          body: formBuffer,
+          body: telegramFormData,
         })
         
         const responseText = await response.text()
