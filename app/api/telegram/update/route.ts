@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
+import FormData from "form-data"
+
+// IMPORTANTE: Forcar runtime nodejs (form-data NAO funciona no edge)
+export const runtime = "nodejs"
 
 interface TelegramResponse<T> {
   ok: boolean
@@ -8,13 +12,13 @@ interface TelegramResponse<T> {
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData()
-    const token = formData.get("token") as string
-    const name = formData.get("name") as string | null
-    const description = formData.get("description") as string | null
-    const shortDescription = formData.get("shortDescription") as string | null
-    const photo = formData.get("photo") as File | null
-    const deletePhoto = formData.get("deletePhoto") === "true"
+    const reqFormData = await request.formData()
+    const token = reqFormData.get("token") as string
+    const name = reqFormData.get("name") as string | null
+    const description = reqFormData.get("description") as string | null
+    const shortDescription = reqFormData.get("shortDescription") as string | null
+    const photo = reqFormData.get("photo") as File | null
+    const deletePhoto = reqFormData.get("deletePhoto") === "true"
 
     console.log("[v0] UPDATE API - Received request")
     console.log("[v0] UPDATE API - token exists:", !!token)
@@ -89,54 +93,32 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando multipart manual
+    // Upload new profile photo usando form-data (lib) com Buffer
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
       try {
+        // CONVERSAO REAL: File -> ArrayBuffer -> Buffer
         const arrayBuffer = await photo.arrayBuffer()
-        const uint8Array = new Uint8Array(arrayBuffer)
+        const buffer = Buffer.from(arrayBuffer)
         
-        console.log("[v0] UPDATE API - File size:", uint8Array.length)
+        console.log("[v0] UPDATE API - Buffer size:", buffer.length)
         console.log("[v0] UPDATE API - File type:", photo.type)
         
-        // Criar multipart body manualmente (mais confiavel no Node.js)
-        const boundary = `----WebKitFormBoundary${Math.random().toString(36).substring(2)}`
-        const filename = photo.name || "photo.png"
-        const contentType = photo.type || "image/png"
+        // Usar form-data library com Buffer (NAO Blob)
+        const form = new FormData()
+        form.append("photo", buffer, {
+          filename: photo.name || "photo.png",
+          contentType: photo.type || "image/png",
+        })
         
-        // Header part
-        const headerStr = [
-          `--${boundary}`,
-          `Content-Disposition: form-data; name="photo"; filename="${filename}"`,
-          `Content-Type: ${contentType}`,
-          "",
-          ""
-        ].join("\r\n")
-        
-        // Footer part  
-        const footerStr = `\r\n--${boundary}--\r\n`
-        
-        // Converter strings para Uint8Array
-        const encoder = new TextEncoder()
-        const headerBytes = encoder.encode(headerStr)
-        const footerBytes = encoder.encode(footerStr)
-        
-        // Concatenar tudo
-        const bodyLength = headerBytes.length + uint8Array.length + footerBytes.length
-        const body = new Uint8Array(bodyLength)
-        body.set(headerBytes, 0)
-        body.set(uint8Array, headerBytes.length)
-        body.set(footerBytes, headerBytes.length + uint8Array.length)
-        
-        console.log("[v0] UPDATE API - Total body size:", body.length)
-        console.log("[v0] UPDATE API - Sending to Telegram...")
+        console.log("[v0] UPDATE API - Sending to Telegram with form-data lib...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
-          headers: {
-            "Content-Type": `multipart/form-data; boundary=${boundary}`,
-          },
-          body: body,
+          // IMPORTANTE: usar getHeaders() para multipart funcionar
+          headers: form.getHeaders(),
+          // @ts-expect-error form-data stream e compativel com fetch body
+          body: form,
         })
         
         const responseText = await response.text()
