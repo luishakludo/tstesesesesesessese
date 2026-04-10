@@ -218,25 +218,25 @@ export default function PrivacyEditorPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-white">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0">
+      <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card flex-shrink-0">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push("/biolink")}
-            className="h-8 w-8 rounded-lg text-gray-500 hover:text-gray-900"
+            className="h-9 w-9 rounded-lg"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-orange-300 flex items-center justify-center">
-              <Lock className="h-4 w-4 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              <Lock className="h-4 w-4 text-amber-600" />
             </div>
             <div>
-              <h1 className="font-semibold text-gray-900 text-sm">{site?.nome || "Privacy"}</h1>
-              <p className="text-[11px] text-gray-500">/s/{site?.slug}</p>
+              <h1 className="font-semibold text-foreground text-sm">{site?.nome || "Privacy"}</h1>
+              <p className="text-xs text-muted-foreground">/s/{site?.slug}</p>
             </div>
           </div>
         </div>
@@ -245,29 +245,30 @@ export default function PrivacyEditorPage({ params }: PageProps) {
             variant="outline"
             size="sm"
             onClick={() => window.open(`/s/${site?.slug}`, '_blank')}
-            className="h-9 px-3 rounded-lg text-sm"
+            className="h-9 px-4"
           >
-            <Eye className="w-3.5 h-3.5 mr-1.5" />
+            <Eye className="w-4 h-4 mr-2" />
             Preview
           </Button>
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="h-9 px-4 rounded-lg bg-orange-500 text-white hover:bg-orange-600 text-sm"
+            variant="accent"
+            className="h-9 px-4"
           >
             {isSaving ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Salvando
               </span>
             ) : saved ? (
               <span className="flex items-center gap-2">
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4" />
                 Salvo
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Save className="w-3.5 h-3.5" />
+                <Save className="w-4 h-4" />
                 Salvar
               </span>
             )}
@@ -278,24 +279,24 @@ export default function PrivacyEditorPage({ params }: PageProps) {
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor Panel */}
-        <div className="w-[400px] border-r border-gray-200 flex flex-col bg-white flex-shrink-0">
+        <div className="w-[400px] border-r border-border flex flex-col bg-card flex-shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="px-4 pt-4">
-              <TabsList className="w-full bg-gray-100 rounded-lg h-10 p-1">
-                <TabsTrigger value="perfil" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Type className="w-3 h-3 mr-1" />
+              <TabsList className="w-full h-11">
+                <TabsTrigger value="perfil" className="flex-1 text-xs">
+                  <Type className="w-3.5 h-3.5 mr-1.5" />
                   Perfil
                 </TabsTrigger>
-                <TabsTrigger value="posts" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <ImageIcon className="w-3 h-3 mr-1" />
+                <TabsTrigger value="posts" className="flex-1 text-xs">
+                  <ImageIcon className="w-3.5 h-3.5 mr-1.5" />
                   Posts
                 </TabsTrigger>
-                <TabsTrigger value="planos" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Lock className="w-3 h-3 mr-1" />
+                <TabsTrigger value="planos" className="flex-1 text-xs">
+                  <Lock className="w-3.5 h-3.5 mr-1.5" />
                   Planos
                 </TabsTrigger>
-                <TabsTrigger value="visual" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Palette className="w-3 h-3 mr-1" />
+                <TabsTrigger value="visual" className="flex-1 text-xs">
+                  <Palette className="w-3.5 h-3.5 mr-1.5" />
                   Visual
                 </TabsTrigger>
               </TabsList>

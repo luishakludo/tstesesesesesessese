@@ -196,21 +196,21 @@ export default function CheckoutEditorPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-white">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Header */}
-      <header className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white flex-shrink-0">
+      <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card flex-shrink-0">
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.push("/biolink")}
-            className="h-8 w-8 rounded-lg"
+            className="h-9 w-9 rounded-lg"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="font-semibold text-gray-900 text-sm">{site?.nome || "Checkout"}</h1>
-            <p className="text-[11px] text-gray-500">/s/{site?.slug}</p>
+            <h1 className="font-semibold text-foreground text-sm">{site?.nome || "Checkout"}</h1>
+            <p className="text-xs text-muted-foreground">/s/{site?.slug}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -218,22 +218,23 @@ export default function CheckoutEditorPage({ params }: PageProps) {
             variant="outline"
             size="sm"
             onClick={() => window.open(`/s/${site?.slug}`, '_blank')}
-            className="h-9 px-3 rounded-lg text-sm"
+            className="h-9 px-4"
           >
-            <Eye className="w-3.5 h-3.5 mr-1.5" />
+            <Eye className="w-4 h-4 mr-2" />
             Preview
           </Button>
           <Button
             onClick={handleSave}
             disabled={isSaving}
-            className="h-9 px-4 rounded-lg bg-blue-500 text-white hover:bg-blue-600 text-sm"
+            variant="accent"
+            className="h-9 px-4"
           >
             {isSaving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" />
             ) : saved ? (
-              <><Check className="w-3.5 h-3.5 mr-1" /> Salvo</>
+              <><Check className="w-4 h-4 mr-2" /> Salvo</>
             ) : (
-              <><Save className="w-3.5 h-3.5 mr-1" /> Salvar</>
+              <><Save className="w-4 h-4 mr-2" /> Salvar</>
             )}
           </Button>
         </div>
@@ -241,31 +242,31 @@ export default function CheckoutEditorPage({ params }: PageProps) {
 
       <div className="flex-1 flex overflow-hidden">
         {/* Editor Panel */}
-        <div className="w-[400px] border-r border-gray-200 flex flex-col bg-white flex-shrink-0">
+        <div className="w-[400px] border-r border-border flex flex-col bg-card flex-shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="px-4 pt-4">
-              <TabsList className="w-full bg-gray-100 rounded-lg h-10 p-1">
-                <TabsTrigger value="produto" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Type className="w-3 h-3 mr-1" />
+              <TabsList className="w-full h-11">
+                <TabsTrigger value="produto" className="flex-1 text-xs">
+                  <Type className="w-3.5 h-3.5 mr-1.5" />
                   Produto
                 </TabsTrigger>
-                <TabsTrigger value="campos" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Settings className="w-3 h-3 mr-1" />
+                <TabsTrigger value="campos" className="flex-1 text-xs">
+                  <Settings className="w-3.5 h-3.5 mr-1.5" />
                   Campos
                 </TabsTrigger>
-                <TabsTrigger value="visual" className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white">
-                  <Palette className="w-3 h-3 mr-1" />
+                <TabsTrigger value="visual" className="flex-1 text-xs">
+                  <Palette className="w-3.5 h-3.5 mr-1.5" />
                   Visual
                 </TabsTrigger>
                 <TabsTrigger 
                   value="leads" 
-                  className="flex-1 rounded-md text-[10px] data-[state=active]:bg-white"
+                  className="flex-1 text-xs"
                   onClick={() => { if (leads.length === 0) fetchLeads() }}
                 >
-                  <Users className="w-3 h-3 mr-1" />
+                  <Users className="w-3.5 h-3.5 mr-1.5" />
                   Leads
                   {leads.length > 0 && (
-                    <span className="ml-1 bg-blue-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 bg-accent text-accent-foreground text-[10px] px-2 py-0.5 rounded-md font-medium">
                       {leads.length}
                     </span>
                   )}
@@ -276,9 +277,9 @@ export default function CheckoutEditorPage({ params }: PageProps) {
             <div className="flex-1 min-h-0 relative">
               {/* Produto Tab */}
               <TabsContent value="produto" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
-                <div className="flex flex-col gap-5">
-                  <div>
-                    <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
+                <div className="flex flex-col gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                       Imagem do Produto
                     </Label>
                     <ImageUpload

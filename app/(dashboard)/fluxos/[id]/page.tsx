@@ -2506,39 +2506,38 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
                 <div className="p-6">
                   {plans.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="h-16 w-16 rounded-2xl bg-neutral-100 flex items-center justify-center mx-auto mb-4">
-                        <CreditCard className="h-8 w-8 text-neutral-400" />
+                    <div className="rounded-2xl border-2 border-dashed border-border bg-muted/20">
+                      <div className="flex flex-col items-center justify-center py-16 px-6">
+                        <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                          <CreditCard className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground mb-1">Nenhum plano configurado</p>
+                        <p className="text-sm text-muted-foreground text-center max-w-xs mb-6">Crie planos para seus clientes comprarem</p>
+                        <Button onClick={handleAddPlan} variant="accent">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Plano
+                        </Button>
                       </div>
-                      <h4 className="font-bold text-neutral-900 mb-1">Nenhum plano configurado</h4>
-                      <p className="text-sm text-neutral-500 mb-6">Crie planos para seus clientes comprarem</p>
-                      <button
-                        onClick={handleAddPlan}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#bfff00] hover:bg-[#d4ff4d] text-neutral-900 transition-colors shadow-[0_0_20px_rgba(190,255,0,0.25)]"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Adicionar Plano
-                      </button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       {plans.map((plan, index) => (
                         <div
                           key={plan.id}
-                          className="rounded-xl border border-neutral-100 bg-neutral-50 overflow-hidden hover:border-neutral-200 transition-colors"
+                          className="rounded-xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-border/80"
                         >
                           {/* Plan Header - Collapsible */}
                           <div
-                            className="flex items-center justify-between p-4 cursor-pointer"
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                             onClick={() => setExpandedPlan(expandedPlan === plan.id ? null : plan.id)}
                           >
                             <div className="flex items-center gap-4">
-                              <div className="h-12 w-12 rounded-xl bg-white border border-neutral-200 flex items-center justify-center">
-                                <Package className="h-5 w-5 text-neutral-600" />
+                              <div className="h-11 w-11 rounded-xl bg-accent/10 flex items-center justify-center">
+                                <Package className="h-5 w-5 text-accent-foreground" />
                               </div>
                               <div>
-                                <p className="font-semibold text-neutral-900">{plan.name || `Plano ${index + 1}`}</p>
-                                <p className="text-sm text-neutral-500">
+                                <p className="font-medium text-foreground">{plan.name || `Plano ${index + 1}`}</p>
+                                <p className="text-sm text-muted-foreground">
                                   R$ {Number(plan.price || 0).toFixed(2)} • {
                                     plan.duration_type === "daily" ? "Diario" :
                                     plan.duration_type === "weekly" ? "Semanal" :
@@ -2548,17 +2547,21 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <button
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg hover:bg-destructive/10"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleRemovePlan(plan.id)
                                 }}
-                                className="h-8 w-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                               >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                              <ChevronDown className={`h-5 w-5 text-neutral-400 transition-transform ${expandedPlan === plan.id ? "rotate-180" : ""}`} />
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${expandedPlan === plan.id ? 'bg-accent/10' : 'bg-muted'}`}>
+                                <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${expandedPlan === plan.id ? "rotate-180 text-accent-foreground" : "text-muted-foreground"}`} />
+                              </div>
                             </div>
                           </div>
 
@@ -2991,20 +2994,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "upsell" && (
             <div className="space-y-6">
               {/* Upsell Main Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-                <div className="px-6 py-5 border-b border-neutral-100">
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[#bfff00] to-[#8fb300] flex items-center justify-center shadow-lg shadow-[#bfff00]/30">
-                        <TrendingUp className="h-5 w-5 text-neutral-900" />
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center">
+                        <TrendingUp className="h-5 w-5 text-accent-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-neutral-900">Upsell</h3>
-                        <p className="text-sm text-neutral-500">Aumente suas vendas com ofertas especiais</p>
+                        <h3 className="font-semibold text-foreground">Upsell</h3>
+                        <p className="text-sm text-muted-foreground">Aumente suas vendas com ofertas especiais</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">{upsellSequences.length}/20</span>
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-medium text-accent-foreground bg-accent/10 px-3 py-1.5 rounded-lg">{upsellSequences.length}/20</span>
                       <Switch
                         checked={upsellEnabled}
                         onCheckedChange={(checked) => {
@@ -3017,10 +3020,10 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
 
                 {upsellEnabled && (
-                  <div className="px-6 py-4 bg-neutral-50 border-b border-neutral-100">
+                  <div className="px-6 py-4 bg-muted/30 border-b border-border">
                     <div className="flex items-center gap-6">
-                      <div className="flex-1">
-                        <Label className="text-sm font-medium text-neutral-700">Entrega do Upsell</Label>
+                      <div className="flex-1 space-y-2">
+                        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entrega do Upsell</Label>
                         <Select
                           value={upsellDeliveryType}
                           onValueChange={(value: "same" | "custom") => {
@@ -3028,9 +3031,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                             setHasChanges(true)
                           }}
                         >
-                          <SelectTrigger className="bg-white border-neutral-200 mt-1.5">
+                          <SelectTrigger className="bg-background border-border">
                             <div className="flex items-center gap-2">
-                              <RefreshCw className="h-4 w-4 text-neutral-500" />
+                              <RefreshCw className="h-4 w-4 text-muted-foreground" />
                               <SelectValue />
                             </div>
                           </SelectTrigger>
@@ -3040,9 +3043,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex-1 p-3 rounded-xl bg-[#bfff00]/10 border border-[#bfff00]/20">
-                        <p className="text-xs font-medium text-[#8fb300] mb-1">Como funciona?</p>
-                        <p className="text-xs text-neutral-600">Upsell e enviado apos o cliente pagar, oferecendo produtos complementares.</p>
+                      <div className="flex-1 p-4 rounded-xl bg-accent/5 border border-accent/10">
+                        <p className="text-xs font-medium text-accent-foreground mb-1">Como funciona?</p>
+                        <p className="text-xs text-muted-foreground">Upsell e enviado apos o cliente pagar, oferecendo produtos complementares.</p>
                       </div>
                     </div>
                   </div>
@@ -3052,59 +3055,69 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 <div className="p-6">
 
                 {!upsellEnabled ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <TrendingUp className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500">Ative o Upsell para configurar sequencias</p>
-                    </CardContent>
-                  </Card>
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/20">
+                    <div className="flex flex-col items-center justify-center py-16 px-6">
+                      <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                        <TrendingUp className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground mb-1">Upsell desativado</p>
+                      <p className="text-sm text-muted-foreground text-center max-w-xs">Ative o upsell acima para configurar sequencias de ofertas</p>
+                    </div>
+                  </div>
                 ) : upsellSequences.length === 0 ? (
-                  <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
-                    <CardContent className="flex flex-col items-center justify-center py-16">
-                      <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
-                      <p className="text-neutral-500 mb-4">Nenhuma sequencia configurada</p>
-                      <Button onClick={handleAddUpsellSequence} className="bg-accent hover:bg-accent/90">
+                  <div className="rounded-2xl border border-dashed border-border bg-muted/20">
+                    <div className="flex flex-col items-center justify-center py-16 px-6">
+                      <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mb-4">
+                        <Plus className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm font-medium text-foreground mb-1">Nenhuma sequencia configurada</p>
+                      <p className="text-sm text-muted-foreground text-center max-w-xs mb-6">Crie uma sequencia de upsell para aumentar suas vendas</p>
+                      <Button onClick={handleAddUpsellSequence} variant="accent">
                         <Plus className="h-4 w-4 mr-2" />
                         Adicionar Sequencia
                       </Button>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {upsellSequences.map((seq, index) => (
-                      <Card key={seq.id} className="border-neutral-200">
+                      <div key={seq.id} className="rounded-xl border border-border bg-card overflow-hidden transition-all duration-200 hover:border-border/80">
                         {/* Sequence Header */}
                         <div
-                          className="flex items-center justify-between p-4 cursor-pointer"
+                          className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/30 transition-colors"
                           onClick={() => setExpandedSequence(expandedSequence === seq.id ? null : seq.id)}
                         >
                           <div className="flex items-center gap-3">
-                            {expandedSequence === seq.id ? (
-                              <ChevronDown className="h-4 w-4 text-neutral-500" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-neutral-500" />
-                            )}
-                            <span className="font-medium">{seq.name || `Upsell ${index + 1}`}</span>
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center transition-colors ${expandedSequence === seq.id ? 'bg-accent/10' : 'bg-muted'}`}>
+                              {expandedSequence === seq.id ? (
+                                <ChevronDown className="h-4 w-4 text-accent-foreground" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                            <span className="font-medium text-foreground">{seq.name || `Upsell ${index + 1}`}</span>
                             {(seq.plans?.length || 0) > 0 && (
-                              <span className="text-xs text-neutral-500 bg-secondary/50 px-2 py-0.5 rounded">
+                              <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
                                 {seq.plans?.length} {seq.plans?.length === 1 ? "plano" : "planos"}
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8 rounded-lg"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleDuplicateUpsellSequence(seq)
                               }}
                             >
-                              <Copy className="h-4 w-4 text-neutral-500" />
+                              <Copy className="h-4 w-4 text-muted-foreground" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-destructive/10"
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleRemoveUpsellSequence(seq.id)
@@ -3441,14 +3454,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                     {/* Add Sequence Button */}
                     {upsellSequences.length < 20 && (
-                      <Button
-                        variant="outline"
-                        className="w-full border-dashed"
+                      <button
                         onClick={handleAddUpsellSequence}
+                        className="w-full py-4 rounded-xl border-2 border-dashed border-border hover:border-accent/50 hover:bg-accent/5 text-muted-foreground hover:text-accent-foreground transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium"
                       >
-                        <Plus className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4" />
                         Adicionar Sequencia
-                      </Button>
+                      </button>
                     )}
                   </div>
                 )}
@@ -3461,20 +3473,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
           {activeTab === "downsell" && (
             <div className="space-y-6">
               {/* Downsell Main Card */}
-              <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 overflow-hidden">
-                <div className="px-6 py-5 border-b border-neutral-100">
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/25">
-                        <TrendingDown className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-xl bg-pink-500/10 flex items-center justify-center">
+                        <TrendingDown className="h-5 w-5 text-pink-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-neutral-900">Downsell</h3>
-                        <p className="text-sm text-neutral-500">Recupere vendas com ofertas alternativas</p>
+                        <h3 className="font-semibold text-foreground">Downsell</h3>
+                        <p className="text-sm text-muted-foreground">Recupere vendas com ofertas alternativas</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm font-medium text-accent-foreground bg-accent/10 px-3 py-1.5 rounded-lg">
                         {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length}/20
                       </span>
                       <Switch
@@ -3489,24 +3501,20 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </div>
 
                 {/* Sub-tabs */}
-                <div className="px-6 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center gap-2">
-                  <Button
-                    variant={downsellSubTab === "geral" ? "default" : "outline"}
-                    size="sm"
+                <div className="px-6 py-3 bg-muted/30 border-b border-border flex items-center gap-2">
+                  <button
                     onClick={() => setDownsellSubTab("geral")}
-                    className={downsellSubTab === "geral" ? "bg-pink-500 hover:bg-pink-600" : ""}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${downsellSubTab === "geral" ? "bg-pink-500 text-white shadow-sm" : "bg-background border border-border text-muted-foreground hover:text-foreground"}`}
                   >
                     Geral
-                  </Button>
-                  <Button
-                    variant={downsellSubTab === "pix" ? "default" : "outline"}
-                    size="sm"
+                  </button>
+                  <button
                     onClick={() => setDownsellSubTab("pix")}
-                    className={downsellSubTab === "pix" ? "bg-orange-500 hover:bg-orange-600" : ""}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${downsellSubTab === "pix" ? "bg-amber-500 text-white shadow-sm" : "bg-background border border-border text-muted-foreground hover:text-foreground"}`}
                   >
                     PIX Gerado
-                  </Button>
-                  <span className="ml-auto text-xs text-neutral-500">
+                  </button>
+                  <span className="ml-auto text-xs text-muted-foreground">
                     {downsellSubTab === "geral" 
                       ? "Sequencias para todos os leads que nao compraram"
                       : "Sequencias para quem gerou PIX mas nao pagou"
