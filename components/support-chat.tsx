@@ -24,14 +24,14 @@ const CATEGORIES = [
 // Logo Dragon como avatar
 function DragonAvatar({ size = "md" }: { size?: "sm" | "md" }) {
   const sizeClasses = size === "sm" ? "w-8 h-8" : "w-10 h-10"
-  const imgSize = size === "sm" ? 18 : 22
+  const imgSize = size === "sm" ? 16 : 20
   return (
     <div className={cn(
       sizeClasses,
       "rounded-full bg-[#bfff00] flex items-center justify-center shrink-0"
     )}>
       <Image
-        src="/images/dragon-icon.png"
+        src="/images/dragon-logo.png"
         alt=""
         width={imgSize}
         height={imgSize}
@@ -157,10 +157,10 @@ export function SupportChat() {
         aria-label="Abrir chat de suporte"
       >
         <Image
-          src="/images/dragon-icon.png"
+          src="/images/dragon-logo.png"
           alt=""
-          width={28}
-          height={28}
+          width={26}
+          height={26}
           className="object-contain"
         />
       </button>
@@ -226,10 +226,10 @@ export function SupportChat() {
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-16 h-16 rounded-full bg-[#bfff00] flex items-center justify-center mb-4 shadow-lg shadow-[#bfff00]/20">
               <Image
-                src="/images/dragon-icon.png"
+                src="/images/dragon-logo.png"
                 alt=""
-                width={36}
-                height={36}
+                width={32}
+                height={32}
                 className="object-contain"
               />
             </div>
