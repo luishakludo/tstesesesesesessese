@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import FormData from "form-data"
 
 // CRITICAL: Node.js runtime - NÃO usar Edge
 export const runtime = "nodejs"
@@ -16,19 +16,17 @@ export async function POST(request: NextRequest) {
     const file = data.get("photo") as File | null
     const deletePhoto = data.get("deletePhoto") === "true"
 
-    // DEBUG OBRIGATORIO
     console.log("========== TELEGRAM UPDATE API ==========")
     console.log("TOKEN EXISTS:", !!token)
-    console.log("TOKEN LENGTH:", token?.length)
-    console.log("FILE:", file)
-    console.log("NAME:", file?.name)
-    console.log("TYPE:", file?.type)
-    console.log("SIZE:", file?.size)
-    console.log("FILE instanceof File:", file instanceof File)
+    console.log("FILE EXISTS:", !!file)
+    if (file) {
+      console.log("FILE name:", file.name)
+      console.log("FILE type:", file.type)
+      console.log("FILE size:", file.size, "bytes")
+    }
     console.log("==========================================")
 
     if (!token || typeof token !== "string") {
-      console.log("ERROR: Token missing")
       return NextResponse.json({ error: "Token é obrigatório" }, { status: 400 })
     }
 
@@ -107,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload profile photo - VIA SUPABASE STORAGE + URL PUBLICA
+    // Upload profile photo - MULTIPART/FORM-DATA DIRETO PARA TELEGRAM
     if (file) {
       console.log("========== PHOTO UPLOAD START ==========")
       
@@ -128,45 +126,29 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // 1. Convert File → Uint8Array para Supabase
-        console.log("Converting File to buffer...")
+        // 1. Converter File para Buffer
+        console.log("Converting File to Buffer...")
         const arrayBuffer = await file.arrayBuffer()
-        const buffer = new Uint8Array(arrayBuffer)
-        console.log("Buffer created, length:", buffer.length)
+        const buffer = Buffer.from(arrayBuffer)
+        console.log("Buffer length:", buffer.length)
 
-        // 2. Gerar nome unico para o arquivo
-        const ext = file.name?.split(".").pop() || "jpg"
-        const uniqueId = `bot_${Date.now()}_${Math.random().toString(36).substring(7)}`
-        const filePath = `bot-photos/${uniqueId}.${ext}`
-        console.log("File path:", filePath)
+        // 2. Criar FormData usando a biblioteca form-data (funciona no Node.js)
+        console.log("Creating FormData with form-data library...")
+        const form = new FormData()
+        form.append("photo", buffer, {
+          filename: file.name || "photo.jpg",
+          contentType: file.type || "image/jpeg",
+        })
 
-        // 3. Upload para Supabase Storage (bucket flow-media)
-        console.log("Uploading to Supabase Storage...")
-        const { error: uploadError } = await supabase.storage
-          .from("flow-media")
-          .upload(filePath, buffer, {
-            contentType: file.type,
-            upsert: true,
-          })
-
-        if (uploadError) {
-          console.log("Supabase upload error:", uploadError)
-          results.photo = false
-          results.photoError = `Erro no upload: ${uploadError.message}`
-          return NextResponse.json({ success: true, results })
-        }
-
-        // 4. Pegar URL publica
-        const { data: urlData } = supabase.storage.from("flow-media").getPublicUrl(filePath)
-        const publicUrl = urlData.publicUrl
-        console.log("Public URL:", publicUrl)
-
-        // 5. Enviar para o Telegram usando URL publica
-        console.log("Sending to Telegram with URL...")
-        const telegramResponse = await fetch(`${baseUrl}/setMyProfilePhoto`, {
+        // 3. Enviar para o Telegram via multipart/form-data
+        console.log("Sending to Telegram with multipart/form-data...")
+        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
+        
+        const telegramResponse = await fetch(telegramUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ photo: publicUrl }),
+          headers: form.getHeaders(),
+          // @ts-expect-error - form-data stream works with fetch in Node.js
+          body: form,
         })
 
         const responseText = await telegramResponse.text()
