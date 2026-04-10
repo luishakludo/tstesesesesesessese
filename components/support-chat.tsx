@@ -141,21 +141,16 @@ export function SupportChat() {
     setSelectedCategory(null)
   }
 
-  // Botao flutuante - Design premium com borda sutil
+  // Botao flutuante - Compacto
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 group"
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-2xl bg-[#0a0a0a] border border-neutral-800 hover:border-[#bfff00]/50 flex items-center justify-center shadow-xl transition-all duration-200 hover:scale-105"
         aria-label="Abrir chat de suporte"
       >
-        <div className="relative flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#0a0a0a] border border-neutral-800 hover:border-[#bfff00]/40 transition-all duration-300 shadow-xl">
-          <AgentAvatar />
-          <div className="text-left pr-1">
-            <span className="text-white text-sm font-medium block">Precisa de ajuda?</span>
-            <span className="text-neutral-500 text-xs">Fale com a gente</span>
-          </div>
-          <ArrowUpRight className="w-4 h-4 text-neutral-500 group-hover:text-[#bfff00] transition-colors" />
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-neutral-700 to-neutral-800 flex items-center justify-center font-semibold text-white text-sm border border-neutral-600/50">
+          D
         </div>
       </button>
     )
