@@ -1,229 +1,331 @@
 import { NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 import FormData from "form-data"
 
-// OBRIGATORIO: Node.js runtime
 export const runtime = "nodejs"
 
-export async function POST(request: NextRequest) {
+// GET - Pagina de diagnostico automatica (so acessar no navegador)
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const botId = searchParams.get("botId")
+  
   const logs: string[] = []
   const log = (msg: string) => {
     console.log(msg)
     logs.push(msg)
   }
-
+  
   log("========================================")
-  log("DIAGNOSTIC TEST - PROVE ROOT CAUSE")
+  log("TELEGRAM PHOTO UPLOAD - DIAGNOSTIC")
   log("========================================")
-
+  log("")
+  
+  // STEP 1: Buscar bot do banco automaticamente
+  log("STEP 1: Buscando bot no banco...")
+  
+  let bot: { id: string; token: string; name: string; username?: string } | null = null
+  
+  if (botId) {
+    const { data, error } = await supabase
+      .from("bots")
+      .select("id, token, name, username")
+      .eq("id", botId)
+      .single()
+    
+    if (error || !data) {
+      log(`ERROR: Bot ${botId} nao encontrado`)
+      return renderHTML(logs, "Bot nao encontrado")
+    }
+    bot = data
+  } else {
+    const { data, error } = await supabase
+      .from("bots")
+      .select("id, token, name, username")
+      .limit(1)
+      .single()
+    
+    if (error || !data) {
+      log("ERROR: Nenhum bot encontrado no banco")
+      return renderHTML(logs, "Nenhum bot no banco")
+    }
+    bot = data
+  }
+  
+  log(`OK - Bot: ${bot.name} (@${bot.username || "sem username"})`)
+  log(`ID: ${bot.id}`)
+  log(`Token: ${bot.token.substring(0, 15)}...`)
+  log("")
+  
+  const baseUrl = `https://api.telegram.org/bot${bot.token}`
+  const botUserId = bot.token.split(":")[0]
+  
+  // STEP 2: Testar conexao com getMe
+  log("STEP 2: Testando conexao (getMe)...")
+  
   try {
-    // Parse FormData
-    const data = await request.formData()
+    const res = await fetch(`${baseUrl}/getMe`)
+    const data = await res.json()
     
-    const token = data.get("token") as string
-    const chatId = data.get("chatId") as string | null
-    const file = data.get("photo") as File | null
-
-    if (!token) {
-      return NextResponse.json({ success: false, error: "Token required", logs })
+    if (data.ok) {
+      log(`OK - @${data.result.username} conectado`)
+      log(`can_join_groups: ${data.result.can_join_groups}`)
+      log(`can_read_all_group_messages: ${data.result.can_read_all_group_messages}`)
+    } else {
+      log(`FALHOU: ${data.description}`)
+      return renderHTML(logs, "Token invalido")
     }
-
-    // ========================================
-    // STEP 1 — VERIFY FILE IN BACKEND
-    // ========================================
-    log("")
-    log("--- STEP 1: VERIFY FILE IN BACKEND ---")
-    log(`FILE EXISTS: ${!!file}`)
-    log(`TYPE: ${file?.constructor?.name}`)
-    log(`NAME: ${file?.name}`)
-    log(`SIZE: ${file?.size}`)
-    log(`MIME: ${file?.type}`)
-
-    if (!file) {
-      log("STOP: File is missing!")
-      return NextResponse.json({
-        success: false,
-        conclusion: "File was never sent correctly - no file received in backend",
-        logs,
-      })
-    }
-
-    if (file.size === 0) {
-      log("STOP: File size is 0!")
-      return NextResponse.json({
-        success: false,
-        conclusion: "File was never sent correctly - file is empty",
-        logs,
-      })
-    }
-
-    // ========================================
-    // STEP 2 — VERIFY BUFFER CONVERSION
-    // ========================================
-    log("")
-    log("--- STEP 2: VERIFY BUFFER CONVERSION ---")
-    
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    log(`BUFFER SIZE: ${buffer.length}`)
-
-    if (buffer.length === 0) {
-      log("STOP: Buffer size is 0!")
-      return NextResponse.json({
-        success: false,
-        conclusion: "File was never sent correctly - buffer conversion failed",
-        logs,
-      })
-    }
-
-    // Verify magic bytes
-    const firstBytes = buffer.slice(0, 10).toString("hex")
-    log(`FIRST 10 BYTES (hex): ${firstBytes}`)
-    
-    const isJpeg = buffer[0] === 0xFF && buffer[1] === 0xD8
-    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50
-    log(`DETECTED FORMAT: ${isJpeg ? "JPEG" : isPng ? "PNG" : "UNKNOWN"}`)
-
-    // ========================================
-    // STEP 3 — VERIFY MULTIPART BODY
-    // ========================================
-    log("")
-    log("--- STEP 3: VERIFY MULTIPART BODY ---")
-    
-    const form = new FormData()
-    form.append("photo", buffer, {
-      filename: "photo.jpg",
-      contentType: file.type || "image/jpeg"
+  } catch (err) {
+    log(`EXCEPTION: ${err}`)
+    return renderHTML(logs, "Erro de conexao")
+  }
+  log("")
+  
+  // STEP 3: Ver fotos atuais
+  log("STEP 3: Fotos de perfil atuais...")
+  
+  try {
+    const res = await fetch(`${baseUrl}/getUserProfilePhotos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: parseInt(botUserId) })
     })
-
-    const headers = form.getHeaders()
-    log(`HEADERS: ${JSON.stringify(headers)}`)
-
-    // ========================================
-    // STEP 4 — SEND TO setMyProfilePhoto
-    // ========================================
-    log("")
-    log("--- STEP 4: SEND TO setMyProfilePhoto ---")
+    const data = await res.json()
     
-    const setProfileUrl = `https://api.telegram.org/bot${token}/setMyProfilePhoto`
-    log(`URL: /bot****/setMyProfilePhoto`)
-
-    const profileResponse = await fetch(setProfileUrl, {
+    if (data.ok) {
+      log(`Total de fotos: ${data.result.total_count}`)
+    } else {
+      log(`Erro: ${data.description}`)
+    }
+  } catch (err) {
+    log(`EXCEPTION: ${err}`)
+  }
+  log("")
+  
+  // STEP 4: Baixar imagem real para teste
+  log("STEP 4: Baixando imagem de teste (200x200)...")
+  
+  let imageBuffer: Buffer
+  try {
+    const imgRes = await fetch("https://picsum.photos/200/200")
+    const imgArrayBuffer = await imgRes.arrayBuffer()
+    imageBuffer = Buffer.from(imgArrayBuffer)
+    log(`OK - Imagem baixada: ${imageBuffer.length} bytes`)
+    
+    // Verificar magic bytes
+    const isJpeg = imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8
+    const isPng = imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50
+    log(`Formato detectado: ${isJpeg ? "JPEG" : isPng ? "PNG" : "OUTRO"}`)
+  } catch (err) {
+    log(`FALHOU ao baixar imagem: ${err}`)
+    return renderHTML(logs, "Erro ao baixar imagem de teste")
+  }
+  log("")
+  
+  // STEP 5A: Teste com multipart direto (metodo classico)
+  log("STEP 5A: setMyProfilePhoto (multipart direto)...")
+  
+  let test5aOk = false
+  let test5aError = ""
+  try {
+    const form = new FormData()
+    form.append("photo", imageBuffer, {
+      filename: "avatar.jpg",
+      contentType: "image/jpeg",
+    })
+    
+    const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
       method: "POST",
       headers: form.getHeaders(),
-      // @ts-expect-error - form-data stream works with fetch in Node.js
+      // @ts-expect-error form-data stream
       body: form,
     })
-
-    const profileText = await profileResponse.text()
-    log(`TELEGRAM RAW RESPONSE: ${profileText}`)
-
-    let profileResult: { ok: boolean; description?: string; error_code?: number }
-    try {
-      profileResult = JSON.parse(profileText)
-    } catch {
-      profileResult = { ok: false, description: profileText }
-    }
-
-    const setProfilePhotoWorked = profileResult.ok
-
-    // ========================================
-    // STEP 5 — CONTROL TEST: sendPhoto
-    // ========================================
-    log("")
-    log("--- STEP 5: CONTROL TEST (sendPhoto) ---")
     
-    let sendPhotoWorked = false
-    let sendPhotoResult: { ok: boolean; description?: string } | null = null
-
-    if (chatId) {
-      log(`CHAT_ID provided: ${chatId}`)
-      
-      // Create new form for sendPhoto
-      const form2 = new FormData()
-      form2.append("chat_id", chatId)
-      form2.append("photo", buffer, {
-        filename: "photo.jpg",
-        contentType: file.type || "image/jpeg"
-      })
-
-      const sendPhotoUrl = `https://api.telegram.org/bot${token}/sendPhoto`
-      log(`URL: /bot****/sendPhoto`)
-
-      const sendResponse = await fetch(sendPhotoUrl, {
-        method: "POST",
-        headers: form2.getHeaders(),
-        // @ts-expect-error - form-data stream works with fetch in Node.js
-        body: form2,
-      })
-
-      const sendText = await sendResponse.text()
-      log(`TELEGRAM RAW RESPONSE: ${sendText}`)
-
-      try {
-        sendPhotoResult = JSON.parse(sendText)
-        sendPhotoWorked = sendPhotoResult?.ok || false
-      } catch {
-        sendPhotoResult = { ok: false, description: sendText }
-      }
+    const text = await res.text()
+    log(`Status: ${res.status}`)
+    log(`Response: ${text}`)
+    
+    const data = JSON.parse(text)
+    test5aOk = data.ok
+    test5aError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
     } else {
-      log("CHAT_ID not provided - skipping sendPhoto control test")
-      log("To run control test, add chatId to the request")
+      log(`FALHOU: ${data.description}`)
     }
-
-    // ========================================
-    // CONCLUSION
-    // ========================================
-    log("")
-    log("========================================")
-    log("CONCLUSION")
-    log("========================================")
-
-    let conclusion = ""
-
-    if (setProfilePhotoWorked) {
-      conclusion = "SUCCESS: setMyProfilePhoto worked!"
-      log(conclusion)
-    } else if (chatId && sendPhotoWorked && !setProfilePhotoWorked) {
-      conclusion = "Telegram API does not accept this operation - sendPhoto works but setMyProfilePhoto fails. This is a Telegram Bot API limitation/restriction."
-      log(conclusion)
-    } else if (chatId && !sendPhotoWorked && !setProfilePhotoWorked) {
-      conclusion = "Multipart is broken - both sendPhoto and setMyProfilePhoto failed"
-      log(conclusion)
-    } else {
-      conclusion = `setMyProfilePhoto failed with: ${profileResult.description || "unknown error"}. Run control test with chatId to determine if multipart is broken or if it's a Telegram API limitation.`
-      log(conclusion)
-    }
-
-    log("========================================")
-
-    return NextResponse.json({
-      success: setProfilePhotoWorked,
-      conclusion,
-      results: {
-        fileReceived: true,
-        bufferValid: buffer.length > 0,
-        setMyProfilePhoto: {
-          success: setProfilePhotoWorked,
-          response: profileResult,
-        },
-        sendPhoto: chatId ? {
-          success: sendPhotoWorked,
-          response: sendPhotoResult,
-        } : "skipped - no chatId provided",
-      },
-      logs,
-    })
-
-  } catch (error) {
-    log(`EXCEPTION: ${String(error)}`)
-    log(`STACK: ${(error as Error)?.stack || "no stack"}`)
-
-    return NextResponse.json({
-      success: false,
-      conclusion: `Exception occurred: ${String(error)}`,
-      error: String(error),
-      logs,
-    }, { status: 500 })
+  } catch (err) {
+    log(`EXCEPTION: ${err}`)
+    test5aError = String(err)
   }
+  log("")
+  
+  // STEP 5B: Teste com InputProfilePhoto (Bot API 9.4+)
+  log("STEP 5B: setMyProfilePhoto (InputProfilePhoto)...")
+  
+  let test5bOk = false
+  let test5bError = ""
+  try {
+    const form = new FormData()
+    form.append("photo_file", imageBuffer, {
+      filename: "avatar.jpg",
+      contentType: "image/jpeg",
+    })
+    form.append("photo", JSON.stringify({
+      type: "static",
+      photo: "attach://photo_file"
+    }))
+    
+    const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
+      method: "POST",
+      headers: form.getHeaders(),
+      // @ts-expect-error form-data stream
+      body: form,
+    })
+    
+    const text = await res.text()
+    log(`Status: ${res.status}`)
+    log(`Response: ${text}`)
+    
+    const data = JSON.parse(text)
+    test5bOk = data.ok
+    test5bError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
+    } else {
+      log(`FALHOU: ${data.description}`)
+    }
+  } catch (err) {
+    log(`EXCEPTION: ${err}`)
+    test5bError = String(err)
+  }
+  log("")
+  
+  // STEP 5C: Controle - sendPhoto para o proprio bot
+  log("STEP 5C: CONTROLE - sendPhoto (mesmo arquivo)...")
+  
+  let test5cOk = false
+  let test5cError = ""
+  try {
+    const form = new FormData()
+    form.append("chat_id", botUserId)
+    form.append("photo", imageBuffer, {
+      filename: "test.jpg",
+      contentType: "image/jpeg",
+    })
+    
+    const res = await fetch(`${baseUrl}/sendPhoto`, {
+      method: "POST",
+      headers: form.getHeaders(),
+      // @ts-expect-error form-data stream
+      body: form,
+    })
+    
+    const text = await res.text()
+    log(`Status: ${res.status}`)
+    log(`Response: ${text.substring(0, 200)}...`)
+    
+    const data = JSON.parse(text)
+    test5cOk = data.ok
+    test5cError = data.description || ""
+    
+    if (data.ok) {
+      log("SUCESSO!")
+    } else {
+      log(`FALHOU: ${data.description}`)
+    }
+  } catch (err) {
+    log(`EXCEPTION: ${err}`)
+    test5cError = String(err)
+  }
+  log("")
+  
+  // CONCLUSAO
+  log("========================================")
+  log("CONCLUSAO")
+  log("========================================")
+  
+  let conclusion = ""
+  
+  if (test5aOk || test5bOk) {
+    conclusion = "SUCESSO - Upload de foto de perfil funcionou!"
+  } else if (test5cOk) {
+    conclusion = `LIMITACAO DO TELEGRAM - O multipart funciona (sendPhoto OK), mas setMyProfilePhoto falha. Erro: "${test5aError || test5bError}". Isso pode ser uma restricao da API do Telegram para bots.`
+  } else {
+    conclusion = `PROBLEMA NO MULTIPART - Tanto setMyProfilePhoto quanto sendPhoto falharam. Erro setProfile: "${test5aError}". Erro sendPhoto: "${test5cError}"`
+  }
+  
+  log(conclusion)
+  log("")
+  log("Para testar outro bot: ?botId=SEU_BOT_ID")
+  
+  return renderHTML(logs, conclusion)
+}
+
+function renderHTML(logs: string[], conclusion: string) {
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <title>Telegram Photo Diagnostic</title>
+  <meta charset="utf-8">
+  <style>
+    body { 
+      font-family: 'Monaco', 'Menlo', monospace; 
+      background: #0d1117; 
+      color: #c9d1d9; 
+      padding: 20px; 
+      line-height: 1.5;
+    }
+    h1 { color: #58a6ff; margin-bottom: 5px; }
+    pre { 
+      background: #161b22; 
+      padding: 15px; 
+      border-radius: 6px;
+      overflow-x: auto;
+      border: 1px solid #30363d;
+    }
+    .success { color: #3fb950; font-weight: bold; }
+    .error { color: #f85149; }
+    .info { color: #58a6ff; }
+    .warn { color: #d29922; }
+    .conclusion {
+      background: #21262d;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      border-left: 4px solid ${conclusion.includes("SUCESSO") ? "#3fb950" : "#f85149"};
+    }
+  </style>
+</head>
+<body>
+  <h1>Telegram Photo Upload Diagnostic</h1>
+  <p style="color:#8b949e">Teste automatico de upload de foto de perfil do bot</p>
+  
+  <div class="conclusion">
+    <strong>${conclusion.includes("SUCESSO") ? "SUCESSO" : "RESULTADO"}:</strong><br>
+    ${conclusion}
+  </div>
+  
+  <h2>Logs Detalhados</h2>
+  <pre>${logs.map(l => {
+    if (l.includes("SUCESSO") || l.includes("OK -")) return `<span class="success">${escapeHtml(l)}</span>`
+    if (l.includes("FALHOU") || l.includes("ERROR") || l.includes("EXCEPTION")) return `<span class="error">${escapeHtml(l)}</span>`
+    if (l.includes("STEP")) return `<span class="info">${escapeHtml(l)}</span>`
+    if (l.includes("===")) return `<span class="warn">${escapeHtml(l)}</span>`
+    return escapeHtml(l)
+  }).join("\n")}</pre>
+</body>
+</html>`
+  
+  return new NextResponse(html, {
+    headers: { "Content-Type": "text/html; charset=utf-8" }
+  })
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
 }
