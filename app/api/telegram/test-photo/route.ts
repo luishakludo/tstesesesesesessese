@@ -152,11 +152,12 @@ export async function GET(request: NextRequest) {
     })
     // O parametro "photo" e um JSON com InputProfilePhotoStatic
     // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
+    // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
     const photoJson = JSON.stringify({
       type: "static",
       media: "attach://photo_file"
     })
-    form.append("photo", photoJson)
+    form.append("photo", photoJson, { contentType: "application/json" })
     
     log("FormData fields:")
     log(`  - photo_file: Buffer (${imageBuffer.length} bytes)`)
@@ -185,6 +186,25 @@ export async function GET(request: NextRequest) {
     }
     if (!formKeys.includes("photo_file")) {
       log("ALERTA: Campo 'photo_file' NAO encontrado no FormData!")
+    }
+    
+    // DEBUG CRITICO: Ver o raw multipart body
+    const rawBody = form.getBuffer().toString()
+    log("--- RAW MULTIPART BODY (primeiros 1000 chars) ---")
+    log(rawBody.substring(0, 1000))
+    log("--- FIM RAW BODY ---")
+    
+    // Verificar se o campo photo esta correto
+    if (rawBody.includes('name="photo"')) {
+      log("OK: Campo 'photo' encontrado no body")
+      // Verificar se o JSON esta la
+      if (rawBody.includes('{"type":"static","media":"attach://photo_file"}')) {
+        log("OK: JSON do InputProfilePhotoStatic esta correto!")
+      } else {
+        log("ALERTA: JSON nao encontrado ou diferente do esperado")
+      }
+    } else {
+      log("ERRO: Campo 'photo' NAO encontrado no raw body!")
     }
     
     const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {

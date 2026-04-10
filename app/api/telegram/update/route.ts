@@ -147,11 +147,12 @@ export async function POST(request: NextRequest) {
         
         // O parametro "photo" e um JSON com InputProfilePhotoStatic
         // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
+        // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
         const photoJson = JSON.stringify({
           type: "static",
           media: "attach://photo_file"
         })
-        form.append("photo", photoJson)
+        form.append("photo", photoJson, { contentType: "application/json" })
         
         // DEBUG: Verificar campos do FormData
         console.log("FormData fields:")
