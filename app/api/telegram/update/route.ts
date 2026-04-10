@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import FormData from "form-data"
+import axios from "axios"
 
 // CRITICAL: Node.js runtime - NAO usar Edge
 export const runtime = "nodejs"
@@ -133,76 +134,62 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(arrayBuffer)
         console.log("Buffer length:", buffer.length)
 
-        // 2. Criar FormData - Bot API 9.4+ usa InputProfilePhotoStatic
-        // O formato correto é enviar o "photo" como JSON com type e photo referenciando o arquivo
-        console.log("Creating FormData with InputProfilePhoto format...")
+        // 2. Criar FormData com InputProfilePhotoStatic (Bot API 9.4+)
+        // O formato correto e: photo = { type: "static", photo: "attach://photo_file" }
+        console.log("Creating FormData with InputProfilePhotoStatic...")
         const form = new FormData()
         
-        // Primeiro, adiciona o arquivo binário
+        // O campo do arquivo DEVE ter um nome que sera referenciado no attach://
         form.append("photo_file", buffer, {
           filename: file.name || "photo.jpg",
           contentType: file.type || "image/jpeg",
         })
         
-        // Depois, adiciona o objeto InputProfilePhotoStatic como JSON
-        // O campo "photo" dentro do objeto referencia o arquivo via attach://
-        form.append("photo", JSON.stringify({
+        // O parametro "photo" e um JSON com InputProfilePhotoStatic
+        // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
+        // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
+        const photoJson = JSON.stringify({
           type: "static",
-          photo: "attach://photo_file"
-        }))
-
-        console.log("FormData prepared with attach:// reference")
-
-        // 3. Enviar para o Telegram
-        console.log("Sending to Telegram setMyProfilePhoto...")
-        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
-        
-        const telegramResponse = await fetch(telegramUrl, {
-          method: "POST",
-          headers: form.getHeaders(),
-          // @ts-expect-error - form-data stream works with fetch in Node.js
-          body: form,
+          media: "attach://photo_file"
         })
-
-        const responseText = await telegramResponse.text()
-        console.log("TELEGRAM RESPONSE STATUS:", telegramResponse.status)
-        console.log("TELEGRAM RESPONSE:", responseText)
-
-        let telegramResult: { ok: boolean; description?: string }
-        try {
-          telegramResult = JSON.parse(responseText)
-        } catch {
-          telegramResult = { ok: false, description: responseText }
-        }
-
-        // Se falhar com o formato 9.4+, tentar formato legado (envio direto do arquivo)
-        if (!telegramResult.ok) {
-          console.log("========== TRYING LEGACY FORMAT ==========")
-          console.log("Bot API 9.4+ format failed, trying direct file upload...")
-          
-          const legacyForm = new FormData()
-          legacyForm.append("photo", buffer, {
-            filename: file.name || "photo.jpg",
-            contentType: file.type || "image/jpeg",
-          })
-          
-          const legacyResponse = await fetch(telegramUrl, {
-            method: "POST",
-            headers: legacyForm.getHeaders(),
-            // @ts-expect-error - form-data stream works with fetch in Node.js
-            body: legacyForm,
-          })
-          
-          const legacyText = await legacyResponse.text()
-          console.log("LEGACY RESPONSE STATUS:", legacyResponse.status)
-          console.log("LEGACY RESPONSE:", legacyText)
-          
-          try {
-            telegramResult = JSON.parse(legacyText)
-          } catch {
-            telegramResult = { ok: false, description: legacyText }
+        form.append("photo", photoJson, { contentType: "application/json" })
+        
+        // DEBUG: Verificar campos do FormData
+        console.log("FormData fields:")
+        console.log(`  - photo_file: Buffer (${buffer.length} bytes)`)
+        console.log(`  - photo: ${photoJson}`)
+        console.log(`Content-Type: ${form.getHeaders()["content-type"]}`)
+        
+        // Verificar se os campos existem no FormData
+        const formKeys: string[] = []
+        // @ts-expect-error - _streams e interno do form-data
+        if (form._streams) {
+          // @ts-expect-error
+          for (const stream of form._streams) {
+            if (typeof stream === "string" && stream.includes("name=")) {
+              const match = stream.match(/name="([^"]+)"/)
+              if (match) formKeys.push(match[1])
+            }
           }
         }
+        console.log(`FormData keys: [${formKeys.join(", ")}]`)
+
+        // 3. Enviar para o Telegram usando AXIOS (fetch nao funciona com form-data)
+        console.log("Sending to Telegram setMyProfilePhoto via AXIOS...")
+        const telegramUrl = `${baseUrl}/setMyProfilePhoto`
+        
+        const response = await axios.post(telegramUrl, form, {
+          headers: {
+            ...form.getHeaders()
+          },
+          maxContentLength: Infinity,
+          maxBodyLength: Infinity
+        })
+
+        console.log("TELEGRAM RESPONSE STATUS:", response.status)
+        console.log("TELEGRAM RESPONSE:", response.data)
+
+        const telegramResult = response.data as { ok: boolean; description?: string }
 
         results.photo = telegramResult.ok
         
@@ -217,7 +204,12 @@ export async function POST(request: NextRequest) {
         console.log("========== PHOTO UPLOAD EXCEPTION ==========")
         console.log("EXCEPTION:", err)
         results.photo = false
-        results.photoError = String(err)
+        if (axios.isAxiosError(err)) {
+          console.log("Axios error response:", err.response?.data)
+          results.photoError = err.response?.data?.description || String(err)
+        } else {
+          results.photoError = String(err)
+        }
       }
     }
 

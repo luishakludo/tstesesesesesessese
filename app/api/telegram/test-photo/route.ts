@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import FormData from "form-data"
+import axios from "axios"
 
 export const runtime = "nodejs"
 
@@ -136,88 +137,115 @@ export async function GET(request: NextRequest) {
   }
   log("")
   
-  // STEP 5A: Teste com multipart direto (metodo classico)
-  log("STEP 5A: setMyProfilePhoto (multipart direto)...")
+  // STEP 5A: Teste com AXIOS + InputProfilePhoto (Bot API 9.4+)
+  // O formato correto e: photo = { type: "static", photo: "attach://photo_file" }
+  log("STEP 5A: setMyProfilePhoto (InputProfilePhotoStatic)...")
   
   let test5aOk = false
   let test5aError = ""
   try {
     const form = new FormData()
-    form.append("photo", imageBuffer, {
-      filename: "avatar.jpg",
-      contentType: "image/jpeg",
-    })
-    
-    const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
-      method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
-      body: form,
-    })
-    
-    const text = await res.text()
-    log(`Status: ${res.status}`)
-    log(`Response: ${text}`)
-    
-    const data = JSON.parse(text)
-    test5aOk = data.ok
-    test5aError = data.description || ""
-    
-    if (data.ok) {
-      log("SUCESSO!")
-    } else {
-      log(`FALHOU: ${data.description}`)
-    }
-  } catch (err) {
-    log(`EXCEPTION: ${err}`)
-    test5aError = String(err)
-  }
-  log("")
-  
-  // STEP 5B: Teste com InputProfilePhoto (Bot API 9.4+)
-  log("STEP 5B: setMyProfilePhoto (InputProfilePhoto)...")
-  
-  let test5bOk = false
-  let test5bError = ""
-  try {
-    const form = new FormData()
+    // O campo do arquivo DEVE ter um nome que sera referenciado no attach://
     form.append("photo_file", imageBuffer, {
       filename: "avatar.jpg",
       contentType: "image/jpeg",
     })
-    form.append("photo", JSON.stringify({
+    // O parametro "photo" e um JSON com InputProfilePhotoStatic
+    // IMPORTANTE: usar "media" nao "photo" dentro do JSON!
+    // CRITICO: Adicionar contentType: "application/json" para Telegram interpretar corretamente!
+    const photoJson = JSON.stringify({
       type: "static",
-      photo: "attach://photo_file"
-    }))
+      media: "attach://photo_file"
+    })
+    form.append("photo", photoJson, { contentType: "application/json" })
     
-    const res = await fetch(`${baseUrl}/setMyProfilePhoto`, {
-      method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
-      body: form,
+    log("FormData fields:")
+    log(`  - photo_file: Buffer (${imageBuffer.length} bytes)`)
+    log(`  - photo: ${photoJson}`)
+    
+    // DEBUG CRITICO: Verificar campos do FormData
+    const formKeys: string[] = []
+    const boundaryMatch = form.getHeaders()["content-type"]?.match(/boundary=(.+)/)
+    log(`Content-Type: ${form.getHeaders()["content-type"]}`)
+    
+    // Listar todas as chaves do FormData (form-data lib)
+    // @ts-expect-error - _streams e interno do form-data
+    if (form._streams) {
+      // @ts-expect-error
+      for (const stream of form._streams) {
+        if (typeof stream === "string" && stream.includes("name=")) {
+          const match = stream.match(/name="([^"]+)"/)
+          if (match) formKeys.push(match[1])
+        }
+      }
+    }
+    log(`FormData keys encontradas: [${formKeys.join(", ")}]`)
+    
+    if (!formKeys.includes("photo")) {
+      log("ALERTA: Campo 'photo' NAO encontrado no FormData!")
+    }
+    if (!formKeys.includes("photo_file")) {
+      log("ALERTA: Campo 'photo_file' NAO encontrado no FormData!")
+    }
+    
+    // DEBUG CRITICO: Ver o raw multipart body
+    const rawBody = form.getBuffer().toString()
+    log("--- RAW MULTIPART BODY (primeiros 1000 chars) ---")
+    log(rawBody.substring(0, 1000))
+    log("--- FIM RAW BODY ---")
+    
+    // Verificar se o campo photo esta correto
+    if (rawBody.includes('name="photo"')) {
+      log("OK: Campo 'photo' encontrado no body")
+      // Verificar se o JSON esta la
+      if (rawBody.includes('{"type":"static","media":"attach://photo_file"}')) {
+        log("OK: JSON do InputProfilePhotoStatic esta correto!")
+      } else {
+        log("ALERTA: JSON nao encontrado ou diferente do esperado")
+      }
+    } else {
+      log("ERRO: Campo 'photo' NAO encontrado no raw body!")
+    }
+    
+    const response = await axios.post(`${baseUrl}/setMyProfilePhoto`, form, {
+      headers: {
+        ...form.getHeaders()
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
     })
     
-    const text = await res.text()
-    log(`Status: ${res.status}`)
-    log(`Response: ${text}`)
+    log(`Status: ${response.status}`)
+    log(`Response: ${JSON.stringify(response.data)}`)
     
-    const data = JSON.parse(text)
-    test5bOk = data.ok
-    test5bError = data.description || ""
+    test5aOk = response.data.ok
+    test5aError = response.data.description || ""
     
-    if (data.ok) {
+    if (response.data.ok) {
       log("SUCESSO!")
     } else {
-      log(`FALHOU: ${data.description}`)
+      log(`FALHOU: ${response.data.description}`)
     }
   } catch (err) {
-    log(`EXCEPTION: ${err}`)
-    test5bError = String(err)
+    if (axios.isAxiosError(err)) {
+      log(`AXIOS ERROR: ${err.response?.status} - ${JSON.stringify(err.response?.data)}`)
+      test5aError = err.response?.data?.description || String(err)
+    } else {
+      log(`EXCEPTION: ${err}`)
+      test5aError = String(err)
+    }
   }
   log("")
   
-  // STEP 5C: Controle - sendPhoto para o proprio bot
-  log("STEP 5C: CONTROLE - sendPhoto (mesmo arquivo)...")
+  // STEP 5B: Pular (5A ja usa o metodo correto)
+  log("STEP 5B: Pulado (5A ja testou com axios)")
+  log("")
+  
+  const test5bOk = test5aOk
+  const test5bError = test5aError
+  
+  // STEP 5C: Controle - sendPhoto para o proprio bot (usando AXIOS)
+  log("STEP 5C: CONTROLE - sendPhoto (AXIOS)...")
   
   let test5cOk = false
   let test5cError = ""
@@ -229,29 +257,33 @@ export async function GET(request: NextRequest) {
       contentType: "image/jpeg",
     })
     
-    const res = await fetch(`${baseUrl}/sendPhoto`, {
-      method: "POST",
-      headers: form.getHeaders(),
-      // @ts-expect-error form-data stream
-      body: form,
+    const response = await axios.post(`${baseUrl}/sendPhoto`, form, {
+      headers: {
+        ...form.getHeaders()
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
     })
     
-    const text = await res.text()
-    log(`Status: ${res.status}`)
-    log(`Response: ${text.substring(0, 200)}...`)
+    log(`Status: ${response.status}`)
+    log(`Response: ${JSON.stringify(response.data).substring(0, 200)}...`)
     
-    const data = JSON.parse(text)
-    test5cOk = data.ok
-    test5cError = data.description || ""
+    test5cOk = response.data.ok
+    test5cError = response.data.description || ""
     
-    if (data.ok) {
+    if (response.data.ok) {
       log("SUCESSO!")
     } else {
-      log(`FALHOU: ${data.description}`)
+      log(`FALHOU: ${response.data.description}`)
     }
   } catch (err) {
-    log(`EXCEPTION: ${err}`)
-    test5cError = String(err)
+    if (axios.isAxiosError(err)) {
+      log(`AXIOS ERROR: ${err.response?.status} - ${JSON.stringify(err.response?.data)}`)
+      test5cError = err.response?.data?.description || String(err)
+    } else {
+      log(`EXCEPTION: ${err}`)
+      test5cError = String(err)
+    }
   }
   log("")
   
