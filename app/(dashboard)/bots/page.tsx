@@ -915,7 +915,7 @@ export default function BotsPage() {
                       </button>
                       <button
                         onClick={handleSaveConfig}
-                        disabled={isSaving || isUploadingPhoto}
+                        disabled={isSaving}
                         className="flex items-center gap-1.5 bg-[#bfff00] text-[#1c1c1e] px-5 py-2 rounded-lg font-semibold text-xs hover:bg-[#d4ff4d] disabled:opacity-50 transition-colors"
                       >
                         {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}

@@ -89,24 +89,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload new profile photo usando native FormData (funciona no Edge runtime)
+    // Upload new profile photo
     if (photo) {
       console.log("[v0] UPDATE API - Photo upload starting...")
       try {
-        // Criar novo FormData nativo para enviar ao Telegram
+        // Converter File para ArrayBuffer e criar um Blob
+        const arrayBuffer = await photo.arrayBuffer()
+        const blob = new Blob([arrayBuffer], { type: photo.type || "image/png" })
+        
+        console.log("[v0] UPDATE API - Blob size:", blob.size)
+        console.log("[v0] UPDATE API - Blob type:", blob.type)
+        
+        // Criar FormData com o Blob
         const telegramFormData = new FormData()
+        telegramFormData.append("photo", blob, photo.name || "photo.png")
         
-        // Passar o File diretamente - o fetch vai serializar corretamente
-        telegramFormData.append("photo", photo, photo.name || "photo.png")
-        
-        console.log("[v0] UPDATE API - File size:", photo.size)
-        console.log("[v0] UPDATE API - File type:", photo.type)
         console.log("[v0] UPDATE API - Sending to Telegram...")
         
         const response = await fetch(`${baseUrl}/setMyProfilePhoto`, {
           method: "POST",
           body: telegramFormData,
-          // Nao definir Content-Type - o fetch vai setar automaticamente com boundary
         })
         
         const responseText = await response.text()
