@@ -3130,7 +3130,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
                         {/* Expanded Content */}
                         {expandedSequence === seq.id && (
-                          <CardContent className="pt-0 space-y-6">
+                          <div className="px-4 pb-4 space-y-6 border-t border-border pt-4">
                             {/* Nome do Upsell */}
                             <div className="space-y-2">
                               <Label>Nome do Upsell</Label>
@@ -3447,9 +3447,9 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                 </div>
                               )}
                             </div>
-                          </CardContent>
+                          </div>
                         )}
-                      </Card>
+                      </div>
                     ))}
 
                     {/* Add Sequence Button */}
