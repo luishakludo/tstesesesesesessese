@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import FormData from "form-data"
-import { getSupabaseAdmin } from "@/lib/supabase"
+import { getSupabaseAdmin, supabase } from "@/lib/supabase"
 
 export const runtime = "nodejs"
 
@@ -67,44 +66,61 @@ export async function GET(request: NextRequest) {
     log(`Imagem criada: ${pngRedPixel.length} bytes`)
     log("")
 
-    // 3. Criar FormData com form-data library
-    log("PASSO 3: Criando FormData com form-data library...")
+    // 3. Upload para Supabase Storage
+    log("PASSO 3: Fazendo upload para Supabase Storage...")
     
-    const form = new FormData()
-    form.append("photo", pngRedPixel, {
-      filename: "test-photo.png",
-      contentType: "image/png",
-      knownLength: pngRedPixel.length,
-    })
+    const uniqueId = `test_${Date.now()}_${Math.random().toString(36).substring(7)}`
+    const filePath = `bot-photos/${uniqueId}.png`
+    log(`File path: ${filePath}`)
     
-    const headers = form.getHeaders()
-    log(`Headers: ${JSON.stringify(headers)}`)
+    const { error: uploadError } = await supabase.storage
+      .from("flow-media")
+      .upload(filePath, pngRedPixel, {
+        contentType: "image/png",
+        upsert: true,
+      })
+    
+    if (uploadError) {
+      log(`ERRO NO UPLOAD SUPABASE: ${uploadError.message}`)
+      return new NextResponse(logs.join("\n"), { headers: { "Content-Type": "text/plain" } })
+    }
+    
+    log("Upload para Supabase OK!")
     log("")
 
-    // 4. Enviar para o Telegram
-    log("PASSO 4: Enviando para Telegram (setMyProfilePhoto)...")
+    // 4. Pegar URL publica
+    log("PASSO 4: Pegando URL publica...")
+    
+    const { data: urlData } = supabase.storage.from("flow-media").getPublicUrl(filePath)
+    const publicUrl = urlData.publicUrl
+    log(`URL publica: ${publicUrl}`)
+    log("")
+
+    // 5. Enviar para o Telegram usando URL
+    log("PASSO 5: Enviando para Telegram (setMyProfilePhoto com URL)...")
     
     const telegramUrl = `https://api.telegram.org/bot${bot.token}/setMyProfilePhoto`
     log(`URL: ${telegramUrl.replace(bot.token, "TOKEN_HIDDEN")}`)
+    log(`Body: { photo: "${publicUrl}" }`)
     
     const response = await fetch(telegramUrl, {
       method: "POST",
-      headers: headers,
-      body: form.getBuffer(),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo: publicUrl }),
     })
     
     log(`Status: ${response.status} ${response.statusText}`)
     log("")
 
-    // 5. Ler resposta
-    log("PASSO 5: Lendo resposta do Telegram...")
+    // 6. Ler resposta
+    log("PASSO 6: Lendo resposta do Telegram...")
     
     const responseText = await response.text()
     log(`Resposta RAW: ${responseText}`)
     log("")
 
-    // 6. Parsear resposta
-    log("PASSO 6: Analisando resposta...")
+    // 7. Parsear resposta
+    log("PASSO 7: Analisando resposta...")
     
     try {
       const result = JSON.parse(responseText)
