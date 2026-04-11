@@ -89,7 +89,7 @@ interface BotUser {
 }
 
 export default function CampaignsPage() {
-  const { selectedBot, bots } = useBots()
+  const { selectedBot, bots, setSelectedBot } = useBots()
   const { session } = useAuth()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -235,6 +235,12 @@ export default function CampaignsPage() {
       })
       const data = await res.json()
       if (data.campaign) {
+        // Sync selectedBot to the bot used in creation so fetchCampaigns works correctly
+        const createdBotId = selectedBotId || selectedBot?.id
+        const createdBot = bots.find(b => b.id === createdBotId)
+        if (createdBot && createdBot.id !== selectedBot?.id) {
+          setSelectedBot(createdBot)
+        }
         setCampaigns((prev) => [data.campaign, ...prev])
       }
     } catch { /* ignore */ }
@@ -370,6 +376,13 @@ export default function CampaignsPage() {
       })
 
       if (res.ok) {
+        // Sync selectedBot to the campaign's bot before fetching
+        if (configCampaignBotId) {
+          const campaignBot = bots.find(b => b.id === configCampaignBotId)
+          if (campaignBot && campaignBot.id !== selectedBot?.id) {
+            setSelectedBot(campaignBot)
+          }
+        }
         // Refresh campaigns to get updated nodes
         await fetchCampaigns()
         resetConfigMessage()
