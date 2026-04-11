@@ -174,15 +174,114 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Campanha sem nodes" }, { status: 400 })
       }
 
-      // Get all bot users
-      const { data: botUsers } = await supabase
-        .from("bot_users")
-        .select("id, telegram_user_id, chat_id")
-        .eq("bot_id", campaign.bot_id)
+      // Get users based on audience_type and audience filter
+      let botUsers: { id: string; telegram_user_id: string; chat_id: number }[] = []
+      
+      const audienceType = campaign.audience_type as string | null
+      const audience = campaign.audience as string | null
+      
+      console.log("[campaigns/execute] Campaign audience_type:", audienceType, "audience:", audience)
+      
+      if (audienceType === "imported") {
+        // For imported campaigns, get users from bot_users table with source = 'imported'
+        // Note: For imported users, chat_id might be null, so we use telegram_user_id as chat_id
+        // (they are the same for private chats in Telegram)
+        const { data: importedUsers } = await supabase
+          .from("bot_users")
+          .select("id, telegram_user_id, chat_id")
+          .eq("bot_id", campaign.bot_id)
+          .eq("source", "imported")
+        
+        if (importedUsers && importedUsers.length > 0) {
+          botUsers = importedUsers.map(u => ({
+            id: u.id,
+            telegram_user_id: u.telegram_user_id,
+            // Use chat_id if available, otherwise use telegram_user_id (they're the same for private chats)
+            chat_id: u.chat_id || parseInt(u.telegram_user_id)
+          }))
+        }
+        
+        console.log("[campaigns/execute] Imported users found:", botUsers.length)
+      } else {
+        // For start campaigns, filter bot_users by audience criteria
+        const { data: allBotUsers } = await supabase
+          .from("bot_users")
+          .select("id, telegram_user_id, chat_id, funnel_step, is_subscriber")
+          .eq("bot_id", campaign.bot_id)
+        
+        if (allBotUsers && allBotUsers.length > 0) {
+          // Get all payments for this bot to check payment status
+          const { data: allPayments } = await supabase
+            .from("payments")
+            .select("telegram_user_id, status")
+            .eq("bot_id", campaign.bot_id)
+          
+          // Create maps for quick lookup
+          const pendingPaymentUsers = new Set<string>()
+          const paidUsers = new Set<string>()
+          
+          if (allPayments) {
+            for (const payment of allPayments) {
+              const tgId = payment.telegram_user_id?.toString()
+              if (!tgId) continue
+              
+              const status = (payment.status || "").toLowerCase()
+              if (status === "pending" || status === "aguardando" || status === "pix_gerado") {
+                pendingPaymentUsers.add(tgId)
+              }
+              if (status === "approved" || status === "paid" || status === "pago") {
+                paidUsers.add(tgId)
+              }
+            }
+          }
+          
+          console.log("[campaigns/execute] Payment stats - pending:", pendingPaymentUsers.size, "paid:", paidUsers.size)
+          
+          // Filter based on audience
+          let filteredUsers = allBotUsers
+          
+          if (audience === "started_not_continued") {
+            // Users who started (funnel_step >= 1) but didn't continue (funnel_step < 3 and not subscriber)
+            filteredUsers = allBotUsers.filter(u => {
+              const step = typeof u.funnel_step === "number" ? u.funnel_step : parseInt(String(u.funnel_step || "0"))
+              return step >= 1 && step < 3 && !u.is_subscriber
+            })
+            console.log("[campaigns/execute] Filtering started_not_continued: found", filteredUsers.length, "of", allBotUsers.length)
+          } else if (audience === "not_paid") {
+            // Users who generated PIX but didn't pay
+            // They have a pending payment AND are not yet subscribers
+            filteredUsers = allBotUsers.filter(u => {
+              const tgId = u.telegram_user_id?.toString()
+              const hasPending = pendingPaymentUsers.has(tgId)
+              const alreadyPaid = paidUsers.has(tgId) || u.is_subscriber === true
+              return hasPending && !alreadyPaid
+            })
+            console.log("[campaigns/execute] Filtering not_paid: found", filteredUsers.length, "of", allBotUsers.length)
+          } else if (audience === "paid") {
+            // Users who already paid (is_subscriber = true or has approved payment)
+            filteredUsers = allBotUsers.filter(u => {
+              const tgId = u.telegram_user_id?.toString()
+              return u.is_subscriber === true || paidUsers.has(tgId)
+            })
+            console.log("[campaigns/execute] Filtering paid: found", filteredUsers.length, "of", allBotUsers.length)
+          } else {
+            // No filter, send to all
+            console.log("[campaigns/execute] No audience filter, sending to all:", allBotUsers.length)
+          }
+          
+          botUsers = filteredUsers.map(u => ({
+            id: u.id,
+            telegram_user_id: u.telegram_user_id,
+            chat_id: u.chat_id
+          }))
+        }
+      }
 
       if (!botUsers || botUsers.length === 0) {
-        return NextResponse.json({ sent: 0, message: "Nenhum usuario no bot" })
+        return NextResponse.json({ sent: 0, message: "Nenhum usuario encontrado para o publico selecionado" })
       }
+      
+      console.log("[campaigns/execute] Total users to send:", botUsers.length)
 
       // Find the first message node (skip leading delays)
       let firstMessageIdx = 0

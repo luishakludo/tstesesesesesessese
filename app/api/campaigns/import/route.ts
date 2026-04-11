@@ -52,10 +52,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert new users as imported
+    // Note: For Telegram, telegram_user_id and chat_id are the same for private chats
     const usersToInsert = newIds.map(id => ({
       bot_id: botId,
       telegram_user_id: id,
-      is_imported: true,
+      chat_id: id, // Same as telegram_user_id for private chats
+      source: "imported",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }))
