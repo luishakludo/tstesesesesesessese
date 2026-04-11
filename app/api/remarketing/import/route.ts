@@ -1,6 +1,5 @@
 import { getSupabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 // Parse chat IDs from text - accepts comma or line separated values
 function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
@@ -30,19 +29,6 @@ function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
 export async function POST(request: Request) {
   try {
     const supabase = getSupabase()
-    
-    // Get user from cookie
-    const cookieStore = await cookies()
-    const userCookie = cookieStore.get("dragon_user")
-    
-    if (!userCookie?.value) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
-    }
-    
-    const user = JSON.parse(userCookie.value)
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
-    }
 
     const body = await request.json()
     const { botId, textData } = body
@@ -55,14 +41,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nenhum ID fornecido" }, { status: 400 })
     }
 
-    // Verify bot belongs to user
+    // Verify bot exists
     const { data: bot } = await supabase
       .from("bots")
-      .select("id, user_id")
+      .select("id")
       .eq("id", botId)
       .single()
 
-    if (!bot || bot.user_id !== user.id) {
+    if (!bot) {
       return NextResponse.json({ error: "Bot nao encontrado" }, { status: 404 })
     }
 
@@ -76,19 +62,19 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Remove duplicates from input
-    const uniqueChatIds = [...new Set(chatIds)]
+    // Remove duplicates from input and convert to numbers
+    const uniqueChatIds = [...new Set(chatIds.map(id => parseInt(id)))]
     const duplicatesInInput = chatIds.length - uniqueChatIds.length
 
-    // Check for existing chat_ids in database for this bot
+    // Check for existing telegram_user_id in database for this bot
     const { data: existingUsers } = await supabase
       .from("bot_users")
-      .select("chat_id")
+      .select("telegram_user_id")
       .eq("bot_id", botId)
-      .in("chat_id", uniqueChatIds)
+      .in("telegram_user_id", uniqueChatIds)
 
-    const existingChatIds = new Set((existingUsers || []).map(u => u.chat_id))
-    const newChatIds = uniqueChatIds.filter(id => !existingChatIds.has(id))
+    const existingTelegramIds = new Set((existingUsers || []).map(u => u.telegram_user_id))
+    const newChatIds = uniqueChatIds.filter(id => !existingTelegramIds.has(id))
     const skippedExisting = uniqueChatIds.length - newChatIds.length
 
     if (newChatIds.length === 0) {
@@ -103,25 +89,62 @@ export async function POST(request: Request) {
     }
 
     // Insert new users into bot_users table
+    // source = 'imported' to differentiate from users captured by bot (source = 'start')
     const { data: inserted, error: insertError } = await supabase
       .from("bot_users")
       .insert(
         newChatIds.map(chatId => ({
-          user_id: user.id,
           bot_id: botId,
-          chat_id: chatId,
-          first_name: `User ${chatId}`,
+          telegram_user_id: chatId, // Already a number
+          chat_id: chatId, // Already a number
+          first_name: `Importado`,
           username: null,
-          payment_status: "nao_pago",
-          funnel_stage: "lead",
+          funnel_step: 0, // 0 indicates imported user (didn't go through funnel)
           is_subscriber: false,
+          source: "imported", // Mark as imported vs "start" for organic users
           created_at: new Date().toISOString()
         }))
       )
       .select()
 
     if (insertError) {
-      console.error("Error inserting users:", insertError)
+      console.error("[v0] Error inserting users:", insertError)
+      // If error is about missing 'source' column, try without it
+      if (insertError.message?.includes("source")) {
+        console.log("[v0] Retrying without source column...")
+        const { data: inserted2, error: insertError2 } = await supabase
+          .from("bot_users")
+          .insert(
+            newChatIds.map(chatId => ({
+              bot_id: botId,
+              telegram_user_id: parseInt(chatId),
+              chat_id: parseInt(chatId),
+              first_name: `Importado`,
+              username: null,
+              funnel_step: 0,
+              is_subscriber: false,
+              created_at: new Date().toISOString()
+            }))
+          )
+          .select()
+        
+        if (insertError2) {
+          return NextResponse.json({ 
+            error: "Erro ao salvar usuarios",
+            details: insertError2.message 
+          }, { status: 500 })
+        }
+        
+        return NextResponse.json({
+          success: true,
+          imported: inserted2?.length || 0,
+          duplicates: duplicatesInInput,
+          skipped: skippedExisting,
+          parseErrors,
+          total: chatIds.length
+        })
+      }
+      
       return NextResponse.json({ 
         error: "Erro ao salvar usuarios",
         details: insertError.message 

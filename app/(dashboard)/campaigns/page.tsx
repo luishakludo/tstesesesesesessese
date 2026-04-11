@@ -256,6 +256,7 @@ export default function CampaignsPage() {
     try {
       const res = await fetch("/api/remarketing/import", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           botId: importBotId,
