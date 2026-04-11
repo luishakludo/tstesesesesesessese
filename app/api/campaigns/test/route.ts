@@ -144,16 +144,25 @@ export async function GET(req: Request) {
         nodes: {
           count: nodes?.length || 0,
           error: nodesError?.message || null,
-          details: nodes?.map(n => ({
-            id: n.id,
-            position: n.position,
-            type: n.type,
-            label: n.label,
-            config: n.config,
-            has_content: !!(n.config as Record<string, unknown>)?.text,
-            content_preview: ((n.config as Record<string, unknown>)?.text as string)?.substring(0, 100) || null,
-            has_media: !!(n.config as Record<string, unknown>)?.medias || !!(n.config as Record<string, unknown>)?.media_url,
-          })),
+          details: nodes?.map(n => {
+            const cfg = n.config as Record<string, unknown>
+            const medias = cfg?.medias as string[] | undefined
+            return {
+              id: n.id,
+              position: n.position,
+              type: n.type,
+              label: n.label,
+              text: (cfg?.text as string) || null,
+              media_count: medias?.length || 0,
+              media_types: medias?.map(m => {
+                if (m.startsWith("data:image")) return "image (base64)"
+                if (m.startsWith("data:video")) return "video (base64)"
+                if (m.includes("http")) return "url"
+                return "unknown"
+              }) || [],
+              buttons: cfg?.buttons ? "configurado" : null,
+            }
+          }),
         },
         target_users: {
           total_count: userCount,
