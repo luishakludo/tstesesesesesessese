@@ -65,15 +65,28 @@ export async function GET(req: NextRequest) {
       const c = campaign as { id: string; bot_id: string; audience_type?: string; audience?: string }
       let targetCount = 0
       
-      if (c.audience_type === "start" && c.audience) {
-        // Get users from bot_users based on audience filter
-        const { data: botUsers } = await supabase
-          .from("bot_users")
-          .select("id, funnel_step, is_subscriber")
-          .eq("bot_id", c.bot_id)
-        
-        if (botUsers) {
-          // Check payments for this bot's users
+      // Get all bot users first
+      const { data: botUsers } = await supabase
+        .from("bot_users")
+        .select("id, funnel_step, is_subscriber")
+        .eq("bot_id", c.bot_id)
+      
+      if (botUsers && botUsers.length > 0) {
+        // If no audience filter, count all users
+        if (!c.audience || c.audience_type === "imported") {
+          if (c.audience_type === "imported") {
+            // For imported, count users in campaign_users
+            const { count } = await supabase
+              .from("campaign_users")
+              .select("id", { count: "exact", head: true })
+              .eq("campaign_id", c.id)
+            targetCount = count || 0
+          } else {
+            // No filter = all bot users
+            targetCount = botUsers.length
+          }
+        } else {
+          // Filter by audience type (paid, not_paid, started_not_continued)
           const userIds = botUsers.map((u: { id: string }) => u.id)
           const { data: payments } = await supabase
             .from("payments")
@@ -97,14 +110,6 @@ export async function GET(req: NextRequest) {
             }
           }
         }
-      } else if (c.audience_type === "imported") {
-        // For imported, count users in campaign_users
-        const { count } = await supabase
-          .from("campaign_users")
-          .select("id", { count: "exact", head: true })
-          .eq("campaign_id", c.id)
-        
-        targetCount = count || 0
       }
       
       targetCounts[c.id] = targetCount
