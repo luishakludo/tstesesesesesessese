@@ -1,10 +1,5 @@
 import { getSupabase } from "@/lib/supabase"
-import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
-
-const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6dnVsb2puZnZnc2JtaHl2cXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMyNTk0NTMsImV4cCI6MjA4ODgzNTQ1M30.Djnn3tsrxSGLBR-Bm1dWOpQe0NHCSOWJFZkbbTOk2oM"
 
 // Parse chat IDs from text - accepts comma or line separated values
 function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
@@ -34,24 +29,6 @@ function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
 export async function POST(request: Request) {
   try {
     const supabase = getSupabase()
-    
-    // Get user from Supabase Auth session
-    const cookieStore = await cookies()
-    const supabaseAuth = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-      },
-    })
-    
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
-    
-    console.log("[v0] Import auth check - user:", user?.id, "error:", authError?.message)
-    
-    if (!user) {
-      return NextResponse.json({ error: "Nao autorizado", details: authError?.message }, { status: 401 })
-    }
 
     const body = await request.json()
     const { botId, textData } = body
@@ -64,14 +41,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Nenhum ID fornecido" }, { status: 400 })
     }
 
-    // Verify bot belongs to user
+    // Verify bot exists
     const { data: bot } = await supabase
       .from("bots")
-      .select("id, user_id")
+      .select("id")
       .eq("id", botId)
       .single()
 
-    if (!bot || bot.user_id !== user.id) {
+    if (!bot) {
       return NextResponse.json({ error: "Bot nao encontrado" }, { status: 404 })
     }
 
