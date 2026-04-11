@@ -219,13 +219,6 @@ export default function CampaignsPage() {
     
     setIsCreating(true)
     try {
-      console.log("[v0] Creating campaign with:", {
-        bot_id: selectedBotId || selectedBot.id,
-        user_id: session.userId,
-        name: newName,
-        audience_type: audienceType,
-        audience: audienceType === "start" ? selectedAudience : null,
-      })
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,16 +234,16 @@ export default function CampaignsPage() {
         }),
       })
       const data = await res.json()
-      console.log("[v0] Campaign creation response:", data)
       if (data.campaign) {
+        // Sync selectedBot to the bot used in creation so fetchCampaigns works correctly
+        const createdBotId = selectedBotId || selectedBot?.id
+        const createdBot = bots.find(b => b.id === createdBotId)
+        if (createdBot && createdBot.id !== selectedBot?.id) {
+          setSelectedBot(createdBot)
+        }
         setCampaigns((prev) => [data.campaign, ...prev])
-        console.log("[v0] Campaign added to list")
-      } else if (data.error) {
-        console.error("[v0] Campaign creation error:", data.error)
       }
-    } catch (err) { 
-      console.error("[v0] Campaign creation exception:", err)
-    }
+    } catch { /* ignore */ }
     
     setIsCreating(false)
     resetModal()
@@ -383,6 +376,13 @@ export default function CampaignsPage() {
       })
 
       if (res.ok) {
+        // Sync selectedBot to the campaign's bot before fetching
+        if (configCampaignBotId) {
+          const campaignBot = bots.find(b => b.id === configCampaignBotId)
+          if (campaignBot && campaignBot.id !== selectedBot?.id) {
+            setSelectedBot(campaignBot)
+          }
+        }
         // Refresh campaigns to get updated nodes
         await fetchCampaigns()
         resetConfigMessage()
