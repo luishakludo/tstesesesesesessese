@@ -5,11 +5,18 @@ import { getSupabase } from "@/lib/supabase"
 // Telegram helpers (same as webhook)
 // ---------------------------------------------------------------------------
 
-interface InlineButton { text: string; url: string }
+interface InlineButton { text: string; url?: string }
 
 function buildInlineKeyboard(buttons: InlineButton[]) {
   if (!buttons || buttons.length === 0) return undefined
-  return { inline_keyboard: buttons.map((btn) => [{ text: btn.text, url: btn.url }]) }
+  
+  // Filtrar apenas botoes que tem URL valida (Telegram exige URL para inline keyboard)
+  const validButtons = buttons.filter(btn => btn.text && btn.url && btn.url.trim() !== "")
+  
+  if (validButtons.length === 0) return undefined
+  
+  console.log("[buildInlineKeyboard] Valid buttons:", JSON.stringify(validButtons))
+  return { inline_keyboard: validButtons.map((btn) => [{ text: btn.text, url: btn.url }]) }
 }
 
 async function sendTelegramMessage(botToken: string, chatId: number, text: string, replyMarkup?: object) {
