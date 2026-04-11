@@ -323,9 +323,12 @@ export async function POST(req: Request) {
     if (nodes && nodes.length > 0) {
       nodes.forEach((n, i) => {
         const config = n.config as Record<string, unknown>
+        const medias = config?.medias as string[] | undefined
+        const mediaInfo = medias ? `${medias.length} midia(s)` : (config?.media_url ? "1 midia (legacy)" : "nenhuma")
         log.push(`[3]   Node ${i}: type=${n.type} position=${n.position}`)
         log.push(`[3]   Node ${i}: text="${(config?.text as string)?.substring(0, 50) || 'VAZIO'}"`)
-        log.push(`[3]   Node ${i}: medias=${JSON.stringify(config?.medias || config?.media_url || 'nenhuma')}`)
+        log.push(`[3]   Node ${i}: medias=${mediaInfo}`)
+        log.push(`[3]   Node ${i}: buttons=${config?.buttons ? "configurado" : "nenhum"}`)
       })
     } else {
       log.push(`[ERRO] NENHUM NODE ENCONTRADO - Esta e a causa do problema!`)

@@ -97,24 +97,41 @@ async function sendCampaignMessageToUser(
   try {
     // Process new medias array format
     if (medias && medias.length > 0) {
-      for (const mediaUrl of medias) {
-        // Detect type from data URL or extension
+      // Se tem apenas 1 midia, envia COM o texto e botoes
+      if (medias.length === 1) {
+        const mediaUrl = medias[0]
         const isVideo = mediaUrl.includes("video/") || 
                        mediaUrl.endsWith(".mp4") || 
                        mediaUrl.endsWith(".mov")
         
         if (isVideo) {
-          const result = await sendTelegramVideo(botToken, chatId, mediaUrl, "", undefined)
-          console.log("[campaigns/execute] Video send result:", JSON.stringify(result))
+          const result = await sendTelegramVideo(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Video+text send result:", JSON.stringify(result))
         } else {
-          const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, "", undefined)
-          console.log("[campaigns/execute] Photo send result:", JSON.stringify(result))
+          const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Photo+text send result:", JSON.stringify(result))
         }
-      }
-      // Then send text + buttons
-      if (displayText) {
-        const result = await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
-        console.log("[campaigns/execute] Text send result:", JSON.stringify(result))
+      } else {
+        // Se tem multiplas midias, envia cada uma e texto+botoes no final
+        for (let i = 0; i < medias.length; i++) {
+          const mediaUrl = medias[i]
+          const isVideo = mediaUrl.includes("video/") || 
+                         mediaUrl.endsWith(".mp4") || 
+                         mediaUrl.endsWith(".mov")
+          
+          // Ultima midia recebe o texto e botoes
+          const isLast = i === medias.length - 1
+          const caption = isLast ? displayText : ""
+          const keyboard = isLast ? inlineKeyboard : undefined
+          
+          if (isVideo) {
+            const result = await sendTelegramVideo(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Video send result:", JSON.stringify(result))
+          } else {
+            const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Photo send result:", JSON.stringify(result))
+          }
+        }
       }
     } 
     // Fallback to legacy format
