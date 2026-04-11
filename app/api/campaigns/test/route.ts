@@ -402,12 +402,12 @@ export async function POST(req: Request) {
       if (targetUsers.length === 0) log.push(`[5]   - Sem usuarios alvo`)
     }
     
-    // Se action === "reset", limpar estados e reenviar
-    if (action === "reset") {
+    // Se action inclui "reset", limpar estados
+    if (action === "reset" || action === "reset_and_execute") {
       log.push(`[6] Resetando estados dos usuarios...`)
       
       // Deletar estados anteriores
-      const { error: deleteStateError } = await supabase
+      const { error: deleteStateError, count: deletedStates } = await supabase
         .from("campaign_user_state")
         .delete()
         .eq("campaign_id", campaign_id)
@@ -415,11 +415,11 @@ export async function POST(req: Request) {
       if (deleteStateError) {
         log.push(`[6] Erro ao deletar estados: ${deleteStateError.message}`)
       } else {
-        log.push(`[6] Estados deletados com sucesso!`)
+        log.push(`[6] Estados deletados: ${deletedStates || 'ok'}`)
       }
       
       // Deletar sends anteriores
-      const { error: deleteSendsError } = await supabase
+      const { error: deleteSendsError, count: deletedSends } = await supabase
         .from("campaign_sends")
         .delete()
         .eq("campaign_id", campaign_id)
@@ -427,14 +427,14 @@ export async function POST(req: Request) {
       if (deleteSendsError) {
         log.push(`[6] Erro ao deletar sends: ${deleteSendsError.message}`)
       } else {
-        log.push(`[6] Sends deletados com sucesso!`)
+        log.push(`[6] Sends deletados: ${deletedSends || 'ok'}`)
       }
       
-      log.push(`[6] Reset completo! Agora pode reativar a campanha ou usar action=execute`)
+      log.push(`[6] Reset completo!`)
     }
     
-    // Se action === "execute", tentar executar de verdade
-    if (action === "execute" && canSend) {
+    // Se action inclui "execute", tentar executar
+    if ((action === "execute" || action === "reset_and_execute") && canSend) {
       log.push(`[7] Executando envio...`)
       
       // Simular chamada ao execute
