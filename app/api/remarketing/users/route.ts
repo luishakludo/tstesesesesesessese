@@ -38,17 +38,20 @@ export async function GET(request: NextRequest) {
       const hasPaid = paidUsersMap.has(key)
       
       // Calcular payment_status baseado em regras de negocio:
-      // - paid: tem pagamento aprovado
       // - subscriber: e assinante ativo
-      // - abandoned: funnel_step == 1 (so deu start, nao avancou)
-      // - pending: avancou no funil mas nao pagou
-      let calculatedPaymentStatus = "pending"
+      // - paid: tem pagamento aprovado (pix liquido)
+      // - abandoned: funnel_step == 1 (so deu start, nao avancou nas mensagens)
+      // - not_paid: avancou no funil mas nunca pagou
+      let calculatedPaymentStatus = "not_paid"
+      
+      // funnel_step pode ser number ou string dependendo do banco
+      const funnelStep = typeof user.funnel_step === 'string' ? parseInt(user.funnel_step, 10) : user.funnel_step
       
       if (user.is_subscriber) {
         calculatedPaymentStatus = "subscriber"
       } else if (hasPaid) {
         calculatedPaymentStatus = "paid"
-      } else if (user.funnel_step === 1) {
+      } else if (funnelStep === 1) {
         calculatedPaymentStatus = "abandoned"
       } else {
         calculatedPaymentStatus = "not_paid"
