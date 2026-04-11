@@ -402,9 +402,40 @@ export async function POST(req: Request) {
       if (targetUsers.length === 0) log.push(`[5]   - Sem usuarios alvo`)
     }
     
+    // Se action === "reset", limpar estados e reenviar
+    if (action === "reset") {
+      log.push(`[6] Resetando estados dos usuarios...`)
+      
+      // Deletar estados anteriores
+      const { error: deleteStateError } = await supabase
+        .from("campaign_user_state")
+        .delete()
+        .eq("campaign_id", campaign_id)
+      
+      if (deleteStateError) {
+        log.push(`[6] Erro ao deletar estados: ${deleteStateError.message}`)
+      } else {
+        log.push(`[6] Estados deletados com sucesso!`)
+      }
+      
+      // Deletar sends anteriores
+      const { error: deleteSendsError } = await supabase
+        .from("campaign_sends")
+        .delete()
+        .eq("campaign_id", campaign_id)
+      
+      if (deleteSendsError) {
+        log.push(`[6] Erro ao deletar sends: ${deleteSendsError.message}`)
+      } else {
+        log.push(`[6] Sends deletados com sucesso!`)
+      }
+      
+      log.push(`[6] Reset completo! Agora pode reativar a campanha ou usar action=execute`)
+    }
+    
     // Se action === "execute", tentar executar de verdade
     if (action === "execute" && canSend) {
-      log.push(`[6] Executando envio de teste...`)
+      log.push(`[7] Executando envio...`)
       
       // Simular chamada ao execute
       const baseUrl = req.headers.get("origin") || "http://localhost:3000"
@@ -415,9 +446,9 @@ export async function POST(req: Request) {
           body: JSON.stringify({ campaign_id }),
         })
         const execData = await execRes.json()
-        log.push(`[6] Resultado execute: ${JSON.stringify(execData)}`)
+        log.push(`[7] Resultado execute: ${JSON.stringify(execData)}`)
       } catch (err) {
-        log.push(`[6] Erro ao chamar execute: ${String(err)}`)
+        log.push(`[7] Erro ao chamar execute: ${String(err)}`)
       }
     }
     
