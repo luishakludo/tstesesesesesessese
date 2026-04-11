@@ -13,6 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "bot_id is required" }, { status: 400 })
     }
 
+    // Buscar usuarios
     const { data: users, error } = await supabase
       .from("bot_users")
       .select("*")
@@ -24,7 +25,50 @@ export async function GET(
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ users: users || [] })
+    // Buscar pagamentos aprovados para este bot
+    const { data: approvedPayments } = await supabase
+      .from("payments")
+      .select("telegram_user_id")
+      .eq("bot_id", botId)
+      .eq("status", "approved")
+
+    // Criar mapa de usuarios que pagaram
+    const paidUsersSet = new Set(
+      (approvedPayments || []).map(p => String(p.telegram_user_id))
+    )
+
+    // Enriquecer usuarios com payment_status calculado
+    const enrichedUsers = (users || []).map(user => {
+      const telegramUserId = String(user.telegram_user_id)
+      const hasPaid = paidUsersSet.has(telegramUserId)
+      const funnelStep = typeof user.funnel_step === 'string' 
+        ? parseInt(user.funnel_step, 10) 
+        : (user.funnel_step || 1)
+      
+      // Calcular payment_status:
+      // - subscriber: assinante ativo
+      // - paid/approved: tem pagamento aprovado
+      // - abandoned: funnel_step == 1 (so deu start)
+      // - not_paid: avancou no funil mas nao pagou
+      let paymentStatus = "not_started"
+      
+      if (user.is_subscriber) {
+        paymentStatus = "subscriber"
+      } else if (hasPaid) {
+        paymentStatus = "approved"
+      } else if (funnelStep === 1) {
+        paymentStatus = "abandoned"
+      } else if (funnelStep > 1) {
+        paymentStatus = "not_paid"
+      }
+
+      return {
+        ...user,
+        payment_status: paymentStatus
+      }
+    })
+
+    return NextResponse.json({ users: enrichedUsers })
   } catch (err) {
     console.error("[bot-users] Unexpected error:", err)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })

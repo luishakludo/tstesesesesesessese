@@ -79,7 +79,7 @@ interface BotUser {
   telegram_user_id: string
   first_name?: string
   username?: string
-  funnel_step?: string
+  funnel_step?: number | string
   is_subscriber?: boolean
   payment_status?: string
   created_at: string
@@ -125,6 +125,12 @@ export default function CampaignsPage() {
     error?: string
     parseErrors?: string[]
   } | null>(null)
+  
+  // Cache de dados do Telegram (foto, username)
+  const [telegramDataCache, setTelegramDataCache] = useState<Record<string, { 
+    username?: string
+    photo_url?: string | null 
+  }>>({})
 
   const fetchCampaigns = useCallback(async () => {
     if (!selectedBot) return
@@ -140,6 +146,46 @@ export default function CampaignsPage() {
   useEffect(() => {
     fetchCampaigns()
   }, [fetchCampaigns])
+  
+  // Carregar dados do Telegram (foto, username) para todos os bots
+  const loadTelegramData = useCallback(async (botsToLoad: typeof bots) => {
+    const botsNeedingData = botsToLoad.filter(bot => !telegramDataCache[bot.id])
+    if (botsNeedingData.length === 0) return
+    
+    const newCache: Record<string, { username?: string; photo_url?: string | null }> = { ...telegramDataCache }
+    
+    await Promise.all(botsNeedingData.map(async (bot) => {
+      try {
+        const response = await fetch("/api/telegram/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: bot.token }),
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.bot) {
+            newCache[bot.id] = {
+              username: data.bot.username,
+              photo_url: data.bot.photo_url
+            }
+          }
+        }
+      } catch {
+        // Ignora erros
+      }
+    }))
+    
+    setTelegramDataCache(newCache)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  
+  // Carregar dados do Telegram quando bots mudam
+  useEffect(() => {
+    if (bots.length > 0) {
+      loadTelegramData(bots)
+    }
+  }, [bots, loadTelegramData])
 
   const handleDelete = async (id: string) => {
     setDeleting(id)
@@ -316,13 +362,28 @@ export default function CampaignsPage() {
   }
 
   const getUsersByStatus = (users: BotUser[], status: string) => {
+    // payment_status calculado pela API:
+    // - abandoned: funnel_step == 1 (so deu start, nao avancou)
+    // - not_paid: avancou no funil mas nao pagou
+    // - approved: tem pagamento aprovado
+    // - subscriber: assinante ativo
     switch (status) {
-      case "all": return users
-      case "started_not_continued": return users.filter(u => u.funnel_step === "started" && !u.payment_status)
-      case "not_paid": return users.filter(u => u.payment_status === "pending" || u.payment_status === "pix_generated")
-      case "paid": return users.filter(u => u.payment_status === "paid" || u.payment_status === "approved")
-      case "subscribers": return users.filter(u => u.is_subscriber)
-      default: return users
+      case "all": 
+        return users
+      case "started_not_continued": 
+        // Abandonou
+        return users.filter(u => u.payment_status === "abandoned")
+      case "not_paid": 
+        // Nao pagou
+        return users.filter(u => u.payment_status === "not_paid")
+      case "paid": 
+        // Pagou
+        return users.filter(u => u.payment_status === "approved" || u.payment_status === "paid")
+      case "subscribers": 
+        // Assinantes
+        return users.filter(u => u.payment_status === "subscriber" || u.is_subscriber)
+      default: 
+        return users
     }
   }
 
@@ -668,6 +729,7 @@ export default function CampaignsPage() {
                     const users = botUsers[bot.id] || []
                     const isExpanded = expandedBots[bot.id]
                     const isLoading = loadingBotUsers[bot.id]
+                    const telegramData = telegramDataCache[bot.id]
                     
                     const audiences = [
                       { id: "all", label: "Todos", count: users.length, color: "bg-gray-100 text-gray-700" },
@@ -685,12 +747,22 @@ export default function CampaignsPage() {
                           className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-[#1c1c1e] flex items-center justify-center">
-                              <Bot className="h-5 w-5 text-[#bfff00]" />
-                            </div>
+                            {telegramData?.photo_url ? (
+                              <img 
+                                src={telegramData.photo_url} 
+                                alt={bot.name}
+                                className="w-10 h-10 rounded-xl object-cover"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-[#1c1c1e] flex items-center justify-center">
+                                <Bot className="h-5 w-5 text-[#bfff00]" />
+                              </div>
+                            )}
                             <div className="text-left">
                               <p className="font-bold text-gray-900">{bot.name}</p>
-                              <p className="text-xs text-gray-500">@{bot.username || "sem_username"}</p>
+                              <p className="text-xs text-gray-500">
+                                {telegramData?.username ? `@${telegramData.username}` : "@sem_username"}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
