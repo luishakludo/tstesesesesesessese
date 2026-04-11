@@ -43,9 +43,10 @@ interface BotUser {
   first_name: string
   last_name?: string
   username?: string
-  funnel_step: string
-  payment_status: string
+  funnel_step: number
+  payment_status: string // calculated by API: "abandoned" | "not_paid" | "paid" | "subscriber"
   is_subscriber: boolean
+  has_approved_payment?: boolean
   created_at: string
 }
 
@@ -86,56 +87,61 @@ interface Campaign {
 }
 
 // Audiences/Publicos
+// payment_status calculado pela API:
+// - abandoned: funnel_step == 1 (so deu start, nao avancou)
+// - not_paid: avancou no funil mas nunca pagou
+// - paid: tem pelo menos um pagamento aprovado
+// - subscriber: e assinante ativo
 const AUDIENCES: Audience[] = [
   {
     id: "all",
-    name: "Todos os Usuarios",
+    name: "Todos",
     description: "Todos que interagiram com o bot",
     icon: Users,
-    color: "text-blue-400",
-    bgColor: "bg-blue-500/10",
-    borderColor: "border-blue-500/30",
+    color: "text-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-border",
     filter: () => true
   },
   {
     id: "started_not_continued",
-    name: "Iniciou mas nao continuou",
-    description: "Deram /start mas nao avancaram",
+    name: "Abandonou",
+    description: "Deram /start mas nao avancaram no funil",
     icon: UserX,
-    color: "text-orange-400",
-    bgColor: "bg-orange-500/10",
-    borderColor: "border-orange-500/30",
-    filter: (user) => user.funnel_step === "start" || user.funnel_step === "welcome"
+    color: "text-yellow-600",
+    bgColor: "bg-yellow-100",
+    borderColor: "border-yellow-300",
+    filter: (user) => user.payment_status === "abandoned"
   },
   {
     id: "not_paid",
     name: "Nao pagou",
-    description: "Chegaram ate o pagamento mas nao finalizaram",
+    description: "Avancaram no funil mas nunca finalizaram pagamento",
     icon: ShoppingCart,
-    color: "text-red-400",
-    bgColor: "bg-red-500/10",
-    borderColor: "border-red-500/30",
-    filter: (user) => user.payment_status === "pending" || user.payment_status === "abandoned"
+    color: "text-red-600",
+    bgColor: "bg-red-100",
+    borderColor: "border-red-300",
+    filter: (user) => user.payment_status === "not_paid"
   },
   {
     id: "paid",
     name: "Pagou",
-    description: "Ja realizaram pelo menos uma compra",
+    description: "Ja realizaram pelo menos uma compra aprovada",
     icon: CheckCircle2,
-    color: "text-emerald-400",
-    bgColor: "bg-emerald-500/10",
-    borderColor: "border-emerald-500/30",
-    filter: (user) => user.payment_status === "paid" || user.is_subscriber
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+    borderColor: "border-emerald-300",
+    filter: (user) => user.payment_status === "paid" || user.payment_status === "subscriber"
   },
   {
     id: "subscribers",
-    name: "Assinantes Ativos",
+    name: "Assinantes",
     description: "Usuarios com assinatura ativa",
     icon: Zap,
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/10",
-    borderColor: "border-purple-500/30",
-    filter: (user) => user.is_subscriber === true
+    color: "text-blue-600",
+    bgColor: "bg-blue-100",
+    borderColor: "border-blue-300",
+    filter: (user) => user.payment_status === "subscriber" || user.is_subscriber === true
   }
 ]
 
@@ -181,12 +187,23 @@ export default function RemarketingPage() {
   
   // Store telegram data (username, photo_url) for each bot
   const [telegramData, setTelegramData] = useState<Record<string, { username?: string, photo_url?: string }>>({})
+  const [loadingTelegramData, setLoadingTelegramData] = useState(false)
   
-  // Fetch telegram data for each bot
+  // Fetch telegram data for each bot - similar to bots page logic
   useEffect(() => {
     async function fetchTelegramData() {
-      for (const bot of rawBots) {
-        if (telegramData[bot.id]) continue // Skip if already fetched
+      // Get IDs that need fetching - check against current state via callback
+      const botsNeedingData = rawBots.filter(bot => {
+        // Use a ref or check outside to avoid stale closure
+        return true // We'll dedupe inside
+      })
+      
+      if (botsNeedingData.length === 0) return
+      
+      setLoadingTelegramData(true)
+      
+      // Fetch in parallel
+      const results = await Promise.all(botsNeedingData.map(async (bot) => {
         try {
           const res = await fetch("/api/telegram/validate", {
             method: "POST",
@@ -196,24 +213,45 @@ export default function RemarketingPage() {
           if (res.ok) {
             const data = await res.json()
             if (data.bot) {
-              setTelegramData(prev => ({
-                ...prev,
-                [bot.id]: {
-                  username: data.bot.username,
-                  photo_url: data.bot.photo_url
-                }
-              }))
+              return {
+                id: bot.id,
+                username: data.bot.username,
+                photo_url: data.bot.photo_url
+              }
             }
           }
         } catch {
           // Ignore errors
         }
+        return null
+      }))
+      
+      // Update state with all results at once
+      setTelegramData(prev => {
+        const newData = { ...prev }
+        for (const result of results) {
+          if (result && !newData[result.id]) {
+            newData[result.id] = {
+              username: result.username,
+              photo_url: result.photo_url
+            }
+          }
+        }
+        return newData
+      })
+      
+      setLoadingTelegramData(false)
+    }
+    
+    if (rawBots.length > 0) {
+      // Only fetch if we have bots that don't have data yet
+      const needsFetch = rawBots.some(bot => !telegramData[bot.id])
+      if (needsFetch) {
+        fetchTelegramData()
       }
     }
-    if (rawBots.length > 0) {
-      fetchTelegramData()
-    }
-  }, [rawBots, telegramData])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawBots])
   
   // Merge bots with telegram data
   const bots: BotData[] = rawBots.map(bot => ({
