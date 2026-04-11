@@ -12,7 +12,7 @@ import {
   Plus, Search, MoreVertical, Trash2, Pause, Play, Copy,
   Megaphone, Send, UserX, ShoppingCart, CheckCircle2,
   RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot,
-  FileText, FileSpreadsheet
+  FileText, FileSpreadsheet, MessageSquare, Image, Video, Link, X, Settings
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -114,6 +114,17 @@ export default function CampaignsPage() {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [activating, setActivating] = useState<string | null>(null)
   
+  // Message Configuration Modal
+  const [configMessageOpen, setConfigMessageOpen] = useState(false)
+  const [configCampaignId, setConfigCampaignId] = useState<string | null>(null)
+  const [messageText, setMessageText] = useState("")
+  const [messageMediaType, setMessageMediaType] = useState<"" | "photo" | "video">("")
+  const [messageMediaUrl, setMessageMediaUrl] = useState("")
+  const [messageMediaUrl2, setMessageMediaUrl2] = useState("")
+  const [messageMediaUrl3, setMessageMediaUrl3] = useState("")
+  const [messageButtons, setMessageButtons] = useState<{ text: string; url: string }[]>([])
+  const [savingMessage, setSavingMessage] = useState(false)
+  
   // Import Modal State
   const [showImportModal, setShowImportModal] = useState(false)
   const [importBotId, setImportBotId] = useState<string | null>(null)
@@ -199,24 +210,10 @@ export default function CampaignsPage() {
     setDeleting(null)
   }
 
-  const handleToggleStatus = async (campaign: Campaign) => {
-    const newStatus = campaign.status === "ativa" ? "pausada" : "ativa"
-    setActivating(campaign.id)
-    try {
-      await fetch("/api/campaigns", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: campaign.id, status: newStatus }),
-      })
-      setCampaigns((prev) =>
-        prev.map((c) => (c.id === campaign.id ? { ...c, status: newStatus } : c))
-      )
-    } catch { /* ignore */ }
-    setActivating(null)
-  }
-
   const handleCreate = async () => {
-    if (!newName.trim() || !selectedAudience || !selectedBot || !session?.userId) return
+    // Para imported, nao precisa de selectedAudience
+    if (!newName.trim() || !selectedBot || !session?.userId) return
+    if (audienceType === "start" && !selectedAudience) return
     
     setIsCreating(true)
     try {
@@ -251,6 +248,108 @@ export default function CampaignsPage() {
     setAudienceType(null)
     setSelectedAudience(null)
     setStep(1)
+  }
+
+  const openConfigMessage = (campaign: Campaign) => {
+    setConfigCampaignId(campaign.id)
+    // Load existing message if any
+    const messageNode = campaign.nodes.find(n => n.type === "message")
+    if (messageNode) {
+      const config = messageNode.config as Record<string, unknown>
+      setMessageText((config.text as string) || "")
+      setMessageMediaType((config.media_type as "" | "photo" | "video") || "")
+      setMessageMediaUrl((config.media_url as string) || "")
+      setMessageMediaUrl2((config.media_url_2 as string) || "")
+      setMessageMediaUrl3((config.media_url_3 as string) || "")
+      try {
+        const btns = JSON.parse((config.buttons as string) || "[]")
+        setMessageButtons(btns)
+      } catch { setMessageButtons([]) }
+    } else {
+      setMessageText("")
+      setMessageMediaType("")
+      setMessageMediaUrl("")
+      setMessageMediaUrl2("")
+      setMessageMediaUrl3("")
+      setMessageButtons([])
+    }
+    setConfigMessageOpen(true)
+  }
+
+  const resetConfigMessage = () => {
+    setConfigMessageOpen(false)
+    setConfigCampaignId(null)
+    setMessageText("")
+    setMessageMediaType("")
+    setMessageMediaUrl("")
+    setMessageMediaUrl2("")
+    setMessageMediaUrl3("")
+    setMessageButtons([])
+  }
+
+  const handleSaveMessage = async () => {
+    if (!configCampaignId || !messageText.trim()) return
+    
+    setSavingMessage(true)
+    try {
+      // Build the node config
+      const config: Record<string, unknown> = {
+        text: messageText,
+      }
+      if (messageMediaType && messageMediaUrl) {
+        config.media_type = messageMediaType
+        config.media_url = messageMediaUrl
+        if (messageMediaUrl2) config.media_url_2 = messageMediaUrl2
+        if (messageMediaUrl3) config.media_url_3 = messageMediaUrl3
+      }
+      if (messageButtons.length > 0) {
+        config.buttons = JSON.stringify(messageButtons)
+      }
+
+      // Save the node
+      const res = await fetch("/api/campaigns/nodes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaign_id: configCampaignId,
+          type: "message",
+          label: "Mensagem Principal",
+          config,
+          position: 0
+        }),
+      })
+
+      if (res.ok) {
+        // Refresh campaigns to get updated nodes
+        await fetchCampaigns()
+        resetConfigMessage()
+      }
+    } catch { /* ignore */ }
+    setSavingMessage(false)
+  }
+
+  const handleToggleStatus = async (campaign: Campaign) => {
+    // Check if campaign has a message configured
+    const hasMessage = campaign.nodes.some(n => n.type === "message")
+    if (!hasMessage && campaign.status !== "ativa") {
+      // Open config modal instead
+      openConfigMessage(campaign)
+      return
+    }
+
+    const newStatus = campaign.status === "ativa" ? "pausada" : "ativa"
+    setActivating(campaign.id)
+    try {
+      await fetch("/api/campaigns", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: campaign.id, status: newStatus }),
+      })
+      setCampaigns((prev) =>
+        prev.map((c) => (c.id === campaign.id ? { ...c, status: newStatus } : c))
+      )
+    } catch { /* ignore */ }
+    setActivating(null)
   }
 
   const handleImportUsers = async () => {
@@ -621,89 +720,120 @@ export default function CampaignsPage() {
                   {filteredCampaigns.map((campaign) => {
                     const audience = getAudience(campaign.audience || "not_paid")
                     const Icon = audience.icon
+                    const hasMessage = campaign.nodes.some(n => n.type === "message")
+                    
                     return (
-                      <div
-                        key={campaign.id}
-                        className="grid grid-cols-[1fr_140px_100px_100px_60px] gap-4 items-center px-5 py-4 hover:bg-gray-50 transition-colors"
-                      >
-                        {/* Nome */}
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-gray-900 truncate">{campaign.name}</p>
-                          <p className="text-xs text-gray-500">{formatDate(campaign.created_at)}</p>
-                        </div>
+                      <div key={campaign.id} className="hover:bg-gray-50 transition-colors">
+                        {/* Linha principal */}
+                        <div className="grid grid-cols-[1fr_140px_100px_100px_60px] gap-4 items-center px-5 py-4">
+                          {/* Nome */}
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-gray-900 truncate">{campaign.name}</p>
+                            <p className="text-xs text-gray-500">{formatDate(campaign.created_at)}</p>
+                          </div>
 
-                        {/* Publico */}
-                        <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${audience.bgClass} ${audience.textClass} w-fit`}>
-                          <Icon className="h-3 w-3" />
-                          {audience.label}
-                        </div>
+                          {/* Publico */}
+                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${audience.bgClass} ${audience.textClass} w-fit`}>
+                            <Icon className="h-3 w-3" />
+                            {audience.label}
+                          </div>
 
-                        {/* Enviadas */}
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-gray-900">{campaign.sent_count || 0}</p>
-                        </div>
+                          {/* Enviadas */}
+                          <div className="text-center">
+                            <p className="text-sm font-semibold text-gray-900">{campaign.sent_count || 0}</p>
+                          </div>
 
-                        {/* Status */}
-                        <div className="flex justify-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
-                            campaign.status === "ativa" 
-                              ? "bg-emerald-100 text-emerald-700" 
-                              : campaign.status === "pausada"
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-gray-100 text-gray-600"
-                          }`}>
-                            {campaign.status === "ativa" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                            {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-                          </span>
-                        </div>
+                          {/* Status */}
+                          <div className="flex justify-center">
+                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${
+                              campaign.status === "ativa" 
+                                ? "bg-emerald-100 text-emerald-700" 
+                                : campaign.status === "pausada"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : !hasMessage
+                                    ? "bg-orange-100 text-orange-700"
+                                    : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {campaign.status === "ativa" && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                              {!hasMessage ? "Pendente" : campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                            </span>
+                          </div>
 
-                        {/* Acoes */}
-                        <div className="flex justify-end">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
-                                <MoreVertical className="h-4 w-4 text-gray-500" />
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem 
-                                onClick={() => handleToggleStatus(campaign)}
-                                className="gap-2"
-                              >
-                                {activating === campaign.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : campaign.status === "ativa" ? (
-                                  <>
-                                    <Pause className="h-4 w-4" />
-                                    Pausar
-                                  </>
-                                ) : (
-                                  <>
-                                    <Play className="h-4 w-4" />
-                                    Ativar
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2">
-                                <Copy className="h-4 w-4" />
-                                Duplicar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleDelete(campaign.id)}
-                                className="gap-2 text-red-600"
-                              >
-                                {deleting === campaign.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Trash2 className="h-4 w-4" />
-                                    Excluir
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {/* Acoes */}
+                          <div className="flex justify-end">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
+                                  <MoreVertical className="h-4 w-4 text-gray-500" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-48">
+                                <DropdownMenuItem 
+                                  onClick={() => openConfigMessage(campaign)}
+                                  className="gap-2"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                  {hasMessage ? "Editar Mensagem" : "Configurar Mensagem"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleToggleStatus(campaign)}
+                                  disabled={!hasMessage && campaign.status !== "ativa"}
+                                  className="gap-2"
+                                >
+                                  {activating === campaign.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : campaign.status === "ativa" ? (
+                                    <>
+                                      <Pause className="h-4 w-4" />
+                                      Pausar
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play className="h-4 w-4" />
+                                      Ativar
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="gap-2">
+                                  <Copy className="h-4 w-4" />
+                                  Duplicar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => handleDelete(campaign.id)}
+                                  className="gap-2 text-red-600"
+                                >
+                                  {deleting === campaign.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Trash2 className="h-4 w-4" />
+                                      Excluir
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
+                        
+                        {/* Botao grande de configurar mensagem quando nao tem */}
+                        {!hasMessage && (
+                          <div className="px-5 pb-4">
+                            <button
+                              onClick={() => openConfigMessage(campaign)}
+                              className="w-full flex items-center justify-center gap-3 p-4 rounded-xl border-2 border-dashed border-orange-300 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:border-orange-400 transition-all"
+                            >
+                              <div className="w-10 h-10 rounded-full bg-orange-200 flex items-center justify-center">
+                                <MessageSquare className="h-5 w-5" />
+                              </div>
+                              <div className="text-left">
+                                <p className="font-bold text-sm">Configurar Mensagem</p>
+                                <p className="text-xs text-orange-600">Configure a mensagem antes de ativar a campanha</p>
+                              </div>
+                              <ChevronRight className="h-5 w-5 ml-auto" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -1312,6 +1442,182 @@ export default function CampaignsPage() {
                     <>
                       <Upload className="h-4 w-4" />
                       Importar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Message Configuration Modal */}
+      <Dialog open={configMessageOpen} onOpenChange={(open) => !open && resetConfigMessage()}>
+        <DialogContent className="sm:max-w-lg bg-[#1c1c1e] border-[#2a2a2e] p-0 max-h-[90vh] overflow-y-auto rounded-[20px] [&>button]:text-gray-400 [&>button]:hover:text-white">
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-[#bfff00]/10 flex items-center justify-center border border-[#bfff00]/20">
+                <MessageSquare className="h-6 w-6 text-[#bfff00]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Configurar Mensagem</h2>
+                <p className="text-xs text-gray-400">Defina a mensagem que sera enviada</p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              {/* Message Text */}
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wide">
+                  Texto da Mensagem *
+                </label>
+                <textarea
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder="Digite sua mensagem aqui...&#10;&#10;Voce pode usar HTML como <b>negrito</b> e <i>italico</i>"
+                  rows={5}
+                  className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50 resize-none"
+                />
+              </div>
+
+              {/* Media Section */}
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wide">
+                  Midia (Opcional - ate 3)
+                </label>
+                
+                {/* Media Type Toggle */}
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => setMessageMediaType(messageMediaType === "photo" ? "" : "photo")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      messageMediaType === "photo"
+                        ? "bg-[#bfff00] text-black"
+                        : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Image className="h-4 w-4" />
+                    Foto
+                  </button>
+                  <button
+                    onClick={() => setMessageMediaType(messageMediaType === "video" ? "" : "video")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                      messageMediaType === "video"
+                        ? "bg-[#bfff00] text-black"
+                        : "bg-[#2a2a2e] text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Video className="h-4 w-4" />
+                    Video
+                  </button>
+                </div>
+
+                {/* Media URLs */}
+                {messageMediaType && (
+                  <div className="space-y-2">
+                    <input
+                      type="url"
+                      value={messageMediaUrl}
+                      onChange={(e) => setMessageMediaUrl(e.target.value)}
+                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 1`}
+                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
+                    />
+                    <input
+                      type="url"
+                      value={messageMediaUrl2}
+                      onChange={(e) => setMessageMediaUrl2(e.target.value)}
+                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 2 (opcional)`}
+                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
+                    />
+                    <input
+                      type="url"
+                      value={messageMediaUrl3}
+                      onChange={(e) => setMessageMediaUrl3(e.target.value)}
+                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 3 (opcional)`}
+                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Buttons Section */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">
+                    Botoes (Opcional)
+                  </label>
+                  {messageButtons.length < 3 && (
+                    <button
+                      onClick={() => setMessageButtons([...messageButtons, { text: "", url: "" }])}
+                      className="text-xs text-[#bfff00] hover:underline flex items-center gap-1"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Adicionar Botao
+                    </button>
+                  )}
+                </div>
+                
+                {messageButtons.length > 0 && (
+                  <div className="space-y-2">
+                    {messageButtons.map((btn, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={btn.text}
+                          onChange={(e) => {
+                            const newBtns = [...messageButtons]
+                            newBtns[idx].text = e.target.value
+                            setMessageButtons(newBtns)
+                          }}
+                          placeholder="Texto do botao"
+                          className="flex-1 px-3 py-2 bg-[#2a2a2e] border border-[#3a3a3e] rounded-lg text-white placeholder:text-gray-500 text-sm"
+                        />
+                        <input
+                          type="url"
+                          value={btn.url}
+                          onChange={(e) => {
+                            const newBtns = [...messageButtons]
+                            newBtns[idx].url = e.target.value
+                            setMessageButtons(newBtns)
+                          }}
+                          placeholder="URL"
+                          className="flex-1 px-3 py-2 bg-[#2a2a2e] border border-[#3a3a3e] rounded-lg text-white placeholder:text-gray-500 text-sm"
+                        />
+                        <button
+                          onClick={() => setMessageButtons(messageButtons.filter((_, i) => i !== idx))}
+                          className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 flex items-center justify-center"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={resetConfigMessage}
+                  className="flex-1 h-12 rounded-xl border border-[#2a2a2e] text-gray-400 hover:text-white hover:border-[#bfff00]/30 transition-colors font-medium"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveMessage}
+                  disabled={!messageText.trim() || savingMessage}
+                  className="flex-1 h-12 rounded-xl bg-[#bfff00] text-black font-bold hover:bg-[#a8e600] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {savingMessage ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Salvar Mensagem
                     </>
                   )}
                 </button>
