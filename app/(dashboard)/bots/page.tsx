@@ -1002,7 +1002,7 @@ export default function BotsPage() {
           </div>
         ) : viewMode === "grid" ? (
           /* Grid View - Cards escuros com glow */
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 [&>*]:min-w-[280px]">
+          <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredBots.map((bot) => {
               const isSelected = selectedBot?.id === bot.id
               const isActive = bot.status === "active"
