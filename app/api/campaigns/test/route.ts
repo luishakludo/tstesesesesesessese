@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSupabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
 export async function GET(req: Request) {
-  const supabase = await createClient()
+  const supabase = getSupabase()
   const { searchParams } = new URL(req.url)
   const campaignId = searchParams.get("campaign_id")
 
