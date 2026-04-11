@@ -77,15 +77,14 @@ export async function POST(request: Request) {
     const uniqueChatIds = [...new Set(chatIds)]
     const duplicatesInInput = chatIds.length - uniqueChatIds.length
 
-    // Check for existing chat_ids in IMPORTED users for this bot (source = 'imported')
-    const { data: existingImported } = await supabaseAdmin
+    // Check for existing chat_ids for this bot (any source)
+    const { data: existingUsers } = await supabaseAdmin
       .from("bot_users")
       .select("chat_id")
       .eq("bot_id", botId)
-      .eq("source", "imported")
       .in("chat_id", uniqueChatIds)
 
-    const existingChatIds = new Set((existingImported || []).map(u => String(u.chat_id)))
+    const existingChatIds = new Set((existingUsers || []).map(u => String(u.chat_id)))
     const newChatIds = uniqueChatIds.filter(id => !existingChatIds.has(id))
     const skippedExisting = uniqueChatIds.length - newChatIds.length
 
@@ -96,11 +95,12 @@ export async function POST(request: Request) {
         duplicates: duplicatesInInput,
         skipped: skippedExisting,
         parseErrors,
-        message: "Todos os IDs ja existem na lista de importados"
+        message: "Todos os IDs ja existem no sistema"
       })
     }
 
-    // Insert new users into bot_users table with source = 'imported'
+    // Insert new users into bot_users table
+    // funnel_step = 0 means imported user (did not start the bot)
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("bot_users")
       .insert(
@@ -112,7 +112,6 @@ export async function POST(request: Request) {
           username: null,
           funnel_step: 0, // 0 = importado (nao iniciou no bot)
           is_subscriber: false,
-          source: "imported", // Marca como importado
           created_at: new Date().toISOString()
         }))
       )
