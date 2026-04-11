@@ -44,9 +44,10 @@ interface BotUser {
   last_name?: string
   username?: string
   funnel_step: number
-  payment_status: string // calculated by API: "abandoned" | "not_paid" | "paid" | "subscriber"
+  payment_status: string // calculated by API: "abandoned" | "not_paid" | "paid" | "subscriber" | "imported"
   is_subscriber: boolean
   has_approved_payment?: boolean
+  source?: "start" | "imported" // 'start' = captured by bot, 'imported' = manually imported
   created_at: string
 }
 
@@ -92,16 +93,22 @@ interface Campaign {
 // - not_paid: avancou no funil mas nunca pagou
 // - paid: tem pelo menos um pagamento aprovado
 // - subscriber: e assinante ativo
-const AUDIENCES: Audience[] = [
+// - imported: leads importados manualmente (sem tracking de pagamento)
+// source campo:
+// - 'start': usuarios que interagiram com o bot
+// - 'imported': usuarios importados manualmente
+
+// Audiences for ORGANIC users (captured by bot)
+const AUDIENCES_START: Audience[] = [
   {
-    id: "all",
-    name: "Todos",
-    description: "Todos que interagiram com o bot",
+    id: "all_start",
+    name: "Todos (Start)",
+    description: "Todos que deram /start no bot",
     icon: Users,
     color: "text-foreground",
     bgColor: "bg-muted",
     borderColor: "border-border",
-    filter: () => true
+    filter: (user) => user.source !== "imported"
   },
   {
     id: "started_not_continued",
@@ -111,7 +118,7 @@ const AUDIENCES: Audience[] = [
     color: "text-yellow-600",
     bgColor: "bg-yellow-100",
     borderColor: "border-yellow-300",
-    filter: (user) => user.payment_status === "abandoned"
+    filter: (user) => user.payment_status === "abandoned" && user.source !== "imported"
   },
   {
     id: "not_paid",
@@ -121,7 +128,7 @@ const AUDIENCES: Audience[] = [
     color: "text-red-600",
     bgColor: "bg-red-100",
     borderColor: "border-red-300",
-    filter: (user) => user.payment_status === "not_paid"
+    filter: (user) => user.payment_status === "not_paid" && user.source !== "imported"
   },
   {
     id: "paid",
@@ -131,7 +138,7 @@ const AUDIENCES: Audience[] = [
     color: "text-emerald-600",
     bgColor: "bg-emerald-100",
     borderColor: "border-emerald-300",
-    filter: (user) => user.payment_status === "paid" || user.payment_status === "subscriber"
+    filter: (user) => (user.payment_status === "paid" || user.payment_status === "subscriber") && user.source !== "imported"
   },
   {
     id: "subscribers",
@@ -141,8 +148,38 @@ const AUDIENCES: Audience[] = [
     color: "text-blue-600",
     bgColor: "bg-blue-100",
     borderColor: "border-blue-300",
-    filter: (user) => user.payment_status === "subscriber" || user.is_subscriber === true
+    filter: (user) => (user.payment_status === "subscriber" || user.is_subscriber === true) && user.source !== "imported"
   }
+]
+
+// Audience for IMPORTED users
+const AUDIENCES_IMPORTED: Audience[] = [
+  {
+    id: "imported",
+    name: "Importados",
+    description: "Usuarios importados manualmente",
+    icon: Upload,
+    color: "text-purple-600",
+    bgColor: "bg-purple-100",
+    borderColor: "border-purple-300",
+    filter: (user) => user.source === "imported"
+  }
+]
+
+// Combined audiences for backward compatibility
+const AUDIENCES: Audience[] = [
+  {
+    id: "all",
+    name: "Todos",
+    description: "Todos usuarios (start + importados)",
+    icon: Users,
+    color: "text-foreground",
+    bgColor: "bg-muted",
+    borderColor: "border-border",
+    filter: () => true
+  },
+  ...AUDIENCES_START.slice(1), // Skip the "all_start" since we have a combined "all"
+  ...AUDIENCES_IMPORTED
 ]
 
 // Fetcher
@@ -286,15 +323,19 @@ export default function RemarketingPage() {
   // Get users for a specific bot and audience
   const getFilteredUsers = (botId: string, audienceId: string) => {
     const users = allBotUsers[botId] || []
-    const audience = AUDIENCES.find(a => a.id === audienceId)
+    // Search in all audience arrays
+    const allAudiences = [...AUDIENCES, ...AUDIENCES_START, ...AUDIENCES_IMPORTED]
+    const audience = allAudiences.find(a => a.id === audienceId)
     if (!audience) return users
     return users.filter(audience.filter)
   }
 
-  // Get audience counts for a bot
+  // Get audience counts for a bot - includes both start and imported audiences
   const getAudienceCounts = (botId: string) => {
     const users = allBotUsers[botId] || []
-    return AUDIENCES.reduce((acc, audience) => {
+    // Combine all audience types for counting
+    const allAudiences = [...AUDIENCES, ...AUDIENCES_START, ...AUDIENCES_IMPORTED]
+    return allAudiences.reduce((acc, audience) => {
       acc[audience.id] = users.filter(audience.filter).length
       return acc
     }, {} as Record<string, number>)
@@ -728,30 +769,81 @@ export default function RemarketingPage() {
 
                           {/* Expanded Content */}
                           {isExpanded && (
-                            <div className="border-t border-[#2a2a2e] p-4 space-y-4">
-                              {/* Audiences Grid */}
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                                {AUDIENCES.map(audience => {
-                                  const count = audienceCounts[audience.id] || 0
-                                  const Icon = audience.icon
-                                  
-                                  return (
+                            <div className="border-t border-[#2a2a2e] p-4 space-y-6">
+                              {/* Section: Usuarios Start (organicos) */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <MessageSquare className="h-4 w-4 text-[#bfff00]" />
+                                  <h4 className="text-sm font-bold text-white">Usuarios Start</h4>
+                                  <span className="text-xs text-gray-500">(capturados pelo bot)</span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                  {AUDIENCES_START.map(audience => {
+                                    const count = audienceCounts[audience.id] || 0
+                                    const Icon = audience.icon
+                                    
+                                    return (
+                                      <button
+                                        key={audience.id}
+                                        onClick={() => {
+                                          setSelectedAudienceForBot({ botId: bot.id, audienceId: audience.id })
+                                          setShowUsersModal(true)
+                                        }}
+                                        className={`p-4 rounded-xl border ${audience.borderColor} ${audience.bgColor} hover:scale-[1.02] transition-all text-left`}
+                                      >
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Icon className={`h-4 w-4 ${audience.color}`} />
+                                          <span className="text-xs font-medium text-gray-400">{audience.name}</span>
+                                        </div>
+                                        <p className={`text-2xl font-bold ${audience.color}`}>{count}</p>
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* Section: Usuarios Importados */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Upload className="h-4 w-4 text-purple-400" />
+                                  <h4 className="text-sm font-bold text-white">Usuarios Importados</h4>
+                                  <span className="text-xs text-gray-500">(lista externa)</span>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                                  {AUDIENCES_IMPORTED.map(audience => {
+                                    const count = audienceCounts[audience.id] || 0
+                                    const Icon = audience.icon
+                                    
+                                    return (
+                                      <button
+                                        key={audience.id}
+                                        onClick={() => {
+                                          setSelectedAudienceForBot({ botId: bot.id, audienceId: audience.id })
+                                          setShowUsersModal(true)
+                                        }}
+                                        className={`p-4 rounded-xl border ${audience.borderColor} ${audience.bgColor} hover:scale-[1.02] transition-all text-left`}
+                                      >
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <Icon className={`h-4 w-4 ${audience.color}`} />
+                                          <span className="text-xs font-medium text-gray-400">{audience.name}</span>
+                                        </div>
+                                        <p className={`text-2xl font-bold ${audience.color}`}>{count}</p>
+                                      </button>
+                                    )
+                                  })}
+                                  {audienceCounts["imported"] === 0 && (
                                     <button
-                                      key={audience.id}
                                       onClick={() => {
-                                        setSelectedAudienceForBot({ botId: bot.id, audienceId: audience.id })
-                                        setShowUsersModal(true)
+                                        setImportBotId(bot.id)
+                                        setShowImportModal(true)
                                       }}
-                                      className={`p-4 rounded-xl border ${audience.borderColor} ${audience.bgColor} hover:scale-[1.02] transition-all text-left`}
+                                      className="p-4 rounded-xl border border-dashed border-[#2a2a2e] hover:border-purple-500/50 transition-all text-left flex flex-col items-center justify-center gap-2"
                                     >
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <Icon className={`h-4 w-4 ${audience.color}`} />
-                                        <span className="text-xs font-medium text-gray-400">{audience.name}</span>
-                                      </div>
-                                      <p className={`text-2xl font-bold ${audience.color}`}>{count}</p>
+                                      <Plus className="h-5 w-5 text-gray-500" />
+                                      <span className="text-xs text-gray-500">Importar lista</span>
                                     </button>
-                                  )
-                                })}
+                                  )}
+                                </div>
                               </div>
 
                               {/* Actions */}

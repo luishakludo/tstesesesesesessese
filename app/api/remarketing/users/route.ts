@@ -37,7 +37,14 @@ export async function GET(request: NextRequest) {
       const key = `${user.bot_id}:${user.telegram_user_id}`
       const hasPaid = paidUsersMap.has(key)
       
+      // Determine if user is imported or organic (from bot start)
+      // source = 'imported' for manually imported users
+      // source = 'start' (or null/undefined) for users that interacted with bot
+      const isImported = user.source === 'imported'
+      
       // Calcular payment_status baseado em regras de negocio:
+      // For imported users: we don't track payment status (they don't have funnel)
+      // For organic users:
       // - subscriber: e assinante ativo
       // - paid: tem pagamento aprovado (pix liquido)
       // - abandoned: funnel_step == 1 (so deu start, nao avancou nas mensagens)
@@ -47,7 +54,10 @@ export async function GET(request: NextRequest) {
       // funnel_step pode ser number ou string dependendo do banco
       const funnelStep = typeof user.funnel_step === 'string' ? parseInt(user.funnel_step, 10) : user.funnel_step
       
-      if (user.is_subscriber) {
+      if (isImported) {
+        // Imported users: no payment status tracking, just mark as "imported"
+        calculatedPaymentStatus = "imported"
+      } else if (user.is_subscriber) {
         calculatedPaymentStatus = "subscriber"
       } else if (hasPaid) {
         calculatedPaymentStatus = "paid"
@@ -59,6 +69,7 @@ export async function GET(request: NextRequest) {
 
       return {
         ...user,
+        source: user.source || 'start', // Default to 'start' for existing users
         payment_status: calculatedPaymentStatus,
         has_approved_payment: hasPaid
       }

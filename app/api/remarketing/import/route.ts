@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase"
+import { createServerClient } from "@supabase/ssr"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
@@ -31,15 +32,22 @@ export async function POST(request: Request) {
   try {
     const supabase = getSupabase()
     
-    // Get user from cookie
+    // Get user from Supabase Auth session
     const cookieStore = await cookies()
-    const userCookie = cookieStore.get("dragon_user")
+    const supabaseAuth = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+        },
+      }
+    )
     
-    if (!userCookie?.value) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
-    }
+    const { data: { user } } = await supabaseAuth.auth.getUser()
     
-    const user = JSON.parse(userCookie.value)
     if (!user) {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
     }
@@ -103,18 +111,19 @@ export async function POST(request: Request) {
     }
 
     // Insert new users into bot_users table
+    // source = 'imported' to differentiate from users captured by bot (source = 'start')
     const { data: inserted, error: insertError } = await supabase
       .from("bot_users")
       .insert(
         newChatIds.map(chatId => ({
-          user_id: user.id,
           bot_id: botId,
-          chat_id: chatId,
-          first_name: `User ${chatId}`,
+          telegram_user_id: parseInt(chatId),
+          chat_id: parseInt(chatId),
+          first_name: `Importado`,
           username: null,
-          payment_status: "nao_pago",
-          funnel_stage: "lead",
+          funnel_step: 0, // 0 indicates imported user (didn't go through funnel)
           is_subscriber: false,
+          source: "imported", // Mark as imported vs "start" for organic users
           created_at: new Date().toISOString()
         }))
       )
