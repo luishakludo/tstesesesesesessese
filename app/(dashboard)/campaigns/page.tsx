@@ -35,7 +35,8 @@ interface Campaign {
   user_id: string
   name: string
   status: "rascunho" | "ativa" | "pausada" | "concluida"
-  audience?: "started_not_continued" | "not_paid" | "paid"
+  audience_type?: "start" | "imported"
+  audience?: "started_not_continued" | "not_paid" | "paid" | null
   campaign_type: "basic" | "complete"
   created_at: string
   updated_at: string
@@ -105,6 +106,8 @@ export default function CampaignsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [step, setStep] = useState(1)
   const [newName, setNewName] = useState("")
+  const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
+  const [audienceType, setAudienceType] = useState<"start" | "imported" | null>(null)
   const [selectedAudience, setSelectedAudience] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   
@@ -221,10 +224,11 @@ export default function CampaignsPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bot_id: selectedBot.id,
+          bot_id: selectedBotId || selectedBot.id,
           user_id: session.userId,
           name: newName,
-          audience: selectedAudience,
+          audience_type: audienceType,
+          audience: audienceType === "start" ? selectedAudience : null,
           status: "rascunho",
           campaign_type: "basic",
           nodes: []
@@ -243,6 +247,8 @@ export default function CampaignsPage() {
   const resetModal = () => {
     setCreateOpen(false)
     setNewName("")
+    setSelectedBotId(null)
+    setAudienceType(null)
     setSelectedAudience(null)
     setStep(1)
   }
@@ -254,7 +260,7 @@ export default function CampaignsPage() {
     setImportResult(null)
 
     try {
-      const res = await fetch("/api/remarketing/import", {
+      const res = await fetch("/api/campaigns/import", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -884,16 +890,21 @@ export default function CampaignsPage() {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">Nova Campanha</h2>
-                <p className="text-xs text-gray-400">Etapa {step} de 2</p>
+                <p className="text-xs text-gray-400">Etapa {step} de {audienceType === "imported" ? 3 : 4}</p>
               </div>
             </div>
 
             {/* Progress */}
-            <div className="flex gap-2 mb-5">
+            <div className="flex gap-1.5 mb-5">
               <div className={`flex-1 h-1 rounded-full ${step >= 1 ? "bg-[#bfff00]" : "bg-[#2a2a2e]"}`} />
               <div className={`flex-1 h-1 rounded-full ${step >= 2 ? "bg-[#bfff00]" : "bg-[#2a2a2e]"}`} />
+              <div className={`flex-1 h-1 rounded-full ${step >= 3 ? "bg-[#bfff00]" : "bg-[#2a2a2e]"}`} />
+              {audienceType !== "imported" && (
+                <div className={`flex-1 h-1 rounded-full ${step >= 4 ? "bg-[#bfff00]" : "bg-[#2a2a2e]"}`} />
+              )}
             </div>
 
+            {/* Step 1: Nome */}
             {step === 1 && (
               <div className="space-y-4">
                 <div>
@@ -922,11 +933,177 @@ export default function CampaignsPage() {
               </div>
             )}
 
+            {/* Step 2: Escolher Bot */}
             {step === 2 && (
               <div className="space-y-4">
                 <div>
                   <Label className="text-xs font-medium text-gray-400 mb-3 block uppercase tracking-wide">
-                    Selecione o Publico
+                    Selecione o Bot
+                  </Label>
+                  <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                    {bots.map((bot) => (
+                      <button
+                        key={bot.id}
+                        onClick={() => setSelectedBotId(bot.id)}
+                        className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+                          selectedBotId === bot.id
+                            ? "bg-[#bfff00]/10 border-[#bfff00]/50"
+                            : "bg-[#2a2a2e] border-[#3a3a3e] hover:border-[#4a4a4e]"
+                        }`}
+                      >
+                        <div className="w-10 h-10 rounded-lg bg-[#3a3a3e] flex items-center justify-center overflow-hidden">
+                          {telegramDataCache[bot.id]?.photo_url ? (
+                            <img src={telegramDataCache[bot.id].photo_url!} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Bot className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{bot.name}</p>
+                          <p className="text-xs text-gray-500 truncate">
+                            @{telegramDataCache[bot.id]?.username || "..."}
+                          </p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                          selectedBotId === bot.id
+                            ? "border-[#bfff00] bg-[#bfff00]"
+                            : "border-gray-600"
+                        }`}>
+                          {selectedBotId === bot.id && (
+                            <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 bg-[#2a2a2e] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#3a3a3e] transition-colors"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={() => setStep(3)}
+                    disabled={!selectedBotId}
+                    className="flex-1 bg-[#bfff00] text-[#1c1c1e] py-3 rounded-xl font-bold text-sm hover:bg-[#d4ff4d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    Continuar
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Tipo de Publico (Start ou Importados) */}
+            {step === 3 && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs font-medium text-gray-400 mb-3 block uppercase tracking-wide">
+                    Tipo de Publico
+                  </Label>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setAudienceType("start")}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+                        audienceType === "start"
+                          ? "bg-[#bfff00]/10 border-[#bfff00]/50"
+                          : "bg-[#2a2a2e] border-[#3a3a3e] hover:border-[#4a4a4e]"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <Play className="h-5 w-5 text-blue-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">Usuarios Start</p>
+                        <p className="text-xs text-gray-500">Usuarios que iniciaram o bot</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        audienceType === "start"
+                          ? "border-[#bfff00] bg-[#bfff00]"
+                          : "border-gray-600"
+                      }`}>
+                        {audienceType === "start" && (
+                          <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => setAudienceType("imported")}
+                      className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
+                        audienceType === "imported"
+                          ? "bg-[#bfff00]/10 border-[#bfff00]/50"
+                          : "bg-[#2a2a2e] border-[#3a3a3e] hover:border-[#4a4a4e]"
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                        <Upload className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-white">Usuarios Importados</p>
+                        <p className="text-xs text-gray-500">Usuarios importados manualmente</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                        audienceType === "imported"
+                          ? "border-[#bfff00] bg-[#bfff00]"
+                          : "border-gray-600"
+                      }`}>
+                        {audienceType === "imported" && (
+                          <svg className="w-3 h-3 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setStep(2)}
+                    className="flex-1 bg-[#2a2a2e] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#3a3a3e] transition-colors"
+                  >
+                    Voltar
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (audienceType === "imported") {
+                        handleCreate()
+                      } else {
+                        setStep(4)
+                      }
+                    }}
+                    disabled={!audienceType || (audienceType === "imported" && isCreating)}
+                    className="flex-1 bg-[#bfff00] text-[#1c1c1e] py-3 rounded-xl font-bold text-sm hover:bg-[#d4ff4d] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {audienceType === "imported" && isCreating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : audienceType === "imported" ? (
+                      "Criar Campanha"
+                    ) : (
+                      <>
+                        Continuar
+                        <ChevronRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Filtro de Publico (somente para Start) */}
+            {step === 4 && audienceType === "start" && (
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-xs font-medium text-gray-400 mb-3 block uppercase tracking-wide">
+                    Filtrar Publico
                   </Label>
                   <div className="space-y-2">
                     {AUDIENCES.map((audience) => {
@@ -967,7 +1144,7 @@ export default function CampaignsPage() {
                 
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(3)}
                     className="flex-1 bg-[#2a2a2e] text-white py-3 rounded-xl font-semibold text-sm hover:bg-[#3a3a3e] transition-colors"
                   >
                     Voltar
