@@ -113,7 +113,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ campaign })
+    // Return campaign with nodes array (empty if no nodes created)
+    return NextResponse.json({ campaign: { ...campaign, nodes: [] } })
   } catch (err) {
     console.error("[campaigns] Unexpected error:", err)
     return NextResponse.json({ error: "Erro interno" }, { status: 500 })

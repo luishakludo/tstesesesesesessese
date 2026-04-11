@@ -14,7 +14,7 @@ import {
   Plus, Search, MoreVertical, Trash2, Pause, Play, Copy,
   Megaphone, Send, UserX, ShoppingCart, CheckCircle2,
   RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot,
-  FileText, FileSpreadsheet, MessageSquare, Image, Video, Link, X, Settings, Package, CreditCard
+  FileText, FileSpreadsheet, MessageSquare, Image, X, Settings, Package, CreditCard
 } from "lucide-react"
 import {
   DropdownMenu,
