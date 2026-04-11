@@ -5,13 +5,24 @@ import { getSupabase } from "@/lib/supabase"
 // Telegram helpers (same as webhook)
 // ---------------------------------------------------------------------------
 
-interface InlineButton { text: string; url?: string }
+interface InlineButton { type?: string; text: string; url?: string }
 
-function buildInlineKeyboard(buttons: InlineButton[]) {
+function buildInlineKeyboard(buttons: InlineButton[], botUsername?: string) {
   if (!buttons || buttons.length === 0) return undefined
   
+  // Processar botoes - gerar URLs para plans/packs baseado no botUsername
+  const processedButtons = buttons.map(btn => {
+    if (btn.type === "plans" && botUsername) {
+      return { ...btn, url: `https://t.me/${botUsername}?start=plans` }
+    }
+    if (btn.type === "packs" && botUsername) {
+      return { ...btn, url: `https://t.me/${botUsername}?start=packs` }
+    }
+    return btn
+  })
+  
   // Filtrar apenas botoes que tem URL valida (Telegram exige URL para inline keyboard)
-  const validButtons = buttons.filter(btn => btn.text && btn.url && btn.url.trim() !== "")
+  const validButtons = processedButtons.filter(btn => btn.text && btn.url && btn.url.trim() !== "")
   
   if (validButtons.length === 0) return undefined
   
@@ -90,10 +101,15 @@ async function sendTelegramVideo(botToken: string, chatId: number, videoUrl: str
 async function sendCampaignMessageToUser(
   botToken: string,
   chatId: number,
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
+  botUsername?: string
 ) {
   const text = (config.text as string) || ""
   const buttonsStr = (config.buttons as string) || ""
+  
+  console.log("[sendCampaignMessageToUser] config.buttons:", config.buttons)
+  console.log("[sendCampaignMessageToUser] buttonsStr:", buttonsStr)
+  console.log("[sendCampaignMessageToUser] botUsername:", botUsername)
   
   // Support both old format (media_url/media_type) and new format (medias array)
   const medias = config.medias as string[] | undefined
@@ -103,7 +119,7 @@ async function sendCampaignMessageToUser(
   let inlineKeyboard: object | undefined
   if (buttonsStr) {
     try {
-      inlineKeyboard = buildInlineKeyboard(JSON.parse(buttonsStr) as InlineButton[])
+      inlineKeyboard = buildInlineKeyboard(JSON.parse(buttonsStr) as InlineButton[], botUsername)
     } catch { /* ignore */ }
   }
 
@@ -229,10 +245,10 @@ export async function POST(req: NextRequest) {
       
       console.log("[campaigns/execute] Campanha encontrada:", campaign.name, "status:", campaign.status)
 
-      // Fetch bot token separately
+      // Fetch bot token and username separately
       const { data: bot } = await supabase
         .from("bots")
-        .select("token")
+        .select("token, username")
         .eq("id", campaign.bot_id)
         .single()
 
@@ -241,6 +257,7 @@ export async function POST(req: NextRequest) {
       }
 
       const botToken = bot.token
+      const botUsername = bot.username || ""
 
       // Get campaign nodes ordered by position
       const { data: nodes } = await supabase
@@ -399,7 +416,8 @@ export async function POST(req: NextRequest) {
         const success = await sendCampaignMessageToUser(
           botToken,
           user.chat_id,
-          firstMessageNode.config as Record<string, unknown>
+          firstMessageNode.config as Record<string, unknown>,
+          botUsername
         )
 
         if (success) {
@@ -486,13 +504,14 @@ export async function POST(req: NextRequest) {
 
       const { data: bot2 } = await supabase
         .from("bots")
-        .select("token")
+        .select("token, username")
         .eq("id", campaign2.bot_id)
         .single()
 
       if (!bot2?.token) continue
 
       const botToken = bot2.token
+      const botUsername2 = bot2.username || ""
       const campaignId2 = campaign2.id
 
       // Get all nodes for this campaign
@@ -522,7 +541,8 @@ export async function POST(req: NextRequest) {
       const success = await sendCampaignMessageToUser(
         botToken,
         state.chat_id,
-        currentNode.config as Record<string, unknown>
+        currentNode.config as Record<string, unknown>,
+        botUsername2
       )
 
       // Record send
