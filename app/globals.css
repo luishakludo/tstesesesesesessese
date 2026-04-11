@@ -233,6 +233,92 @@
   display: none; /* Chrome, Safari, Opera */
 }
 
+/* ========================================
+   INPUT AUTOFILL FIX - DARK MODE
+   ======================================== */
+
+/* Fix for Chrome/Safari autofill that overrides dark backgrounds */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2e inset !important;
+  -webkit-text-fill-color: white !important;
+  caret-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  background-color: #2a2a2e !important;
+}
+
+/* Ensure inputs in dark containers maintain dark styling */
+.dark input,
+.dark textarea,
+.dark select,
+[class*="bg-[#0"] input,
+[class*="bg-[#1"] input,
+[class*="bg-[#2"] input,
+[class*="bg-[#0"] textarea,
+[class*="bg-[#1"] textarea,
+[class*="bg-[#2"] textarea {
+  color-scheme: dark;
+}
+
+/* Fix input caret color in dark mode */
+.dark input,
+.dark textarea {
+  caret-color: white;
+}
+
+/* Inputs inside dark dialogs/modals */
+[data-state="open"] input:-webkit-autofill,
+[data-state="open"] input:-webkit-autofill:hover,
+[data-state="open"] input:-webkit-autofill:focus,
+[role="dialog"] input:-webkit-autofill,
+[role="dialog"] input:-webkit-autofill:hover,
+[role="dialog"] input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2e inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: #2a2a2e !important;
+}
+
+/* Dark input utility class - use on inputs in dark backgrounds */
+.dark-input:-webkit-autofill,
+.dark-input:-webkit-autofill:hover,
+.dark-input:-webkit-autofill:focus,
+.dark-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2e inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: #2a2a2e !important;
+}
+
+/* All inputs with dark background classes */
+input[class*="bg-[#2"],
+input[class*="bg-[#1"],
+input[class*="bg-[#0"],
+textarea[class*="bg-[#2"],
+textarea[class*="bg-[#1"],
+textarea[class*="bg-[#0"] {
+  color-scheme: dark !important;
+}
+
+input[class*="bg-[#2"]:-webkit-autofill,
+input[class*="bg-[#2"]:-webkit-autofill:hover,
+input[class*="bg-[#2"]:-webkit-autofill:focus,
+input[class*="bg-[#1"]:-webkit-autofill,
+input[class*="bg-[#1"]:-webkit-autofill:hover,
+input[class*="bg-[#1"]:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #2a2a2e inset !important;
+  -webkit-text-fill-color: white !important;
+  background-color: #2a2a2e !important;
+}
+
 /* Dragon AI Sphere Float Animation */
 @keyframes float {
   0%, 100% {

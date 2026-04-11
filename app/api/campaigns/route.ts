@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
   const supabase = getSupabase()
   try {
     const body = await req.json()
-    const { bot_id, user_id, name, campaign_type, nodes } = body as {
+    const { bot_id, user_id, name, campaign_type, audience_type, audience, nodes } = body as {
       bot_id: string
       user_id: string
       name: string
       campaign_type: "basic" | "complete"
+      audience_type?: "start" | "imported"
+      audience?: string | null
       nodes: { type: string; label: string; config: Record<string, unknown>; position: number }[]
     }
 
