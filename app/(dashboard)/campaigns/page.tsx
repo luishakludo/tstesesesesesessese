@@ -219,6 +219,13 @@ export default function CampaignsPage() {
     
     setIsCreating(true)
     try {
+      console.log("[v0] Creating campaign with:", {
+        bot_id: selectedBotId || selectedBot.id,
+        user_id: session.userId,
+        name: newName,
+        audience_type: audienceType,
+        audience: audienceType === "start" ? selectedAudience : null,
+      })
       const res = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -234,10 +241,16 @@ export default function CampaignsPage() {
         }),
       })
       const data = await res.json()
+      console.log("[v0] Campaign creation response:", data)
       if (data.campaign) {
         setCampaigns((prev) => [data.campaign, ...prev])
+        console.log("[v0] Campaign added to list")
+      } else if (data.error) {
+        console.error("[v0] Campaign creation error:", data.error)
       }
-    } catch { /* ignore */ }
+    } catch (err) { 
+      console.error("[v0] Campaign creation exception:", err)
+    }
     
     setIsCreating(false)
     resetModal()
