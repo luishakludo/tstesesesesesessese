@@ -43,9 +43,116 @@ export async function GET(req: NextRequest) {
       nodesByCampaign[node.campaign_id].push(node)
     }
 
+    // Fetch sent counts from campaign_sends
+    let sendCounts: Record<string, number> = {}
+    if (campaignIds.length > 0) {
+      const { data: sends } = await supabase
+        .from("campaign_sends")
+        .select("campaign_id")
+        .in("campaign_id", campaignIds)
+        .eq("status", "sent")
+      
+      if (sends) {
+        for (const send of sends) {
+          sendCounts[send.campaign_id] = (sendCounts[send.campaign_id] || 0) + 1
+        }
+      }
+    }
+
+    // Calculate target_count for each campaign based on audience
+    // Uses same logic as /api/campaigns/execute
+    const targetCounts: Record<string, number> = {}
+    for (const campaign of (campaigns || [])) {
+      const c = campaign as { id: string; bot_id: string; audience_type?: string; audience?: string }
+      let targetCount = 0
+      
+      console.log("[v0] Campaign:", c.id, "bot_id:", c.bot_id, "audience_type:", c.audience_type, "audience:", c.audience)
+      
+      if (c.audience_type === "imported") {
+        // For imported campaigns, count users with source = 'imported'
+        const { data: importedUsers } = await supabase
+          .from("bot_users")
+          .select("id")
+          .eq("bot_id", c.bot_id)
+          .eq("source", "imported")
+        
+        targetCount = importedUsers?.length || 0
+        console.log("[v0] Imported users count:", targetCount)
+      } else {
+        // For start campaigns, get all bot_users and filter by audience
+        const { data: allBotUsers, error: botUsersError } = await supabase
+          .from("bot_users")
+          .select("id, telegram_user_id, funnel_step, is_subscriber")
+          .eq("bot_id", c.bot_id)
+        
+        console.log("[v0] bot_users for bot_id:", c.bot_id, "count:", allBotUsers?.length, "error:", botUsersError?.message)
+        
+        if (allBotUsers && allBotUsers.length > 0) {
+          if (!c.audience) {
+            // No audience filter = all bot users
+            targetCount = allBotUsers.length
+            console.log("[v0] No audience filter, all users:", targetCount)
+          } else {
+            // Get payments using same logic as execute route (telegram_user_id + bot_id)
+            const { data: allPayments } = await supabase
+              .from("payments")
+              .select("telegram_user_id, status")
+              .eq("bot_id", c.bot_id)
+            
+            // Create sets for payment status
+            const pendingPaymentUsers = new Set<string>()
+            const paidUsers = new Set<string>()
+            
+            if (allPayments) {
+              for (const payment of allPayments) {
+                const tgId = payment.telegram_user_id?.toString()
+                if (!tgId) continue
+                
+                const status = (payment.status || "").toLowerCase()
+                if (status === "pending" || status === "aguardando" || status === "pix_gerado") {
+                  pendingPaymentUsers.add(tgId)
+                }
+                if (status === "approved" || status === "paid" || status === "pago") {
+                  paidUsers.add(tgId)
+                }
+              }
+            }
+            
+            console.log("[v0] Payment stats - pending:", pendingPaymentUsers.size, "paid:", paidUsers.size)
+            
+            // Filter based on audience (same logic as execute)
+            for (const user of allBotUsers) {
+              const tgId = user.telegram_user_id?.toString() || ""
+              const funnelStep = typeof user.funnel_step === "string" 
+                ? parseInt(user.funnel_step, 10) 
+                : (user.funnel_step || 1)
+              const hasPaid = paidUsers.has(tgId)
+              const hasPending = pendingPaymentUsers.has(tgId)
+              
+              if (c.audience === "paid" && hasPaid) {
+                targetCount++
+              } else if (c.audience === "not_paid" && !hasPaid && (funnelStep > 1 || hasPending)) {
+                targetCount++
+              } else if (c.audience === "started_not_continued" && !hasPaid && !hasPending && funnelStep === 1) {
+                targetCount++
+              }
+            }
+            console.log("[v0] Filtered by audience '", c.audience, "' count:", targetCount)
+          }
+        } else {
+          console.log("[v0] No bot_users found for bot_id:", c.bot_id)
+        }
+      }
+      
+      targetCounts[c.id] = targetCount
+      console.log("[v0] Final target_count for campaign", c.id, ":", targetCount)
+    }
+
     const result = (campaigns || []).map((c: Record<string, unknown>) => ({
       ...c,
       nodes: nodesByCampaign[c.id as string] || [],
+      sent_count: sendCounts[c.id as string] || 0,
+      target_count: targetCounts[c.id as string] || 0,
     }))
 
     return NextResponse.json({ campaigns: result })
