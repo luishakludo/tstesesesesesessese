@@ -1,4 +1,3 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { getSupabase } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
@@ -30,14 +29,18 @@ function parseChatIds(text: string): { chatIds: string[], errors: string[] } {
 
 export async function POST(request: Request) {
   try {
+    const supabase = getSupabase()
+    
+    // Get user from cookie
     const cookieStore = await cookies()
-    const supabaseAuth = createRouteHandlerClient({ cookies: () => cookieStore })
-    const supabaseAdmin = getSupabase()
+    const userCookie = cookieStore.get("dragon_user")
     
-    // Get authenticated user from Supabase Auth
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    if (!userCookie?.value) {
+      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
+    }
     
-    if (authError || !user) {
+    const user = JSON.parse(userCookie.value)
+    if (!user) {
       return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
     }
 
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
     }
 
     // Verify bot belongs to user
-    const { data: bot } = await supabaseAdmin
+    const { data: bot } = await supabase
       .from("bots")
       .select("id, user_id")
       .eq("id", botId)
@@ -77,14 +80,14 @@ export async function POST(request: Request) {
     const uniqueChatIds = [...new Set(chatIds)]
     const duplicatesInInput = chatIds.length - uniqueChatIds.length
 
-    // Check for existing chat_ids for this bot (any source)
-    const { data: existingUsers } = await supabaseAdmin
+    // Check for existing chat_ids in database for this bot
+    const { data: existingUsers } = await supabase
       .from("bot_users")
       .select("chat_id")
       .eq("bot_id", botId)
       .in("chat_id", uniqueChatIds)
 
-    const existingChatIds = new Set((existingUsers || []).map(u => String(u.chat_id)))
+    const existingChatIds = new Set((existingUsers || []).map(u => u.chat_id))
     const newChatIds = uniqueChatIds.filter(id => !existingChatIds.has(id))
     const skippedExisting = uniqueChatIds.length - newChatIds.length
 
@@ -100,17 +103,17 @@ export async function POST(request: Request) {
     }
 
     // Insert new users into bot_users table
-    // funnel_step = 0 means imported user (did not start the bot)
-    const { data: inserted, error: insertError } = await supabaseAdmin
+    const { data: inserted, error: insertError } = await supabase
       .from("bot_users")
       .insert(
         newChatIds.map(chatId => ({
+          user_id: user.id,
           bot_id: botId,
-          telegram_user_id: chatId,
           chat_id: chatId,
-          first_name: `Importado`,
+          first_name: `User ${chatId}`,
           username: null,
-          funnel_step: 0, // 0 = importado (nao iniciou no bot)
+          payment_status: "nao_pago",
+          funnel_stage: "lead",
           is_subscriber: false,
           created_at: new Date().toISOString()
         }))
