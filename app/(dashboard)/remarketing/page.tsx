@@ -53,6 +53,8 @@ interface BotData {
   id: string
   name: string
   token: string
+  username?: string
+  photo_url?: string
   user_count?: number
 }
 
@@ -175,7 +177,50 @@ export default function RemarketingPage() {
 
   // Fetch bots
   const { data: botsData, isLoading: loadingBots, mutate: mutateBots } = useSWR("/api/bots", fetcher)
-  const bots: BotData[] = botsData?.bots || []
+  const rawBots: BotData[] = botsData?.bots || []
+  
+  // Store telegram data (username, photo_url) for each bot
+  const [telegramData, setTelegramData] = useState<Record<string, { username?: string, photo_url?: string }>>({})
+  
+  // Fetch telegram data for each bot
+  useEffect(() => {
+    async function fetchTelegramData() {
+      for (const bot of rawBots) {
+        if (telegramData[bot.id]) continue // Skip if already fetched
+        try {
+          const res = await fetch("/api/telegram/validate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: bot.token })
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.bot) {
+              setTelegramData(prev => ({
+                ...prev,
+                [bot.id]: {
+                  username: data.bot.username,
+                  photo_url: data.bot.photo_url
+                }
+              }))
+            }
+          }
+        } catch {
+          // Ignore errors
+        }
+      }
+    }
+    if (rawBots.length > 0) {
+      fetchTelegramData()
+    }
+  }, [rawBots, telegramData])
+  
+  // Merge bots with telegram data
+  const bots: BotData[] = rawBots.map(bot => ({
+    ...bot,
+    username: telegramData[bot.id]?.username,
+    photo_url: telegramData[bot.id]?.photo_url
+  }))
 
   // Fetch all bot users
   const { data: allUsersData, isLoading: loadingAllUsers, mutate: mutateAllUsers } = useSWR(
@@ -599,12 +644,22 @@ export default function RemarketingPage() {
                             className="w-full flex items-center justify-between p-4 hover:bg-[#141416] transition-colors"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-[#bfff00]/10 flex items-center justify-center">
-                                <Bot className="h-5 w-5 text-[#bfff00]" />
-                              </div>
+                              {bot.photo_url ? (
+                                <img 
+                                  src={bot.photo_url} 
+                                  alt={bot.name}
+                                  className="w-10 h-10 rounded-xl object-cover border border-[#2a2a2e]"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-[#bfff00]/10 flex items-center justify-center">
+                                  <Bot className="h-5 w-5 text-[#bfff00]" />
+                                </div>
+                              )}
                               <div className="text-left">
                                 <p className="text-sm font-bold text-white">{bot.name}</p>
-                                <p className="text-xs text-gray-500">{botUsers.length} usuarios coletados</p>
+                                <p className="text-xs text-gray-500">
+                                  {bot.username ? `@${bot.username}` : `${botUsers.length} usuarios coletados`}
+                                </p>
                               </div>
                             </div>
                             <div className="flex items-center gap-3">
@@ -770,12 +825,22 @@ export default function RemarketingPage() {
                           : "border-[#2a2a2e] hover:border-[#bfff00]/30"
                       }`}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-[#bfff00]/10 flex items-center justify-center">
-                        <Bot className="h-5 w-5 text-[#bfff00]" />
-                      </div>
+                      {bot.photo_url ? (
+                        <img 
+                          src={bot.photo_url} 
+                          alt={bot.name}
+                          className="w-10 h-10 rounded-xl object-cover border border-[#2a2a2e]"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-[#bfff00]/10 flex items-center justify-center">
+                          <Bot className="h-5 w-5 text-[#bfff00]" />
+                        </div>
+                      )}
                       <div className="text-left flex-1">
                         <p className="text-sm font-bold text-white">{bot.name}</p>
-                        <p className="text-xs text-gray-500">{userCount} usuarios</p>
+                        <p className="text-xs text-gray-500">
+                          {bot.username ? `@${bot.username}` : `${userCount} usuarios`}
+                        </p>
                       </div>
                       {newCampaign.bot_id === bot.id && (
                         <CheckCircle2 className="h-5 w-5 text-[#bfff00]" />
