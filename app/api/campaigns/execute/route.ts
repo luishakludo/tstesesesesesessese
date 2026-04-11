@@ -23,24 +23,34 @@ interface InlineButton { type?: string; text: string; url?: string }
 function buildInlineKeyboard(buttons: InlineButton[], botUsername?: string) {
   if (!buttons || buttons.length === 0) return undefined
   
-  // Processar botoes - gerar URLs para plans/packs baseado no botUsername
-  const processedButtons = buttons.map(btn => {
-    if (btn.type === "plans" && botUsername) {
-      return { ...btn, url: `https://t.me/${botUsername}?start=plans` }
+  // Processar botoes - usar callback_data para plans/packs (ativa direto no chat)
+  const keyboardRows: Array<Array<{ text: string; url?: string; callback_data?: string }>> = []
+  
+  for (const btn of buttons) {
+    if (!btn.text) continue
+    
+    // Botao de planos - usar callback_data para ativar direto no fluxo
+    if (btn.type === "plans") {
+      keyboardRows.push([{ text: btn.text, callback_data: "ver_planos" }])
+      continue
     }
-    if (btn.type === "packs" && botUsername) {
-      return { ...btn, url: `https://t.me/${botUsername}?start=packs` }
+    
+    // Botao de packs - usar callback_data para ativar direto no fluxo
+    if (btn.type === "packs") {
+      keyboardRows.push([{ text: btn.text, callback_data: "show_packs" }])
+      continue
     }
-    return btn
-  })
+    
+    // Botao com URL normal
+    if (btn.url && btn.url.trim() !== "") {
+      keyboardRows.push([{ text: btn.text, url: btn.url }])
+    }
+  }
   
-  // Filtrar apenas botoes que tem URL valida (Telegram exige URL para inline keyboard)
-  const validButtons = processedButtons.filter(btn => btn.text && btn.url && btn.url.trim() !== "")
+  if (keyboardRows.length === 0) return undefined
   
-  if (validButtons.length === 0) return undefined
-  
-  console.log("[buildInlineKeyboard] Valid buttons:", JSON.stringify(validButtons))
-  return { inline_keyboard: validButtons.map((btn) => [{ text: btn.text, url: btn.url }]) }
+  console.log("[buildInlineKeyboard] Keyboard rows:", JSON.stringify(keyboardRows))
+  return { inline_keyboard: keyboardRows }
 }
 
 async function sendTelegramMessage(botToken: string, chatId: number, text: string, replyMarkup?: object) {
