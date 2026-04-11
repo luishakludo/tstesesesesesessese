@@ -81,8 +81,6 @@ export async function POST(req: NextRequest) {
         user_id,
         name,
         campaign_type,
-        audience_type: audience_type || "start",
-        audience: audience || null,
         status: "rascunho",
       })
       .select()
