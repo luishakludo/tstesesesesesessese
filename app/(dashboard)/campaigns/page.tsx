@@ -89,7 +89,7 @@ interface BotUser {
 }
 
 export default function CampaignsPage() {
-  const { selectedBot, bots } = useBots()
+  const { selectedBot, bots, setSelectedBot } = useBots()
   const { session } = useAuth()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [isLoading, setIsLoading] = useState(true)
