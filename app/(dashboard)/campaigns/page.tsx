@@ -905,8 +905,9 @@ export default function CampaignsPage() {
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && newName.trim() && setStep(2)}
-                    className="bg-[#2a2a2e] border-[#3a3a3e] text-white placeholder:text-gray-500 h-12 rounded-xl focus:border-[#bfff00] focus:ring-0"
+                    className="bg-[#2a2a2e] border-[#3a3a3e] text-white placeholder:text-gray-500 h-12 rounded-xl focus:border-[#bfff00] focus:ring-0 focus:bg-[#2a2a2e] [&:-webkit-autofill]:!bg-[#2a2a2e] [&:-webkit-autofill]:[-webkit-box-shadow:0_0_0_1000px_#2a2a2e_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:white]"
                     autoFocus
+                    autoComplete="off"
                   />
                 </div>
                 
