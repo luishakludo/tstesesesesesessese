@@ -44,6 +44,7 @@ interface Campaign {
   updated_at: string
   nodes: CampaignNode[]
   sent_count?: number
+  target_count?: number
   open_rate?: number
 }
 
@@ -814,10 +815,13 @@ export default function CampaignsPage() {
                             {audience.label}
                           </div>
 
-                          {/* Enviadas */}
-                          <div className="text-center">
-                            <p className="text-sm font-semibold text-gray-900">{campaign.sent_count || 0}</p>
-                          </div>
+{/* Enviadas */}
+                                  <div className="text-center">
+                                    <p className="text-sm font-semibold text-gray-900">
+                                      {campaign.sent_count || 0}
+                                      <span className="text-gray-400 font-normal">/{campaign.target_count || 0}</span>
+                                    </p>
+                                  </div>
 
                           {/* Status */}
                           <div className="flex justify-center">

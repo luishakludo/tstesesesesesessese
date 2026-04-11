@@ -43,9 +43,78 @@ export async function GET(req: NextRequest) {
       nodesByCampaign[node.campaign_id].push(node)
     }
 
+    // Fetch sent counts from campaign_sends
+    let sendCounts: Record<string, number> = {}
+    if (campaignIds.length > 0) {
+      const { data: sends } = await supabase
+        .from("campaign_sends")
+        .select("campaign_id")
+        .in("campaign_id", campaignIds)
+        .eq("status", "sent")
+      
+      if (sends) {
+        for (const send of sends) {
+          sendCounts[send.campaign_id] = (sendCounts[send.campaign_id] || 0) + 1
+        }
+      }
+    }
+
+    // Calculate target_count for each campaign based on audience
+    const targetCounts: Record<string, number> = {}
+    for (const campaign of (campaigns || [])) {
+      const c = campaign as { id: string; bot_id: string; audience_type?: string; audience?: string }
+      let targetCount = 0
+      
+      if (c.audience_type === "start" && c.audience) {
+        // Get users from bot_users based on audience filter
+        const { data: botUsers } = await supabase
+          .from("bot_users")
+          .select("id, funnel_step, is_subscriber")
+          .eq("bot_id", c.bot_id)
+        
+        if (botUsers) {
+          // Check payments for this bot's users
+          const userIds = botUsers.map((u: { id: string }) => u.id)
+          const { data: payments } = await supabase
+            .from("payments")
+            .select("bot_user_id, status")
+            .in("bot_user_id", userIds)
+            .eq("status", "approved")
+          
+          const paidUserIds = new Set((payments || []).map((p: { bot_user_id: string }) => p.bot_user_id))
+          
+          for (const user of botUsers) {
+            const u = user as { id: string; funnel_step?: number | string; is_subscriber?: boolean }
+            const hasPaid = paidUserIds.has(u.id)
+            const funnelStep = typeof u.funnel_step === "string" ? parseInt(u.funnel_step, 10) : (u.funnel_step || 1)
+            
+            if (c.audience === "paid" && hasPaid) {
+              targetCount++
+            } else if (c.audience === "not_paid" && !hasPaid && funnelStep > 1) {
+              targetCount++
+            } else if (c.audience === "started_not_continued" && !hasPaid && funnelStep === 1) {
+              targetCount++
+            }
+          }
+        }
+      } else if (c.audience_type === "imported") {
+        // For imported, count users in campaign_users
+        const { count } = await supabase
+          .from("campaign_users")
+          .select("id", { count: "exact", head: true })
+          .eq("campaign_id", c.id)
+        
+        targetCount = count || 0
+      }
+      
+      targetCounts[c.id] = targetCount
+    }
+
     const result = (campaigns || []).map((c: Record<string, unknown>) => ({
       ...c,
       nodes: nodesByCampaign[c.id as string] || [],
+      sent_count: sendCounts[c.id as string] || 0,
+      target_count: targetCounts[c.id as string] || 0,
     }))
 
     return NextResponse.json({ campaigns: result })
