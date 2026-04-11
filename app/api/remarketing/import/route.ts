@@ -45,10 +45,12 @@ export async function POST(request: Request) {
       },
     })
     
-    const { data: { user } } = await supabaseAuth.auth.getUser()
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser()
+    
+    console.log("[v0] Import auth check - user:", user?.id, "error:", authError?.message)
     
     if (!user) {
-      return NextResponse.json({ error: "Nao autorizado" }, { status: 401 })
+      return NextResponse.json({ error: "Nao autorizado", details: authError?.message }, { status: 401 })
     }
 
     const body = await request.json()
@@ -129,7 +131,43 @@ export async function POST(request: Request) {
       .select()
 
     if (insertError) {
-      console.error("Error inserting users:", insertError)
+      console.error("[v0] Error inserting users:", insertError)
+      // If error is about missing 'source' column, try without it
+      if (insertError.message?.includes("source")) {
+        console.log("[v0] Retrying without source column...")
+        const { data: inserted2, error: insertError2 } = await supabase
+          .from("bot_users")
+          .insert(
+            newChatIds.map(chatId => ({
+              bot_id: botId,
+              telegram_user_id: parseInt(chatId),
+              chat_id: parseInt(chatId),
+              first_name: `Importado`,
+              username: null,
+              funnel_step: 0,
+              is_subscriber: false,
+              created_at: new Date().toISOString()
+            }))
+          )
+          .select()
+        
+        if (insertError2) {
+          return NextResponse.json({ 
+            error: "Erro ao salvar usuarios",
+            details: insertError2.message 
+          }, { status: 500 })
+        }
+        
+        return NextResponse.json({
+          success: true,
+          imported: inserted2?.length || 0,
+          duplicates: duplicatesInInput,
+          skipped: skippedExisting,
+          parseErrors,
+          total: chatIds.length
+        })
+      }
+      
       return NextResponse.json({ 
         error: "Erro ao salvar usuarios",
         details: insertError.message 
