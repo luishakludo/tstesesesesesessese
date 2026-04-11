@@ -245,19 +245,22 @@ export async function POST(req: NextRequest) {
       
       console.log("[campaigns/execute] Campanha encontrada:", campaign.name, "status:", campaign.status)
 
-      // Fetch bot token and username separately
-      const { data: bot } = await supabase
+      // Fetch bot - use select("*") to get all fields including username if it exists
+      const { data: bot, error: botError } = await supabase
         .from("bots")
-        .select("token, username")
+        .select("*")
         .eq("id", campaign.bot_id)
         .single()
+
+      console.log("[campaigns/execute] Bot query result:", bot ? "found" : "not found", "error:", botError?.message)
 
       if (!bot?.token) {
         return NextResponse.json({ error: "Bot nao encontrado" }, { status: 400 })
       }
 
       const botToken = bot.token
-      const botUsername = bot.username || ""
+      const botUsername = (bot.username as string) || ""
+      console.log("[campaigns/execute] Bot username:", botUsername || "(empty)")
 
       // Get campaign nodes ordered by position
       const { data: nodes } = await supabase
@@ -504,14 +507,14 @@ export async function POST(req: NextRequest) {
 
       const { data: bot2 } = await supabase
         .from("bots")
-        .select("token, username")
+        .select("*")
         .eq("id", campaign2.bot_id)
         .single()
 
       if (!bot2?.token) continue
 
       const botToken = bot2.token
-      const botUsername2 = bot2.username || ""
+      const botUsername2 = (bot2.username as string) || ""
       const campaignId2 = campaign2.id
 
       // Get all nodes for this campaign
