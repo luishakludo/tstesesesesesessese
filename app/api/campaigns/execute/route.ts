@@ -16,12 +16,16 @@ async function sendTelegramMessage(botToken: string, chatId: number, text: strin
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`
   const body: Record<string, unknown> = { chat_id: chatId, text, parse_mode: "HTML" }
   if (replyMarkup) body.reply_markup = replyMarkup
+  console.log("[sendTelegramMessage] Sending to chat_id:", chatId, "text:", text.substring(0, 50))
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-  return res.json()
+  const result = await res.json()
+  console.log("[sendTelegramMessage] Response:", JSON.stringify(result))
+  return result
 }
 
 async function sendTelegramPhoto(botToken: string, chatId: number, photoUrl: string, caption: string, replyMarkup?: object) {
   const url = `https://api.telegram.org/bot${botToken}/sendPhoto`
+  console.log("[sendTelegramPhoto] Sending to chat_id:", chatId, "caption:", caption?.substring(0, 50), "photoUrl:", photoUrl?.substring(0, 50))
   if (photoUrl.startsWith("data:")) {
     const formData = new FormData()
     formData.append("chat_id", String(chatId))
@@ -36,12 +40,16 @@ async function sendTelegramPhoto(botToken: string, chatId: number, photoUrl: str
       formData.append("photo", new Blob([bytes], { type: base64Match[1] }), "photo.jpg")
     }
     const res = await fetch(url, { method: "POST", body: formData })
-    return res.json()
+    const result = await res.json()
+    console.log("[sendTelegramPhoto] Base64 Response:", JSON.stringify(result))
+    return result
   }
   const body: Record<string, unknown> = { chat_id: chatId, photo: photoUrl, caption, parse_mode: "HTML" }
   if (replyMarkup) body.reply_markup = replyMarkup
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-  return res.json()
+  const result = await res.json()
+  console.log("[sendTelegramPhoto] URL Response:", JSON.stringify(result))
+  return result
 }
 
 async function sendTelegramVideo(botToken: string, chatId: number, videoUrl: string, caption: string, replyMarkup?: object) {
@@ -95,6 +103,8 @@ async function sendCampaignMessageToUser(
   const displayText = text || "Mensagem"
 
   try {
+    let lastResult: { ok?: boolean; description?: string } = { ok: false }
+    
     // Process new medias array format
     if (medias && medias.length > 0) {
       // Se tem apenas 1 midia, envia COM o texto e botoes
@@ -105,11 +115,11 @@ async function sendCampaignMessageToUser(
                        mediaUrl.endsWith(".mov")
         
         if (isVideo) {
-          const result = await sendTelegramVideo(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
-          console.log("[campaigns/execute] Video+text send result:", JSON.stringify(result))
+          lastResult = await sendTelegramVideo(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Video+text send result:", JSON.stringify(lastResult))
         } else {
-          const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
-          console.log("[campaigns/execute] Photo+text send result:", JSON.stringify(result))
+          lastResult = await sendTelegramPhoto(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Photo+text send result:", JSON.stringify(lastResult))
         }
       } else {
         // Se tem multiplas midias, envia cada uma e texto+botoes no final
@@ -125,11 +135,11 @@ async function sendCampaignMessageToUser(
           const keyboard = isLast ? inlineKeyboard : undefined
           
           if (isVideo) {
-            const result = await sendTelegramVideo(botToken, chatId, mediaUrl, caption, keyboard)
-            console.log("[campaigns/execute] Video send result:", JSON.stringify(result))
+            lastResult = await sendTelegramVideo(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Video send result:", JSON.stringify(lastResult))
           } else {
-            const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, caption, keyboard)
-            console.log("[campaigns/execute] Photo send result:", JSON.stringify(result))
+            lastResult = await sendTelegramPhoto(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Photo send result:", JSON.stringify(lastResult))
           }
         }
       }
@@ -137,19 +147,26 @@ async function sendCampaignMessageToUser(
     // Fallback to legacy format
     else if (legacyMediaUrl && legacyMediaType) {
       if (legacyMediaType === "photo") {
-        await sendTelegramPhoto(botToken, chatId, legacyMediaUrl, "", undefined)
+        lastResult = await sendTelegramPhoto(botToken, chatId, legacyMediaUrl, "", undefined)
       } else if (legacyMediaType === "video") {
-        await sendTelegramVideo(botToken, chatId, legacyMediaUrl, "", undefined)
+        lastResult = await sendTelegramVideo(botToken, chatId, legacyMediaUrl, "", undefined)
       }
       if (displayText) {
-        await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
+        lastResult = await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
       }
     } 
     // No media, just text
     else {
-      const result = await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
-      console.log("[campaigns/execute] Text-only send result:", JSON.stringify(result))
+      lastResult = await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
+      console.log("[campaigns/execute] Text-only send result:", JSON.stringify(lastResult))
     }
+    
+    // Verificar se a API do Telegram retornou sucesso
+    if (!lastResult.ok) {
+      console.error("[campaigns/execute] Telegram API error:", lastResult.description || "Unknown error")
+      return false
+    }
+    
     return true
   } catch (err) {
     console.error("[campaigns/execute] Send error:", err)
