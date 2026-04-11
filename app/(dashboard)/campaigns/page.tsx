@@ -6,13 +6,15 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { NoBotSelected } from "@/components/no-bot-selected"
+import { ImageUpload } from "@/components/image-upload"
 import { useBots } from "@/lib/bot-context"
+import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth-context"
 import {
   Plus, Search, MoreVertical, Trash2, Pause, Play, Copy,
   Megaphone, Send, UserX, ShoppingCart, CheckCircle2,
   RefreshCw, Loader2, ChevronRight, Users, ChevronDown, Download, Upload, Bot,
-  FileText, FileSpreadsheet, MessageSquare, Image, Video, Link, X, Settings
+  FileText, FileSpreadsheet, MessageSquare, Image, Video, Link, X, Settings, Package, CreditCard
 } from "lucide-react"
 import {
   DropdownMenu,
@@ -117,13 +119,13 @@ export default function CampaignsPage() {
   // Message Configuration Modal
   const [configMessageOpen, setConfigMessageOpen] = useState(false)
   const [configCampaignId, setConfigCampaignId] = useState<string | null>(null)
+  const [configCampaignBotId, setConfigCampaignBotId] = useState<string | null>(null)
   const [messageText, setMessageText] = useState("")
-  const [messageMediaType, setMessageMediaType] = useState<"" | "photo" | "video">("")
-  const [messageMediaUrl, setMessageMediaUrl] = useState("")
-  const [messageMediaUrl2, setMessageMediaUrl2] = useState("")
-  const [messageMediaUrl3, setMessageMediaUrl3] = useState("")
-  const [messageButtons, setMessageButtons] = useState<{ text: string; url: string }[]>([])
+  const [messageMedias, setMessageMedias] = useState<string[]>([]) // ate 3 midias (URLs uploaded)
+  const [messageButtons, setMessageButtons] = useState<{ type: "custom" | "plans" | "packs"; text: string; url: string }[]>([])
   const [savingMessage, setSavingMessage] = useState(false)
+  const [botFlowConfig, setBotFlowConfig] = useState<{ hasPlans: boolean; hasPacks: boolean } | null>(null)
+  const [loadingFlowConfig, setLoadingFlowConfig] = useState(false)
   
   // Import Modal State
   const [showImportModal, setShowImportModal] = useState(false)
@@ -250,41 +252,92 @@ export default function CampaignsPage() {
     setStep(1)
   }
 
-  const openConfigMessage = (campaign: Campaign) => {
+  const openConfigMessage = async (campaign: Campaign) => {
     setConfigCampaignId(campaign.id)
+    setConfigCampaignBotId(campaign.bot_id)
+    
     // Load existing message if any
     const messageNode = campaign.nodes.find(n => n.type === "message")
     if (messageNode) {
       const config = messageNode.config as Record<string, unknown>
       setMessageText((config.text as string) || "")
-      setMessageMediaType((config.media_type as "" | "photo" | "video") || "")
-      setMessageMediaUrl((config.media_url as string) || "")
-      setMessageMediaUrl2((config.media_url_2 as string) || "")
-      setMessageMediaUrl3((config.media_url_3 as string) || "")
+      // Load medias array
+      const medias: string[] = []
+      if (config.medias && Array.isArray(config.medias)) {
+        medias.push(...(config.medias as string[]))
+      } else if (config.media_url) {
+        medias.push(config.media_url as string)
+        if (config.media_url_2) medias.push(config.media_url_2 as string)
+        if (config.media_url_3) medias.push(config.media_url_3 as string)
+      }
+      setMessageMedias(medias)
       try {
         const btns = JSON.parse((config.buttons as string) || "[]")
         setMessageButtons(btns)
       } catch { setMessageButtons([]) }
     } else {
       setMessageText("")
-      setMessageMediaType("")
-      setMessageMediaUrl("")
-      setMessageMediaUrl2("")
-      setMessageMediaUrl3("")
+      setMessageMedias([])
       setMessageButtons([])
     }
+    
     setConfigMessageOpen(true)
+    
+    // Load bot flow config to check for plans/packs
+    setLoadingFlowConfig(true)
+    setBotFlowConfig(null)
+    try {
+      // Try to find flow linked to this bot
+      const { data: flow } = await supabase
+        .from("flows")
+        .select("config")
+        .eq("bot_id", campaign.bot_id)
+        .limit(1)
+        .single()
+      
+      if (flow?.config) {
+        const config = flow.config as { plans?: unknown[]; packs?: unknown[] }
+        setBotFlowConfig({
+          hasPlans: Array.isArray(config.plans) && config.plans.length > 0,
+          hasPacks: Array.isArray(config.packs) && config.packs.length > 0
+        })
+      } else {
+        // Try flow_bots table
+        const { data: flowBot } = await supabase
+          .from("flow_bots")
+          .select("flow_id")
+          .eq("bot_id", campaign.bot_id)
+          .limit(1)
+          .single()
+        
+        if (flowBot) {
+          const { data: linkedFlow } = await supabase
+            .from("flows")
+            .select("config")
+            .eq("id", flowBot.flow_id)
+            .single()
+          
+          if (linkedFlow?.config) {
+            const config = linkedFlow.config as { plans?: unknown[]; packs?: unknown[] }
+            setBotFlowConfig({
+              hasPlans: Array.isArray(config.plans) && config.plans.length > 0,
+              hasPacks: Array.isArray(config.packs) && config.packs.length > 0
+            })
+          }
+        }
+      }
+    } catch { /* ignore */ }
+    setLoadingFlowConfig(false)
   }
 
   const resetConfigMessage = () => {
     setConfigMessageOpen(false)
     setConfigCampaignId(null)
+    setConfigCampaignBotId(null)
     setMessageText("")
-    setMessageMediaType("")
-    setMessageMediaUrl("")
-    setMessageMediaUrl2("")
-    setMessageMediaUrl3("")
+    setMessageMedias([])
     setMessageButtons([])
+    setBotFlowConfig(null)
   }
 
   const handleSaveMessage = async () => {
@@ -296,11 +349,8 @@ export default function CampaignsPage() {
       const config: Record<string, unknown> = {
         text: messageText,
       }
-      if (messageMediaType && messageMediaUrl) {
-        config.media_type = messageMediaType
-        config.media_url = messageMediaUrl
-        if (messageMediaUrl2) config.media_url_2 = messageMediaUrl2
-        if (messageMediaUrl3) config.media_url_3 = messageMediaUrl3
+      if (messageMedias.length > 0) {
+        config.medias = messageMedias
       }
       if (messageButtons.length > 0) {
         config.buttons = JSON.stringify(messageButtons)
@@ -1467,6 +1517,55 @@ export default function CampaignsPage() {
             </div>
 
             <div className="space-y-5">
+              {/* Media Upload Section - NO TOPO */}
+              <div>
+                <label className="text-xs font-bold text-gray-400 mb-3 block uppercase tracking-wide">
+                  Midias (Opcional - ate 3 imagens/videos)
+                </label>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  {[0, 1, 2].map((idx) => (
+                    <div key={idx} className="relative">
+                      {messageMedias[idx] ? (
+                        <div className="relative group aspect-square rounded-xl overflow-hidden bg-[#2a2a2e]">
+                          <img 
+                            src={messageMedias[idx]} 
+                            alt={`Midia ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <button
+                            onClick={() => {
+                              const newMedias = [...messageMedias]
+                              newMedias.splice(idx, 1)
+                              setMessageMedias(newMedias)
+                            }}
+                            className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <ImageUpload
+                          value=""
+                          onChange={(url) => {
+                            if (url) {
+                              const newMedias = [...messageMedias]
+                              newMedias[idx] = url
+                              setMessageMedias(newMedias)
+                            }
+                          }}
+                          accept="image/*,video/*"
+                          placeholder={`Midia ${idx + 1}`}
+                          className="aspect-square"
+                          previewClassName="aspect-square bg-[#2a2a2e] border-[#3a3a3e] hover:border-[#bfff00]/30"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">As midias serao enviadas junto com a mensagem</p>
+              </div>
+
               {/* Message Text */}
               <div>
                 <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wide">
@@ -1481,94 +1580,96 @@ export default function CampaignsPage() {
                 />
               </div>
 
-              {/* Media Section */}
-              <div>
-                <label className="text-xs font-bold text-gray-400 mb-2 block uppercase tracking-wide">
-                  Midia (Opcional - ate 3)
-                </label>
-                
-                {/* Media Type Toggle */}
-                <div className="flex gap-2 mb-3">
-                  <button
-                    onClick={() => setMessageMediaType(messageMediaType === "photo" ? "" : "photo")}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      messageMediaType === "photo"
-                        ? "bg-[#bfff00] text-black"
-                        : "bg-[#2a2a2e] text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <Image className="h-4 w-4" />
-                    Foto
-                  </button>
-                  <button
-                    onClick={() => setMessageMediaType(messageMediaType === "video" ? "" : "video")}
-                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      messageMediaType === "video"
-                        ? "bg-[#bfff00] text-black"
-                        : "bg-[#2a2a2e] text-gray-400 hover:text-white"
-                    }`}
-                  >
-                    <Video className="h-4 w-4" />
-                    Video
-                  </button>
-                </div>
-
-                {/* Media URLs */}
-                {messageMediaType && (
-                  <div className="space-y-2">
-                    <input
-                      type="url"
-                      value={messageMediaUrl}
-                      onChange={(e) => setMessageMediaUrl(e.target.value)}
-                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 1`}
-                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
-                    />
-                    <input
-                      type="url"
-                      value={messageMediaUrl2}
-                      onChange={(e) => setMessageMediaUrl2(e.target.value)}
-                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 2 (opcional)`}
-                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
-                    />
-                    <input
-                      type="url"
-                      value={messageMediaUrl3}
-                      onChange={(e) => setMessageMediaUrl3(e.target.value)}
-                      placeholder={`URL da ${messageMediaType === "photo" ? "imagem" : "video"} 3 (opcional)`}
-                      className="w-full px-4 py-3 bg-[#2a2a2e] border border-[#3a3a3e] rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:border-[#bfff00]/50"
-                    />
-                  </div>
-                )}
-              </div>
-
               {/* Buttons Section */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wide">
-                    Botoes (Opcional)
-                  </label>
-                  {messageButtons.length < 3 && (
-                    <button
-                      onClick={() => setMessageButtons([...messageButtons, { text: "", url: "" }])}
-                      className="text-xs text-[#bfff00] hover:underline flex items-center gap-1"
-                    >
-                      <Plus className="h-3 w-3" />
-                      Adicionar Botao
-                    </button>
-                  )}
-                </div>
+                <label className="text-xs font-bold text-gray-400 mb-3 block uppercase tracking-wide">
+                  Botoes (Opcional)
+                </label>
                 
-                {messageButtons.length > 0 && (
-                  <div className="space-y-2">
-                    {messageButtons.map((btn, idx) => (
-                      <div key={idx} className="flex gap-2">
+                {/* Pre-configured buttons */}
+                {loadingFlowConfig ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Ver Planos button option */}
+                    {botFlowConfig?.hasPlans && (
+                      <button
+                        onClick={() => {
+                          const hasPlansBtn = messageButtons.some(b => b.type === "plans")
+                          if (hasPlansBtn) {
+                            setMessageButtons(messageButtons.filter(b => b.type !== "plans"))
+                          } else {
+                            setMessageButtons([...messageButtons, { type: "plans", text: "Ver Planos", url: "" }])
+                          }
+                        }}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                          messageButtons.some(b => b.type === "plans")
+                            ? "bg-[#bfff00]/10 border-[#bfff00] text-[#bfff00]"
+                            : "bg-[#2a2a2e] border-[#3a3a3e] text-gray-400 hover:text-white hover:border-[#bfff00]/30"
+                        }`}
+                      >
+                        <CreditCard className="h-5 w-5" />
+                        <div className="text-left flex-1">
+                          <p className="font-medium text-sm">Ver Planos</p>
+                          <p className="text-xs opacity-70">Puxa os planos configurados no fluxo</p>
+                        </div>
+                        {messageButtons.some(b => b.type === "plans") && (
+                          <CheckCircle2 className="h-5 w-5" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Packs button option */}
+                    {botFlowConfig?.hasPacks && (
+                      <button
+                        onClick={() => {
+                          const hasPacksBtn = messageButtons.some(b => b.type === "packs")
+                          if (hasPacksBtn) {
+                            setMessageButtons(messageButtons.filter(b => b.type !== "packs"))
+                          } else {
+                            setMessageButtons([...messageButtons, { type: "packs", text: "Ver Packs", url: "" }])
+                          }
+                        }}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                          messageButtons.some(b => b.type === "packs")
+                            ? "bg-[#bfff00]/10 border-[#bfff00] text-[#bfff00]"
+                            : "bg-[#2a2a2e] border-[#3a3a3e] text-gray-400 hover:text-white hover:border-[#bfff00]/30"
+                        }`}
+                      >
+                        <Package className="h-5 w-5" />
+                        <div className="text-left flex-1">
+                          <p className="font-medium text-sm">Ver Packs</p>
+                          <p className="text-xs opacity-70">Puxa os packs configurados no fluxo</p>
+                        </div>
+                        {messageButtons.some(b => b.type === "packs") && (
+                          <CheckCircle2 className="h-5 w-5" />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Message if no flow configured */}
+                    {!botFlowConfig?.hasPlans && !botFlowConfig?.hasPacks && !loadingFlowConfig && (
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
+                        <p className="font-medium">Nenhum fluxo configurado</p>
+                        <p className="opacity-70 mt-1">Vincule um fluxo com planos ou packs ao bot para habilitar os botoes</p>
+                      </div>
+                    )}
+
+                    {/* Custom buttons */}
+                    {messageButtons.filter(b => b.type === "custom").map((btn, idx) => (
+                      <div key={`custom-${idx}`} className="flex gap-2">
                         <input
                           type="text"
                           value={btn.text}
                           onChange={(e) => {
-                            const newBtns = [...messageButtons]
-                            newBtns[idx].text = e.target.value
-                            setMessageButtons(newBtns)
+                            const customIdx = messageButtons.findIndex((b, i) => b.type === "custom" && messageButtons.slice(0, i + 1).filter(x => x.type === "custom").length === idx + 1)
+                            if (customIdx !== -1) {
+                              const newBtns = [...messageButtons]
+                              newBtns[customIdx].text = e.target.value
+                              setMessageButtons(newBtns)
+                            }
                           }}
                           placeholder="Texto do botao"
                           className="flex-1 px-3 py-2 bg-[#2a2a2e] border border-[#3a3a3e] rounded-lg text-white placeholder:text-gray-500 text-sm"
@@ -1577,21 +1678,40 @@ export default function CampaignsPage() {
                           type="url"
                           value={btn.url}
                           onChange={(e) => {
-                            const newBtns = [...messageButtons]
-                            newBtns[idx].url = e.target.value
-                            setMessageButtons(newBtns)
+                            const customIdx = messageButtons.findIndex((b, i) => b.type === "custom" && messageButtons.slice(0, i + 1).filter(x => x.type === "custom").length === idx + 1)
+                            if (customIdx !== -1) {
+                              const newBtns = [...messageButtons]
+                              newBtns[customIdx].url = e.target.value
+                              setMessageButtons(newBtns)
+                            }
                           }}
                           placeholder="URL"
                           className="flex-1 px-3 py-2 bg-[#2a2a2e] border border-[#3a3a3e] rounded-lg text-white placeholder:text-gray-500 text-sm"
                         />
                         <button
-                          onClick={() => setMessageButtons(messageButtons.filter((_, i) => i !== idx))}
+                          onClick={() => {
+                            const customIdx = messageButtons.findIndex((b, i) => b.type === "custom" && messageButtons.slice(0, i + 1).filter(x => x.type === "custom").length === idx + 1)
+                            if (customIdx !== -1) {
+                              setMessageButtons(messageButtons.filter((_, i) => i !== customIdx))
+                            }
+                          }}
                           className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 flex items-center justify-center"
                         >
                           <X className="h-4 w-4" />
                         </button>
                       </div>
                     ))}
+
+                    {/* Add custom button */}
+                    {messageButtons.length < 3 && (
+                      <button
+                        onClick={() => setMessageButtons([...messageButtons, { type: "custom", text: "", url: "" }])}
+                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#3a3a3e] text-gray-400 hover:text-white hover:border-[#bfff00]/30 transition-all text-sm"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Adicionar Botao Personalizado
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
