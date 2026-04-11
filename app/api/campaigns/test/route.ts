@@ -5,6 +5,16 @@ export async function GET(req: Request) {
   const supabase = getSupabase()
   const { searchParams } = new URL(req.url)
   const campaignId = searchParams.get("campaign_id")
+  const action = searchParams.get("action") // reset, execute, reset_and_execute
+
+  // Se tem action, redirecionar para a logica de POST
+  if (action && campaignId) {
+    const fakeReq = {
+      json: async () => ({ campaign_id: campaignId, action }),
+      headers: req.headers,
+    } as Request
+    return POST(fakeReq)
+  }
 
   try {
     // Get all campaigns or specific one
