@@ -78,9 +78,12 @@ async function sendCampaignMessageToUser(
   config: Record<string, unknown>
 ) {
   const text = (config.text as string) || ""
-  const mediaType = (config.media_type as string) || ""
-  const mediaUrl = (config.media_url as string) || ""
   const buttonsStr = (config.buttons as string) || ""
+  
+  // Support both old format (media_url/media_type) and new format (medias array)
+  const medias = config.medias as string[] | undefined
+  const legacyMediaUrl = (config.media_url as string) || ""
+  const legacyMediaType = (config.media_type as string) || ""
 
   let inlineKeyboard: object | undefined
   if (buttonsStr) {
@@ -90,23 +93,66 @@ async function sendCampaignMessageToUser(
   }
 
   const displayText = text || "Mensagem"
-  const hasMedia = !!mediaUrl && !!mediaType
 
   try {
-    if (hasMedia) {
-      // Send media alone first
-      if (mediaType === "photo") {
-        await sendTelegramPhoto(botToken, chatId, mediaUrl, "", undefined)
-      } else if (mediaType === "video") {
-        await sendTelegramVideo(botToken, chatId, mediaUrl, "", undefined)
+    // Process new medias array format
+    if (medias && medias.length > 0) {
+      // Se tem apenas 1 midia, envia COM o texto e botoes
+      if (medias.length === 1) {
+        const mediaUrl = medias[0]
+        const isVideo = mediaUrl.includes("video/") || 
+                       mediaUrl.endsWith(".mp4") || 
+                       mediaUrl.endsWith(".mov")
+        
+        if (isVideo) {
+          const result = await sendTelegramVideo(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Video+text send result:", JSON.stringify(result))
+        } else {
+          const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, displayText, inlineKeyboard)
+          console.log("[campaigns/execute] Photo+text send result:", JSON.stringify(result))
+        }
+      } else {
+        // Se tem multiplas midias, envia cada uma e texto+botoes no final
+        for (let i = 0; i < medias.length; i++) {
+          const mediaUrl = medias[i]
+          const isVideo = mediaUrl.includes("video/") || 
+                         mediaUrl.endsWith(".mp4") || 
+                         mediaUrl.endsWith(".mov")
+          
+          // Ultima midia recebe o texto e botoes
+          const isLast = i === medias.length - 1
+          const caption = isLast ? displayText : ""
+          const keyboard = isLast ? inlineKeyboard : undefined
+          
+          if (isVideo) {
+            const result = await sendTelegramVideo(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Video send result:", JSON.stringify(result))
+          } else {
+            const result = await sendTelegramPhoto(botToken, chatId, mediaUrl, caption, keyboard)
+            console.log("[campaigns/execute] Photo send result:", JSON.stringify(result))
+          }
+        }
       }
-      // Then send text + buttons
-      await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
-    } else {
-      await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
+    } 
+    // Fallback to legacy format
+    else if (legacyMediaUrl && legacyMediaType) {
+      if (legacyMediaType === "photo") {
+        await sendTelegramPhoto(botToken, chatId, legacyMediaUrl, "", undefined)
+      } else if (legacyMediaType === "video") {
+        await sendTelegramVideo(botToken, chatId, legacyMediaUrl, "", undefined)
+      }
+      if (displayText) {
+        await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
+      }
+    } 
+    // No media, just text
+    else {
+      const result = await sendTelegramMessage(botToken, chatId, displayText, inlineKeyboard)
+      console.log("[campaigns/execute] Text-only send result:", JSON.stringify(result))
     }
     return true
-  } catch {
+  } catch (err) {
+    console.error("[campaigns/execute] Send error:", err)
     return false
   }
 }
@@ -140,15 +186,24 @@ export async function POST(req: NextRequest) {
 
     // ----- Mode 1: Specific campaign just activated => initialize all users -----
     if (campaignId) {
-      const { data: campaign } = await supabase
+      console.log("[campaigns/execute] Executando campanha:", campaignId)
+      
+      const { data: campaign, error: campaignError } = await supabase
         .from("campaigns")
         .select("*")
         .eq("id", campaignId)
         .single()
 
+      if (campaignError) {
+        console.error("[campaigns/execute] Erro ao buscar campanha:", campaignError)
+      }
+
       if (!campaign || campaign.status !== "ativa") {
+        console.log("[campaigns/execute] Campanha nao encontrada ou nao ativa:", campaign?.status)
         return NextResponse.json({ error: "Campanha nao encontrada ou nao ativa" }, { status: 400 })
       }
+      
+      console.log("[campaigns/execute] Campanha encontrada:", campaign.name, "status:", campaign.status)
 
       // Fetch bot token separately
       const { data: bot } = await supabase
@@ -295,6 +350,10 @@ export async function POST(req: NextRequest) {
       const firstMessageNode = nodes[firstMessageIdx]
       let sentCount = 0
       let failCount = 0
+      
+      console.log("[campaigns/execute] Primeiro node de mensagem:", firstMessageIdx)
+      console.log("[campaigns/execute] Config do node:", JSON.stringify(firstMessageNode.config))
+      console.log("[campaigns/execute] Iniciando envio para", botUsers.length, "usuarios")
 
       for (const user of botUsers) {
         // Check if user already has state for this campaign
@@ -305,8 +364,13 @@ export async function POST(req: NextRequest) {
           .eq("bot_user_id", user.id)
           .limit(1)
 
-        if (existing && existing.length > 0) continue // already enrolled
+        if (existing && existing.length > 0) {
+          console.log("[campaigns/execute] Usuario ja inscrito, pulando:", user.telegram_user_id)
+          continue // already enrolled
+        }
 
+        console.log("[campaigns/execute] Enviando para usuario:", user.telegram_user_id, "chat_id:", user.chat_id)
+        
         // Send the first message immediately
         const success = await sendCampaignMessageToUser(
           botToken,
@@ -314,8 +378,13 @@ export async function POST(req: NextRequest) {
           firstMessageNode.config as Record<string, unknown>
         )
 
-        if (success) sentCount++
-        else failCount++
+        if (success) {
+          sentCount++
+          console.log("[campaigns/execute] Enviado com sucesso para:", user.telegram_user_id)
+        } else {
+          failCount++
+          console.log("[campaigns/execute] Falha ao enviar para:", user.telegram_user_id)
+        }
 
         // Record the send
         await supabase.from("campaign_sends").insert({

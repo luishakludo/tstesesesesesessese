@@ -362,6 +362,9 @@ export default function CampaignsPage() {
         config.buttons = JSON.stringify(messageButtons)
       }
 
+      console.log("[v0] Salvando mensagem - campaign_id:", configCampaignId)
+      console.log("[v0] Config:", JSON.stringify(config))
+
       // Save the node
       const res = await fetch("/api/campaigns/nodes", {
         method: "POST",
@@ -375,7 +378,11 @@ export default function CampaignsPage() {
         }),
       })
 
-      if (res.ok) {
+      const data = await res.json()
+      console.log("[v0] Resposta do save:", JSON.stringify(data))
+
+      if (res.ok && (data.node || data.created || data.updated)) {
+        console.log("[v0] Mensagem salva com sucesso!")
         // Sync selectedBot to the campaign's bot before fetching
         if (configCampaignBotId) {
           const campaignBot = bots.find(b => b.id === configCampaignBotId)
@@ -386,8 +393,14 @@ export default function CampaignsPage() {
         // Refresh campaigns to get updated nodes
         await fetchCampaigns()
         resetConfigMessage()
+      } else {
+        console.error("[v0] Erro ao salvar mensagem:", data.error || "Erro desconhecido")
+        alert(`Erro ao salvar mensagem: ${data.error || "Erro desconhecido"}`)
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      console.error("[v0] Erro ao salvar mensagem:", err)
+      alert(`Erro ao salvar mensagem: ${String(err)}`)
+    }
     setSavingMessage(false)
   }
 

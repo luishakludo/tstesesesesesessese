@@ -184,11 +184,16 @@ export async function PATCH(req: NextRequest) {
         ? `${req.headers.get("x-forwarded-proto")}://${req.headers.get("x-forwarded-host")}`
         : req.headers.get("origin") || new URL(req.url).origin
 
+      console.log("[campaigns] Ativando campanha:", id, "baseUrl:", baseUrl)
+
       // Fire-and-forget: trigger execution in background
       fetch(`${baseUrl}/api/campaigns/execute`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ campaign_id: id }),
+      }).then(async (res) => {
+        const result = await res.json()
+        console.log("[campaigns] Execute result:", JSON.stringify(result))
       }).catch((err) => {
         console.error("[campaigns] Error triggering execution:", err)
       })
