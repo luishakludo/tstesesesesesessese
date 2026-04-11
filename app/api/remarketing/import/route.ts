@@ -62,19 +62,19 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    // Remove duplicates from input
-    const uniqueChatIds = [...new Set(chatIds)]
+    // Remove duplicates from input and convert to numbers
+    const uniqueChatIds = [...new Set(chatIds.map(id => parseInt(id)))]
     const duplicatesInInput = chatIds.length - uniqueChatIds.length
 
-    // Check for existing chat_ids in database for this bot
+    // Check for existing telegram_user_id in database for this bot
     const { data: existingUsers } = await supabase
       .from("bot_users")
-      .select("chat_id")
+      .select("telegram_user_id")
       .eq("bot_id", botId)
-      .in("chat_id", uniqueChatIds)
+      .in("telegram_user_id", uniqueChatIds)
 
-    const existingChatIds = new Set((existingUsers || []).map(u => u.chat_id))
-    const newChatIds = uniqueChatIds.filter(id => !existingChatIds.has(id))
+    const existingTelegramIds = new Set((existingUsers || []).map(u => u.telegram_user_id))
+    const newChatIds = uniqueChatIds.filter(id => !existingTelegramIds.has(id))
     const skippedExisting = uniqueChatIds.length - newChatIds.length
 
     if (newChatIds.length === 0) {
@@ -95,8 +95,8 @@ export async function POST(request: Request) {
       .insert(
         newChatIds.map(chatId => ({
           bot_id: botId,
-          telegram_user_id: parseInt(chatId),
-          chat_id: parseInt(chatId),
+          telegram_user_id: chatId, // Already a number
+          chat_id: chatId, // Already a number
           first_name: `Importado`,
           username: null,
           funnel_step: 0, // 0 indicates imported user (didn't go through funnel)
