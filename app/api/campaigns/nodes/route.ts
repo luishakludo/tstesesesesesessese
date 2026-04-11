@@ -14,20 +14,27 @@ export async function POST(req: NextRequest) {
       position: number
     }
 
+    console.log("[campaign_nodes] POST recebido:", { campaign_id, type, label, position })
+    console.log("[campaign_nodes] Config:", JSON.stringify(config))
+
     if (!campaign_id || !type) {
+      console.log("[campaign_nodes] Erro: campos obrigatorios faltando")
       return NextResponse.json({ error: "campaign_id and type are required" }, { status: 400 })
     }
 
     // Check if node already exists at this position for this campaign
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from("campaign_nodes")
       .select("id")
       .eq("campaign_id", campaign_id)
       .eq("position", position)
       .single()
 
+    console.log("[campaign_nodes] Node existente:", existing, existingError?.message)
+
     if (existing) {
       // Update existing node
+      console.log("[campaign_nodes] Atualizando node existente:", existing.id)
       const { data: node, error } = await supabase
         .from("campaign_nodes")
         .update({
@@ -44,10 +51,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
       }
 
+      console.log("[campaign_nodes] Node atualizado com sucesso:", node?.id)
       return NextResponse.json({ node, updated: true })
     }
 
     // Create new node
+    console.log("[campaign_nodes] Criando novo node...")
     const { data: node, error } = await supabase
       .from("campaign_nodes")
       .insert({
@@ -65,6 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    console.log("[campaign_nodes] Node criado com sucesso:", node?.id)
     return NextResponse.json({ node, created: true })
   } catch (err) {
     console.error("[campaign_nodes] Unexpected error:", err)
