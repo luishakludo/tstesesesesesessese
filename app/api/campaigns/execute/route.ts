@@ -5,6 +5,19 @@ import { getSupabase } from "@/lib/supabase"
 // Telegram helpers (same as webhook)
 // ---------------------------------------------------------------------------
 
+async function getBotUsername(botToken: string): Promise<string> {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${botToken}/getMe`)
+    const data = await res.json()
+    if (data.ok && data.result?.username) {
+      return data.result.username
+    }
+  } catch (e) {
+    console.error("[getBotUsername] Error:", e)
+  }
+  return ""
+}
+
 interface InlineButton { type?: string; text: string; url?: string }
 
 function buildInlineKeyboard(buttons: InlineButton[], botUsername?: string) {
@@ -259,8 +272,14 @@ export async function POST(req: NextRequest) {
       }
 
       const botToken = bot.token
-      const botUsername = (bot.username as string) || ""
-      console.log("[campaigns/execute] Bot username:", botUsername || "(empty)")
+      // Try to get username from DB, if not available fetch from Telegram API
+      let botUsername = (bot.username as string) || ""
+      if (!botUsername) {
+        botUsername = await getBotUsername(botToken)
+        console.log("[campaigns/execute] Bot username from API:", botUsername)
+      } else {
+        console.log("[campaigns/execute] Bot username from DB:", botUsername)
+      }
 
       // Get campaign nodes ordered by position
       const { data: nodes } = await supabase
@@ -514,7 +533,10 @@ export async function POST(req: NextRequest) {
       if (!bot2?.token) continue
 
       const botToken = bot2.token
-      const botUsername2 = (bot2.username as string) || ""
+      let botUsername2 = (bot2.username as string) || ""
+      if (!botUsername2) {
+        botUsername2 = await getBotUsername(botToken)
+      }
       const campaignId2 = campaign2.id
 
       // Get all nodes for this campaign
