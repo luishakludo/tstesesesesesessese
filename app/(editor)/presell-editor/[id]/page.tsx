@@ -20,7 +20,9 @@ import {
   Type,
   Image as ImageIcon,
   Upload,
+  Activity,
 } from "lucide-react"
+import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
 import { toast } from "sonner"
 
 // Types para cada tipo de presell
@@ -135,10 +137,11 @@ export default function PresellEditorPage({ params }: PageProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [siteName, setSiteName] = useState("")
-  const [siteSlug, setSiteSlug] = useState("")
-
+const [siteSlug, setSiteSlug] = useState("")
+  const [pixelConfig, setPixelConfig] = useState<PixelConfig>({ provider: null })
+  
   useEffect(() => {
-    const typeParam = searchParams.get("type") as PresellType | null
+  const typeParam = searchParams.get("type") as PresellType | null
     if (typeParam && ["age-verification", "thank-you", "redirect"].includes(typeParam)) {
       setPresellType(typeParam)
     }
@@ -167,12 +170,16 @@ export default function PresellEditorPage({ params }: PageProps) {
           if (data.site.page_data.thankYouData) {
             setThankYouData({ ...defaultThankYou, ...data.site.page_data.thankYouData })
           }
-          if (data.site.page_data.redirectData) {
-            setRedirectData({ ...defaultRedirect, ...data.site.page_data.redirectData })
-          }
-        }
-      }
-    } catch (error) {
+if (data.site.page_data.redirectData) {
+  setRedirectData({ ...defaultRedirect, ...data.site.page_data.redirectData })
+  }
+  }
+  // Carregar configuracao do pixel
+  if (data.site.pixel_config) {
+  setPixelConfig(data.site.pixel_config)
+  }
+  }
+  } catch (error) {
       console.error("Erro ao carregar site:", error)
       toast.error("Erro ao carregar site")
     } finally {
@@ -193,12 +200,13 @@ export default function PresellEditorPage({ params }: PageProps) {
       const res = await fetch(`/api/dragon-bio/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: siteName,
-          slug: siteSlug,
-          page_data: pageData,
-          presell_type: presellType,
-        }),
+body: JSON.stringify({
+  nome: siteName,
+  slug: siteSlug,
+  page_data: pageData,
+  presell_type: presellType,
+  pixel_config: pixelConfig,
+  }),
       })
 
       if (!res.ok) {
@@ -333,11 +341,15 @@ export default function PresellEditorPage({ params }: PageProps) {
                   <Palette className="w-3.5 h-3.5 mr-1.5" />
                   Visual
                 </TabsTrigger>
-                <TabsTrigger value="details" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Settings className="w-3.5 h-3.5 mr-1.5" />
-                  Detalhes
-                </TabsTrigger>
-              </TabsList>
+<TabsTrigger value="details" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+  <Settings className="w-3.5 h-3.5 mr-1.5" />
+  Detalhes
+  </TabsTrigger>
+  <TabsTrigger value="pixel" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+  <Activity className="w-3.5 h-3.5 mr-1.5" />
+  Pixel
+  </TabsTrigger>
+  </TabsList>
             </div>
 
             <div className="flex-1 min-h-0 relative">
@@ -804,6 +816,17 @@ export default function PresellEditorPage({ params }: PageProps) {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Pixel Tab */}
+              <TabsContent value="pixel" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+                <PixelConfigPanel
+                  config={pixelConfig}
+                  onChange={(config) => {
+                    setPixelConfig(config)
+                    setSaved(false)
+                  }}
+                />
               </TabsContent>
             </div>
           </Tabs>

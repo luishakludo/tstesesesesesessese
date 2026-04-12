@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Save, Loader2, Eye, Type, Palette, Copy, Check } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Eye, Type, Palette, Copy, Check, Activity } from "lucide-react"
+import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
 import { toast } from "sonner"
 import { ImageUpload } from "@/components/image-upload"
 
@@ -50,6 +51,7 @@ export default function CheckoutDiretoEditor() {
   const [pageData, setPageData] = useState<CheckoutDiretoData>(defaultData)
   const [siteName, setSiteName] = useState("")
   const [siteSlug, setSiteSlug] = useState("")
+  const [pixelConfig, setPixelConfig] = useState<PixelConfig>({ provider: null })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(true)
@@ -68,11 +70,14 @@ export default function CheckoutDiretoEditor() {
         setSite(data.site)
         setSiteName(data.site.nome || "")
         setSiteSlug(data.site.slug || "")
-        if (data.site.page_data) {
-          setPageData({ ...defaultData, ...data.site.page_data })
-        }
-      }
-    } catch (error) {
+if (data.site.page_data) {
+  setPageData({ ...defaultData, ...data.site.page_data })
+  }
+  if (data.site.pixel_config) {
+  setPixelConfig(data.site.pixel_config)
+  }
+  }
+  } catch (error) {
       console.error("Erro ao carregar:", error)
       toast.error("Erro ao carregar dados")
     } finally {
@@ -92,11 +97,12 @@ export default function CheckoutDiretoEditor() {
       const res = await fetch(`/api/dragon-bio/${site.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: siteName,
-          slug: siteSlug,
-          page_data: pageData
-        })
+body: JSON.stringify({
+  nome: siteName,
+  slug: siteSlug,
+  page_data: pageData,
+  pixel_config: pixelConfig
+  })
       })
       if (res.ok) {
         toast.success("Salvo com sucesso!")
@@ -160,11 +166,15 @@ export default function CheckoutDiretoEditor() {
                 <Type className="w-3.5 h-3.5 mr-1.5" />
                 Conteudo
               </TabsTrigger>
-              <TabsTrigger value="visual" className="flex-1 rounded-md text-xs data-[state=active]:bg-white">
-                <Palette className="w-3.5 h-3.5 mr-1.5" />
-                Visual
-              </TabsTrigger>
-            </TabsList>
+<TabsTrigger value="visual" className="flex-1 rounded-md text-xs data-[state=active]:bg-white">
+  <Palette className="w-3.5 h-3.5 mr-1.5" />
+  Visual
+  </TabsTrigger>
+  <TabsTrigger value="pixel" className="flex-1 rounded-md text-xs data-[state=active]:bg-white">
+  <Activity className="w-3.5 h-3.5 mr-1.5" />
+  Pixel
+  </TabsTrigger>
+  </TabsList>
           </div>
 
           <div className="flex-1 overflow-hidden relative">
@@ -359,6 +369,17 @@ export default function CheckoutDiretoEditor() {
                   </div>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Pixel Tab */}
+            <TabsContent value="pixel" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+              <PixelConfigPanel
+                config={pixelConfig}
+                onChange={(config) => {
+                  setPixelConfig(config)
+                  setSaved(false)
+                }}
+              />
             </TabsContent>
           </div>
         </Tabs>
