@@ -22,7 +22,9 @@ import {
   Mail,
   Phone,
   Calendar,
+  Activity,
 } from "lucide-react"
+import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
 import { toast } from "sonner"
 
 export type CheckoutData = {
@@ -100,6 +102,7 @@ export default function CheckoutEditorPage({ params }: PageProps) {
   const [saved, setSaved] = useState(false)
   const [siteName, setSiteName] = useState("")
   const [siteSlug, setSiteSlug] = useState("")
+  const [pixelConfig, setPixelConfig] = useState<PixelConfig>({ provider: null })
   const [leads, setLeads] = useState<any[]>([])
   const [leadsLoading, setLeadsLoading] = useState(false)
 
@@ -142,11 +145,14 @@ export default function CheckoutEditorPage({ params }: PageProps) {
         setSite(data.site)
         setSiteName(data.site.nome || "")
         setSiteSlug(data.site.slug || "")
-        if (data.site.page_data) {
-          setPageData({ ...defaultData, ...data.site.page_data })
-        }
-      }
-    } catch (error) {
+if (data.site.page_data) {
+  setPageData({ ...defaultData, ...data.site.page_data })
+  }
+  if (data.site.pixel_config) {
+  setPixelConfig(data.site.pixel_config)
+  }
+  }
+  } catch (error) {
       console.error("Erro ao carregar site:", error)
       toast.error("Erro ao carregar site")
     } finally {
@@ -166,11 +172,12 @@ export default function CheckoutEditorPage({ params }: PageProps) {
       const res = await fetch(`/api/dragon-bio/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: siteName,
-          slug: siteSlug,
-          page_data: pageData,
-        }),
+body: JSON.stringify({
+  nome: siteName,
+  slug: siteSlug,
+  page_data: pageData,
+  pixel_config: pixelConfig,
+  }),
       })
 
       if (!res.ok) throw new Error("Erro ao salvar")
@@ -270,8 +277,12 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                       {leads.length}
                     </span>
                   )}
-                </TabsTrigger>
-              </TabsList>
+</TabsTrigger>
+  <TabsTrigger value="pixel" className="flex-1 text-xs">
+  <Activity className="w-3.5 h-3.5 mr-1.5" />
+  Pixel
+  </TabsTrigger>
+  </TabsList>
             </div>
 
             <div className="flex-1 min-h-0 relative">
@@ -619,6 +630,17 @@ export default function CheckoutEditorPage({ params }: PageProps) {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              {/* Pixel Tab */}
+              <TabsContent value="pixel" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+                <PixelConfigPanel
+                  config={pixelConfig}
+                  onChange={(config) => {
+                    setPixelConfig(config)
+                    setSaved(false)
+                  }}
+                />
               </TabsContent>
             </div>
           </Tabs>

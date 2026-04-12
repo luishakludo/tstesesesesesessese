@@ -26,7 +26,9 @@ import {
   Heart,
   Image as ImageIcon,
   Video,
+  Activity,
 } from "lucide-react"
+import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
 import { toast } from "sonner"
 import { ImageUpload } from "@/components/image-upload"
 
@@ -133,10 +135,11 @@ export default function PrivacyEditorPage({ params }: PageProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [siteName, setSiteName] = useState("")
-  const [siteSlug, setSiteSlug] = useState("")
-
+const [siteSlug, setSiteSlug] = useState("")
+  const [pixelConfig, setPixelConfig] = useState<PixelConfig>({ provider: null })
+  
   useEffect(() => {
-    fetchSite()
+  fetchSite()
   }, [id])
 
   const fetchSite = async () => {
@@ -149,11 +152,14 @@ export default function PrivacyEditorPage({ params }: PageProps) {
         setSite(data.site)
         setSiteName(data.site.nome || "")
         setSiteSlug(data.site.slug || "")
-        if (data.site.page_data) {
-          setPageData({ ...defaultPrivacyData, ...data.site.page_data })
-        }
-      }
-    } catch (error) {
+if (data.site.page_data) {
+  setPageData({ ...defaultPrivacyData, ...data.site.page_data })
+  }
+  if (data.site.pixel_config) {
+  setPixelConfig(data.site.pixel_config)
+  }
+  }
+  } catch (error) {
       console.error("Erro ao carregar site:", error)
       toast.error("Erro ao carregar site")
     } finally {
@@ -188,11 +194,12 @@ export default function PrivacyEditorPage({ params }: PageProps) {
       const res = await fetch(`/api/dragon-bio/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: siteName,
-          slug: siteSlug,
-          page_data: pageData,
-        }),
+body: JSON.stringify({
+  nome: siteName,
+  slug: siteSlug,
+  page_data: pageData,
+  pixel_config: pixelConfig,
+  }),
       })
 
       if (!res.ok) throw new Error("Erro ao salvar")
@@ -295,11 +302,15 @@ export default function PrivacyEditorPage({ params }: PageProps) {
                   <Lock className="w-3.5 h-3.5 mr-1.5" />
                   Planos
                 </TabsTrigger>
-                <TabsTrigger value="visual" className="flex-1 text-xs">
-                  <Palette className="w-3.5 h-3.5 mr-1.5" />
-                  Visual
-                </TabsTrigger>
-              </TabsList>
+<TabsTrigger value="visual" className="flex-1 text-xs">
+  <Palette className="w-3.5 h-3.5 mr-1.5" />
+  Visual
+  </TabsTrigger>
+  <TabsTrigger value="pixel" className="flex-1 text-xs">
+  <Activity className="w-3.5 h-3.5 mr-1.5" />
+  Pixel
+  </TabsTrigger>
+  </TabsList>
             </div>
 
             <div className="flex-1 min-h-0 relative">
@@ -732,6 +743,17 @@ export default function PrivacyEditorPage({ params }: PageProps) {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Pixel Tab */}
+              <TabsContent value="pixel" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+                <PixelConfigPanel
+                  config={pixelConfig}
+                  onChange={(config) => {
+                    setPixelConfig(config)
+                    setSaved(false)
+                  }}
+                />
               </TabsContent>
             </div>
           </Tabs>
