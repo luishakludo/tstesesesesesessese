@@ -6,6 +6,7 @@ import { PresellThankYou } from "./presell-thank-you"
 import { PresellRedirect } from "./presell-redirect"
 import { PrivacyPage } from "./privacy-page"
 import { PixCheckout } from "./pix-checkout"
+import { PixelScripts } from "@/components/dragon-sites/pixel-scripts"
 
 interface PageProps {
   params: Promise<{ slug: string }>
@@ -110,12 +111,16 @@ export default async function DragonBioPage({ params }: PageProps) {
     return baseStyle
   }
 
-  return (
-    <div 
-      className="min-h-screen flex flex-col items-center justify-start pt-16 pb-8 px-4"
-      style={getBackgroundStyle()}
-    >
-      {/* Background Images - Mobile first, then desktop */}
+return (
+  <>
+  {/* Pixel Tracking Scripts */}
+  <PixelScripts config={site.pixel_config} />
+  
+  <div
+  className="min-h-screen flex flex-col items-center justify-start pt-16 pb-8 px-4"
+  style={getBackgroundStyle()}
+  >
+  {/* Background Images - Mobile first, then desktop */}
       {(backgroundImageMobile || backgroundImageDesktop) && (
         <style dangerouslySetInnerHTML={{
           __html: `
@@ -225,9 +230,10 @@ export default async function DragonBioPage({ params }: PageProps) {
           className="text-xs opacity-50"
           style={{ color: colors.text }}
         >
-          dragon.bio
-        </p>
-      </div>
-    </div>
+dragon.bio
+  </p>
+  </div>
+  </div>
+  </>
   )
 }

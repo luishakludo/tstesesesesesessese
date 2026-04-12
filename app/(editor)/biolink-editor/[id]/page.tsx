@@ -23,7 +23,9 @@ import {
   Eye,
   ExternalLink,
   Settings,
+  Activity,
 } from "lucide-react"
+import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
 import { toast } from "sonner"
 
 // Types
@@ -128,6 +130,7 @@ export default function DragonBioEditorPage({ params }: PageProps) {
   const [saved, setSaved] = useState(false)
   const [siteName, setSiteName] = useState("")
   const [siteSlug, setSiteSlug] = useState("")
+  const [pixelConfig, setPixelConfig] = useState<PixelConfig>({ provider: null })
 
   // Carregar dados do site
   useEffect(() => {
@@ -157,6 +160,10 @@ export default function DragonBioEditorPage({ params }: PageProps) {
             image: link.image || "",
           })),
         })
+        // Carregar configuracao do pixel
+        if (data.site.pixel_config) {
+          setPixelConfig(data.site.pixel_config)
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar site:", error)
@@ -203,19 +210,20 @@ export default function DragonBioEditorPage({ params }: PageProps) {
       const res = await fetch(`/api/dragon-bio/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: siteName,
-          slug: siteSlug,
-          profile_name: pageData.profile_name,
-          profile_bio: pageData.profile_bio,
-          profile_image: pageData.profile_image,
-          links: pageData.links.map(link => ({
-            title: link.title,
-            url: link.url,
-            type: link.type,
-            image: link.image || null,
-          })),
-        }),
+body: JSON.stringify({
+  nome: siteName,
+  slug: siteSlug,
+  profile_name: pageData.profile_name,
+  profile_bio: pageData.profile_bio,
+  profile_image: pageData.profile_image,
+  links: pageData.links.map(link => ({
+  title: link.title,
+  url: link.url,
+  type: link.type,
+  image: link.image || null,
+  })),
+  pixel_config: pixelConfig,
+  }),
       })
 
       if (!res.ok) {
@@ -360,11 +368,15 @@ export default function DragonBioEditorPage({ params }: PageProps) {
                   <Link2 className="w-3.5 h-3.5 mr-1.5" />
                   Links
                 </TabsTrigger>
-                <TabsTrigger value="details" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Settings className="w-3.5 h-3.5 mr-1.5" />
-                  Detalhes
-                </TabsTrigger>
-              </TabsList>
+<TabsTrigger value="details" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+  <Settings className="w-3.5 h-3.5 mr-1.5" />
+  Detalhes
+  </TabsTrigger>
+  <TabsTrigger value="pixel" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
+  <Activity className="w-3.5 h-3.5 mr-1.5" />
+  Pixel
+  </TabsTrigger>
+  </TabsList>
             </div>
 
             <div className="flex-1 min-h-0 relative">
@@ -877,6 +889,17 @@ export default function DragonBioEditorPage({ params }: PageProps) {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Pixel Tab */}
+              <TabsContent value="pixel" className="absolute inset-0 p-4 m-0 overflow-y-auto data-[state=inactive]:hidden">
+                <PixelConfigPanel
+                  config={pixelConfig}
+                  onChange={(config) => {
+                    setPixelConfig(config)
+                    setSaved(false)
+                  }}
+                />
               </TabsContent>
 
             </div>
