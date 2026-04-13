@@ -870,8 +870,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         
         console.log("[v0] Multi Order Bump - mainCents:", mainAmountCents, "bumpCents:", bumpAmountCents, "index:", bumpIndex)
         
-        // Buscar estado atual do usuario
-        const { data: userState } = await supabase
+        // Buscar estado atual do usuario - primeiro tenta com status especifico, depois fallback
+        let userState: { metadata: unknown; flow_id: string | null } | null = null
+        
+        const { data: primaryState } = await supabase
           .from("user_flow_state")
           .select("metadata, flow_id")
           .eq("bot_id", botUuid)
@@ -879,13 +881,33 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .eq("status", "waiting_multi_order_bump")
           .single()
         
+        if (primaryState) {
+          userState = primaryState
+        } else {
+          // Fallback - buscar estado mais recente
+          console.log("[v0] Multi Order Bump - Estado waiting_multi_order_bump nao encontrado, buscando fallback")
+          const { data: fallbackState } = await supabase
+            .from("user_flow_state")
+            .select("metadata, flow_id")
+            .eq("bot_id", botUuid)
+            .eq("telegram_user_id", String(telegramUserId))
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (fallbackState) {
+            userState = fallbackState
+          }
+        }
+        
         if (!userState) {
-          console.log("[v0] Multi Order Bump - Estado nao encontrado")
+          console.log("[v0] Multi Order Bump - Nenhum estado encontrado")
+          await sendTelegramMessage(botToken, chatId, "Erro: selecione um plano primeiro.")
           return
         }
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const metadata = userState.metadata as Record<string, any>
+        const metadata = (userState.metadata || {}) as Record<string, any>
         const selectedBumps: number[] = metadata?.selected_bumps || []
         const orderBumpsInfo = metadata?.order_bumps || []
         
@@ -944,7 +966,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const mainAmount = mainAmountCents / 100
         
         // Buscar estado atual do usuario
-        const { data: userState } = await supabase
+        let userState: { metadata: unknown; flow_id: string | null } | null = null
+        
+        const { data: primaryState } = await supabase
           .from("user_flow_state")
           .select("metadata, flow_id")
           .eq("bot_id", botUuid)
@@ -952,9 +976,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .eq("status", "waiting_multi_order_bump")
           .single()
         
-        if (!userState) {
-          console.log("[v0] Finish Multi Order Bump - Estado nao encontrado, usando fallback")
-          // Fallback - buscar qualquer estado
+        if (primaryState) {
+          userState = primaryState
+        } else {
+          console.log("[v0] Finish Multi Order Bump - Estado waiting_multi_order_bump nao encontrado, buscando fallback")
+          // Fallback - buscar qualquer estado recente
           const { data: fallbackState } = await supabase
             .from("user_flow_state")
             .select("metadata, flow_id")
@@ -964,14 +990,20 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             .limit(1)
             .single()
           
-          if (!fallbackState) {
-            await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
-            return
+          if (fallbackState) {
+            userState = fallbackState
+            console.log("[v0] Finish Multi Order Bump - Usando fallback state")
           }
         }
         
+        if (!userState) {
+          console.log("[v0] Finish Multi Order Bump - Nenhum estado encontrado")
+          await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
+          return
+        }
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const metadata = (userState?.metadata || {}) as Record<string, any>
+        const metadata = (userState.metadata || {}) as Record<string, any>
         const totalBumpAmount = metadata?.total_bump_amount || 0
         const mainDescription = metadata?.main_description || "Produto Principal"
         const selectedBumps: number[] = metadata?.selected_bumps || []
