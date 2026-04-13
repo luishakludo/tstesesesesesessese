@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Target,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -53,6 +54,7 @@ const navSections: NavSection[] = [
       { label: "Meus Robos", description: "Gerenciar bots", href: "/bots", icon: Bot },
       { label: "Meus Fluxos", description: "Fluxos de venda", href: "/fluxos", icon: GitBranch },
       { label: "Remarketing", description: "Campanhas", href: "/campaigns", icon: Megaphone },
+      { label: "Rastreamento", description: "Pixels e UTMs", href: "/tracking", icon: Target },
     ],
   },
   {
