@@ -2047,8 +2047,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             let progressMsgId: number | null = null
             if (hasMultipleOrderBumps) {
               const finishCallback = `ob_finish_${mainPriceRounded}`
-              // Mensagem inicial do prosseguir mostrando valor base
-              const progressText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>Clique nos adicionais acima para incluir no pedido</i>`
+              // Mensagem inicial do prosseguir mostrando valor base com aviso sobre múltiplos adicionais
+              const progressText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>Clique nos adicionais acima para incluir no pedido</i>\n\n<i>Dica: Com mais de 1 adicional, basta clicar em PROSSEGUIR para continuar sem adicionais.</i>`
               progressMsgId = await sendTelegramMessage(
                 botToken,
                 chatId,
