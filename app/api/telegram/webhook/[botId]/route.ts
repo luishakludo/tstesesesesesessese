@@ -904,10 +904,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         
         console.log("[v0] Multi Order Bump - mainCents:", mainAmountCents, "bumpCents:", bumpAmountCents, "index:", bumpIndex)
         
-        // Buscar estado atual do usuario - primeiro tenta com status especifico, depois fallback
+        // Buscar estado atual do usuario - tenta varias estrategias
         let userState: { metadata: unknown; flow_id: string | null } | null = null
         
-        const { data: primaryState } = await supabase
+        // Estrategia 1: buscar com status waiting_multi_order_bump
+        const { data: primaryState, error: primaryError } = await supabase
           .from("user_flow_state")
           .select("metadata, flow_id")
           .eq("bot_id", botUuid)
@@ -915,12 +916,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .eq("status", "waiting_multi_order_bump")
           .single()
         
+        console.log("[v0] Multi Order Bump - Estrategia 1 (waiting_multi_order_bump):", primaryState ? "encontrado" : "nao encontrado", "erro:", primaryError?.message)
+        
         if (primaryState) {
           userState = primaryState
         } else {
-          // Fallback - buscar estado mais recente
-          console.log("[v0] Multi Order Bump - Estado waiting_multi_order_bump nao encontrado, buscando fallback")
-          const { data: fallbackState } = await supabase
+          // Estrategia 2: buscar qualquer estado com metadata.order_bumps
+          console.log("[v0] Multi Order Bump - Tentando estrategia 2 (qualquer estado recente)")
+          const { data: fallbackState, error: fallbackError } = await supabase
             .from("user_flow_state")
             .select("metadata, flow_id")
             .eq("bot_id", botUuid)
@@ -929,14 +932,34 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             .limit(1)
             .single()
           
+          console.log("[v0] Multi Order Bump - Estrategia 2:", fallbackState ? "encontrado" : "nao encontrado", "erro:", fallbackError?.message)
+          
           if (fallbackState) {
             userState = fallbackState
           }
         }
         
+        // Se ainda nao encontrou, tentar buscar sem filtro de single (pode ter varios registros)
         if (!userState) {
-          console.log("[v0] Multi Order Bump - Nenhum estado encontrado")
-          await sendTelegramMessage(botToken, chatId, "Erro: selecione um plano primeiro.")
+          console.log("[v0] Multi Order Bump - Tentando estrategia 3 (sem single)")
+          const { data: anyStates } = await supabase
+            .from("user_flow_state")
+            .select("metadata, flow_id")
+            .eq("bot_id", botUuid)
+            .eq("telegram_user_id", String(telegramUserId))
+            .order("updated_at", { ascending: false })
+            .limit(1)
+          
+          if (anyStates && anyStates.length > 0) {
+            userState = anyStates[0]
+            console.log("[v0] Multi Order Bump - Estrategia 3: encontrou estado")
+          }
+        }
+        
+        if (!userState) {
+          console.log("[v0] Multi Order Bump - Nenhum estado encontrado apos todas estrategias - botUuid:", botUuid, "telegramUserId:", telegramUserId)
+          // Nao mostrar erro ao usuario, apenas logar e ignorar
+          await answerCallback(botToken, callbackQueryId, "Sessao expirada. Selecione o plano novamente.")
           return
         }
         
@@ -1950,15 +1973,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
             console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
             
-            // Se múltiplos order bumps, mostrar aviso sobre botão de recusar desativado
-            if (hasMultipleOrderBumps) {
-              await sendTelegramMessage(
-                botToken,
-                chatId,
-                `_Com mais de 1 adicional disponivel, o botao de recusar fica desabilitado. Basta clicar em PROSSEGUIR para continuar sem adicionais._`,
-                undefined
-              )
-            }
+
             
             // Array para armazenar info de todos os order bumps para o estado
             const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; messageId?: number; description?: string }> = []
@@ -2037,7 +2052,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             }
             
             // Salvar estado com info de todos os order bumps e message_ids
-            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "total bumps:", orderBumpsInfo.length, "progressMsgId:", progressMsgId)
+            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId), "total bumps:", orderBumpsInfo.length, "progressMsgId:", progressMsgId)
             const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
               bot_id: botUuid,
               telegram_user_id: String(telegramUserId),
