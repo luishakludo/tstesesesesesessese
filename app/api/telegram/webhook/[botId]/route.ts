@@ -1950,35 +1950,18 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
             console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
             
+            // Se múltiplos order bumps, mostrar aviso sobre botão de recusar desativado
+            if (hasMultipleOrderBumps) {
+              await sendTelegramMessage(
+                botToken,
+                chatId,
+                `_Com mais de 1 adicional disponivel, o botao de recusar fica desabilitado. Basta clicar em PROSSEGUIR para continuar sem adicionais._`,
+                undefined
+              )
+            }
+            
             // Array para armazenar info de todos os order bumps para o estado
             const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; messageId?: number; description?: string }> = []
-            
-            // PRE-SALVAR estado ANTES de enviar mensagens para evitar race condition
-            // Quando o usuario clica rapido, o estado precisa ja existir
-            if (hasMultipleOrderBumps) {
-              console.log("[v0] Pre-salvando estado para multi order bumps")
-              await supabase.from("user_flow_state").upsert({
-                bot_id: botUuid,
-                telegram_user_id: String(telegramUserId),
-                flow_id: flowForOrderBump.id,
-                status: "waiting_multi_order_bump",
-                current_node_position: 0,
-                metadata: {
-                  type: "plan",
-                  main_amount: planPrice,
-                  main_description: planName,
-                  order_bump_source: "plan_specific",
-                  order_bumps: [], // Sera atualizado depois
-                  selected_bumps: [],
-                  selected_bump_names: [],
-                  total_bump_amount: 0,
-                  progress_message_id: null
-                },
-                updated_at: new Date().toISOString()
-              }, {
-                onConflict: "bot_id,telegram_user_id"
-              })
-            }
             
             // Enviar cada order bump e guardar message_id
             for (let i = 0; i < activePlanOrderBumps.length; i++) {
