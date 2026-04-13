@@ -354,29 +354,29 @@ body: JSON.stringify({
         {/* Editor Panel */}
         <div className="w-[340px] border-r border-gray-200 flex flex-col bg-white flex-shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="px-4 pt-4">
-              <TabsList className="w-full bg-gray-100 rounded-lg h-10 p-1">
-                <TabsTrigger value="visual" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Palette className="w-3.5 h-3.5 mr-1.5" />
+            <div className="px-3 pt-4">
+              <TabsList className="w-full bg-gray-100 rounded-lg h-9 p-1 grid grid-cols-5 gap-0.5">
+                <TabsTrigger value="visual" className="rounded-md text-[11px] px-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Palette className="w-3 h-3 mr-1" />
                   Visual
                 </TabsTrigger>
-                <TabsTrigger value="profile" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Type className="w-3.5 h-3.5 mr-1.5" />
+                <TabsTrigger value="profile" className="rounded-md text-[11px] px-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Type className="w-3 h-3 mr-1" />
                   Perfil
                 </TabsTrigger>
-                <TabsTrigger value="links" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                  <Link2 className="w-3.5 h-3.5 mr-1.5" />
+                <TabsTrigger value="links" className="rounded-md text-[11px] px-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Link2 className="w-3 h-3 mr-1" />
                   Links
                 </TabsTrigger>
-<TabsTrigger value="details" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-  <Settings className="w-3.5 h-3.5 mr-1.5" />
-  Detalhes
-  </TabsTrigger>
-  <TabsTrigger value="pixel" className="flex-1 rounded-md text-xs data-[state=active]:bg-white data-[state=active]:shadow-sm">
-  <Activity className="w-3.5 h-3.5 mr-1.5" />
-  Pixel
-  </TabsTrigger>
-  </TabsList>
+                <TabsTrigger value="details" className="rounded-md text-[11px] px-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Settings className="w-3 h-3 mr-1" />
+                  Detalhes
+                </TabsTrigger>
+                <TabsTrigger value="pixel" className="rounded-md text-[11px] px-1 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                  <Activity className="w-3 h-3 mr-1" />
+                  Pixel
+                </TabsTrigger>
+              </TabsList>
             </div>
 
             <div className="flex-1 min-h-0 relative">
