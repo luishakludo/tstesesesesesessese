@@ -25,7 +25,9 @@ import {
   Activity,
 } from "lucide-react"
 import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
+import { useGateways, AVAILABLE_GATEWAYS } from "@/lib/gateway-context"
 import { toast } from "sonner"
+import { CreditCard, ExternalLink } from "lucide-react"
 
 export type CheckoutData = {
   // Produto
@@ -93,6 +95,11 @@ interface PageProps {
 export default function CheckoutEditorPage({ params }: PageProps) {
   const { id } = use(params)
   const router = useRouter()
+  const { gateways, isLoading: gatewaysLoading } = useGateways()
+  
+  // Pegar gateway ativa
+  const activeGateway = gateways.find(g => g.is_active)
+  const gatewayInfo = activeGateway ? AVAILABLE_GATEWAYS.find(g => g.id === activeGateway.gateway_name) : null
   
   const [loading, setLoading] = useState(true)
   const [site, setSite] = useState<any>(null)
@@ -373,29 +380,85 @@ body: JSON.stringify({
                     </div>
                   </div>
 
+                  {/* Gateway de Pagamento */}
                   <div className="border-t pt-4">
                     <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
-                      Chave PIX
+                      Gateway de Pagamento
                     </Label>
+                    
+                    {gatewaysLoading ? (
+                      <div className="flex items-center justify-center p-4">
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : activeGateway && gatewayInfo ? (
+                      <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                            {activeGateway.gateway_name === "mercadopago" ? (
+                              <img src="/images/mercadopago-logo.png" alt="Mercado Pago" className="w-full h-full object-cover" />
+                            ) : activeGateway.gateway_name === "pushinpay" ? (
+                              <img src="/images/pushinpay-logo.jpg" alt="Pushin Pay" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                                <CreditCard className="w-5 h-5 text-gray-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900">{gatewayInfo.name}</p>
+                              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-[10px] font-semibold rounded">
+                                ATIVO
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">
+                              Token: {activeGateway.access_token.substring(0, 15)}...
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => router.push("/gateways")}
+                            className="w-full flex items-center justify-center gap-2 text-xs text-gray-600 hover:text-gray-900 transition-colors"
+                          >
+                            <Settings className="w-3.5 h-3.5" />
+                            Gerenciar Gateways
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border-2 border-dashed border-gray-200 p-4 text-center">
+                        <CreditCard className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-sm font-medium text-gray-600 mb-1">Nenhum gateway configurado</p>
+                        <p className="text-xs text-gray-400 mb-3">Configure um gateway para receber pagamentos PIX</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push("/gateways")}
+                          className="h-8"
+                        >
+                          <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+                          Configurar Gateway
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Chave PIX Manual (opcional) */}
+                  <div>
+                    <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
+                      Chave PIX Manual (Opcional)
+                    </Label>
+                    <p className="text-[10px] text-gray-400 mb-2">Use apenas se quiser PIX estatico sem integracao</p>
                     <Textarea
                       value={pageData.pixKey}
                       onChange={(e) => updatePageData({ pixKey: e.target.value })}
                       className="text-sm resize-none font-mono text-xs"
-                      rows={3}
+                      rows={2}
                       placeholder="Cole o codigo PIX copia e cola..."
-                    />
-                  </div>
-
-                  <div>
-                    <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
-                      Access Token Mercado Pago
-                    </Label>
-                    <Input
-                      type="password"
-                      value={pageData.accessToken}
-                      onChange={(e) => updatePageData({ accessToken: e.target.value })}
-                      className="h-10 text-sm font-mono"
-                      placeholder="APP_USR-..."
                     />
                   </div>
                 </div>
