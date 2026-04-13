@@ -1446,6 +1446,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         let planName = ""
         let planPrice = 0
         let flowIdForGateway = ""
+        let planFromDb = false // Flag para saber se veio da tabela flow_plans
         
         const { data: dbPlan } = await supabase
           .from("flow_plans")
@@ -1457,6 +1458,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           planName = dbPlan.name
           planPrice = Number(dbPlan.price)
           flowIdForGateway = dbPlan.flows?.id || ""
+          planFromDb = true
         } else {
           // Try to find plan in flow config - check direct flow first
           let flowWithPlan = null
@@ -1546,10 +1548,109 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           const orderBumpConfig = flowConfig.orderBump as Record<string, any> | undefined
           const orderBumpInicial = orderBumpConfig?.inicial
           
+          // ========== VERIFICAR ORDER BUMPS ESPECIFICOS DO PLANO ==========
+          // Primeiro verificar se o plano tem order bumps especificos
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const configPlans = (flowConfig.plans as Array<Record<string, any>>) || []
+          
+          // Se o plano veio da tabela flow_plans, buscar pelo nome (pois o ID pode ser diferente)
+          // Se veio da config JSON, buscar pelo ID
+          let selectedPlanConfig = null
+          if (planFromDb) {
+            // Buscar pelo nome do plano (case insensitive e trim)
+            selectedPlanConfig = configPlans.find(p => 
+              p.name?.toLowerCase().trim() === planName.toLowerCase().trim()
+            )
+            console.log("[v0] Order Bump - Plano veio da tabela flow_plans, buscando por nome:", planName, "encontrado:", !!selectedPlanConfig)
+          } else {
+            // Buscar pelo ID exato
+            selectedPlanConfig = configPlans.find(p => p.id === planId)
+          }
+          
+          const planOrderBumps = selectedPlanConfig?.order_bumps || []
+          
+          // Filtrar apenas order bumps ativos e com preco > 0
+          const activePlanOrderBumps = planOrderBumps.filter((ob: { enabled?: boolean; price?: number }) => 
+            ob.enabled && ob.price && ob.price > 0
+          )
+          
+          console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial:", !!orderBumpInicial?.enabled)
+          
+          // Se o plano tem order bumps especificos, usar eles
+          if (activePlanOrderBumps.length > 0) {
+            // Usar o primeiro order bump ativo do plano
+            const planOrderBump = activePlanOrderBumps[0]
+            console.log("[v0] Usando Order Bump especifico do plano:", planOrderBump.name, "price:", planOrderBump.price)
+            
+            const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
+            const orderBumpAcceptText = planOrderBump.acceptText || "ADICIONAR"
+            const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
+            
+            const mainPriceRounded = Math.round(planPrice * 100)
+            const bumpPriceRounded = Math.round(planOrderBump.price * 100)
+            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+            const declineCallback = `ob_decline_${mainPriceRounded}_0`
+            console.log("[v0] Plan Order Bump callbacks:", acceptCallback, declineCallback)
+            
+            const orderBumpKeyboard = {
+              inline_keyboard: [
+                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
+              ]
+            }
+            
+            // Enviar mensagem do plano selecionado
+            await sendTelegramMessage(
+              botToken,
+              chatId,
+              `Voce selecionou: *${planName}*\n\nValor: R$ ${planPrice.toFixed(2).replace(".", ",")}`,
+              undefined
+            )
+            
+            // Enviar midias do order bump se houver
+            if (planOrderBump.medias && planOrderBump.medias.length > 0) {
+              console.log("[v0] Enviando midias do Plan Order Bump:", planOrderBump.medias.length)
+              await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
+            }
+            
+            // Enviar oferta do Order Bump
+            await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
+            
+            // Salvar estado
+            console.log("[v0] Salvando estado Plan Order Bump - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId))
+            const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
+              bot_id: botUuid,
+              telegram_user_id: String(telegramUserId),
+              flow_id: flowForOrderBump.id,
+              status: "waiting_order_bump",
+              current_node_position: 0,
+              metadata: {
+                type: "plan",
+                order_bump_name: planOrderBump.name || "Order Bump",
+                order_bump_price: planOrderBump.price,
+                main_amount: planPrice,
+                main_description: planName,
+                order_bump_source: "plan_specific"
+              },
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: "bot_id,telegram_user_id"
+            })
+            if (stateUpsertError) {
+              console.error("[v0] Erro ao salvar estado Plan Order Bump:", stateUpsertError)
+            } else {
+              console.log("[v0] Estado Plan Order Bump salvo com sucesso")
+            }
+            
+            return // STOP - aguardar decisao do Order Bump
+          }
+          // ========== FIM ORDER BUMPS ESPECIFICOS DO PLANO ==========
+          
+          // Se nao tem order bump especifico, usar o global (Fluxo Inicial)
           console.log("[v0] Order Bump Check - config:", !!orderBumpConfig, "inicial:", !!orderBumpInicial, "enabled:", orderBumpInicial?.enabled, "price:", orderBumpInicial?.price)
           
           if (orderBumpInicial?.enabled && orderBumpInicial?.price > 0) {
-            console.log("[v0] Order Bump ATIVADO! Enviando oferta ao usuario...")
+            console.log("[v0] Order Bump GLOBAL ATIVADO! Enviando oferta ao usuario...")
             
             const orderBumpDesc = orderBumpInicial.description || `Deseja adicionar ${orderBumpInicial.name || "este bonus"} por apenas R$ ${orderBumpInicial.price}?`
             const orderBumpAcceptText = orderBumpInicial.acceptText || "ADICIONAR"
@@ -1560,7 +1661,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const mainPriceRounded = Math.round(planPrice * 100)
             const bumpPriceRounded = Math.round(orderBumpInicial.price * 100)
             const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
-            const declineCallback = `ob_decline_${mainPriceRounded}`
+            const declineCallback = `ob_decline_${mainPriceRounded}_0`
             console.log("[v0] Order Bump callbacks:", acceptCallback, declineCallback)
             
             const orderBumpKeyboard = {
@@ -1600,7 +1701,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 order_bump_name: orderBumpInicial.name || "Order Bump",
                 order_bump_price: orderBumpInicial.price,
                 main_amount: planPrice,
-                main_description: planName
+                main_description: planName,
+                order_bump_source: "global_inicial"
               },
               updated_at: new Date().toISOString()
             }, {
