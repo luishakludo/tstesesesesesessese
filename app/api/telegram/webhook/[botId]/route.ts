@@ -112,14 +112,17 @@ async function editTelegramMessage(
   }
   if (replyMarkup) body.reply_markup = replyMarkup
   try {
+    console.log("[v0] editTelegramMessage - messageId:", messageId, "text preview:", text.substring(0, 50))
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
     const data = await res.json()
+    console.log("[v0] editTelegramMessage - response ok:", data?.ok, "error:", data?.description)
     return data?.ok || false
-  } catch {
+  } catch (err) {
+    console.log("[v0] editTelegramMessage - error:", err)
     return false
   }
 }
@@ -994,7 +997,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             botToken,
             chatId,
             bumpMsgId,
-            `${bumpDesc}\n\n*ADICIONADO* (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
+            `${bumpDesc}\n\n<b>ADICIONADO</b> (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
             undefined // Remove os botões
           )
         }
@@ -1005,7 +1008,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         // Editar mensagem do PROSSEGUIR com valor atualizado e itens selecionados
         if (progressMsgId) {
           const finishCallback = `ob_finish_${Math.round(mainAmount * 100)}`
-          let progressText = `*Resumo do Pedido:*\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}`
+          let progressText = `<b>Resumo do Pedido:</b>\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}`
           
           // Adicionar cada bump selecionado
           for (let i = 0; i < selectedBumps.length; i++) {
@@ -1015,7 +1018,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             progressText += `\n+ ${name}: R$ ${price.toFixed(2).replace(".", ",")}`
           }
           
-          progressText += `\n\n*TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}*`
+          progressText += `\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`
           
           await editTelegramMessage(
             botToken,
@@ -1031,7 +1034,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         }
         
         // Atualizar estado com o bump selecionado
-        await supabase
+        console.log("[v0] Atualizando estado apos adicionar bump - selected_bumps:", selectedBumps, "total_bump_amount:", currentTotalBump)
+        const { error: updateError } = await supabase
           .from("user_flow_state")
           .update({
             metadata: {
@@ -1044,6 +1048,12 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           })
           .eq("bot_id", botUuid)
           .eq("telegram_user_id", String(telegramUserId))
+        
+        if (updateError) {
+          console.log("[v0] Erro ao atualizar estado:", updateError)
+        } else {
+          console.log("[v0] Estado atualizado com sucesso")
+        }
         
         return
       }
@@ -2038,7 +2048,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             if (hasMultipleOrderBumps) {
               const finishCallback = `ob_finish_${mainPriceRounded}`
               // Mensagem inicial do prosseguir mostrando valor base
-              const progressText = `*Resumo do Pedido:*\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n_Clique nos adicionais acima para incluir no pedido_`
+              const progressText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>Clique nos adicionais acima para incluir no pedido</i>`
               progressMsgId = await sendTelegramMessage(
                 botToken,
                 chatId,
