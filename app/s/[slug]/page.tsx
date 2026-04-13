@@ -69,8 +69,29 @@ export default async function DragonBioPage({ params }: PageProps) {
 
   // Se for uma pagina Checkout PIX (detecta pelo slug)
   const isCheckoutPage = site.slug?.startsWith("checkout-")
-  if (isCheckoutPage || (site.page_data && (site.page_data.accessToken || site.page_data.pixKey))) {
-    return <PixCheckout data={site.page_data || {}} siteId={site.id} userId={site.user_id} />
+  if (isCheckoutPage || (site.page_data && (site.page_data.accessToken || site.page_data.pixKey || site.page_data.price))) {
+    // Buscar gateway ativa do usuario para pegar o access_token
+    let accessToken = site.page_data?.accessToken || ""
+    
+    if (!accessToken && site.user_id) {
+      const { data: gateway } = await supabase
+        .from("payment_gateways")
+        .select("access_token, gateway_name")
+        .eq("user_id", site.user_id)
+        .eq("is_active", true)
+        .single()
+      
+      if (gateway?.access_token) {
+        accessToken = gateway.access_token
+      }
+    }
+    
+    const checkoutData = {
+      ...site.page_data,
+      accessToken: accessToken,
+    }
+    
+    return <PixCheckout data={checkoutData} siteId={site.id} userId={site.user_id} />
   }
 
   // Se for uma pagina Privacy/Conversao (detecta pelo slug ou page_data)
