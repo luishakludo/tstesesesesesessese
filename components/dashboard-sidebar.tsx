@@ -54,7 +54,6 @@ const navSections: NavSection[] = [
       { label: "Meus Robos", description: "Gerenciar bots", href: "/bots", icon: Bot },
       { label: "Meus Fluxos", description: "Fluxos de venda", href: "/fluxos", icon: GitBranch },
       { label: "Remarketing", description: "Campanhas", href: "/campaigns", icon: Megaphone },
-      { label: "Rastreamento", description: "Pixels e UTMs", href: "/tracking", icon: Target },
     ],
   },
   {
@@ -62,6 +61,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "Gateways", description: "Pagamentos PIX", href: "/gateways", icon: CreditCard },
       { label: "Dragon Sites", description: "Crie paginas de conversao", href: "/biolink", icon: LinkIcon },
+      { label: "Trackeamento", description: "Pixels e UTMs", href: "/tracking", icon: Target },
     ],
   },
   {
