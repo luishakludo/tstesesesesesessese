@@ -850,6 +850,255 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         return
       }
       
+      // ========== MULTI ORDER BUMP CALLBACKS (quando tem mais de 1 order bump) ==========
+      if (callbackData.startsWith("ob_multi_")) {
+        console.log("[v0] Multi Order Bump Callback recebido:", callbackData)
+        
+        // Answer callback query imediatamente
+        await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callback_query_id: callbackQueryId, text: "Adicionado!" })
+        })
+        
+        // Formato: ob_multi_{mainAmount}_{bumpAmount}_{bumpIndex}
+        const parts = callbackData.replace("ob_multi_", "").split("_")
+        const mainAmountCents = parseInt(parts[0]) || 0
+        const bumpAmountCents = parseInt(parts[1]) || 0
+        const bumpIndex = parseInt(parts[2]) || 0
+        const bumpAmount = bumpAmountCents / 100
+        
+        console.log("[v0] Multi Order Bump - mainCents:", mainAmountCents, "bumpCents:", bumpAmountCents, "index:", bumpIndex)
+        
+        // Buscar estado atual do usuario
+        const { data: userState } = await supabase
+          .from("user_flow_state")
+          .select("metadata, flow_id")
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+          .eq("status", "waiting_multi_order_bump")
+          .single()
+        
+        if (!userState) {
+          console.log("[v0] Multi Order Bump - Estado nao encontrado")
+          return
+        }
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const metadata = userState.metadata as Record<string, any>
+        const selectedBumps: number[] = metadata?.selected_bumps || []
+        const orderBumpsInfo = metadata?.order_bumps || []
+        
+        // Verificar se este bump já foi selecionado
+        if (selectedBumps.includes(bumpIndex)) {
+          console.log("[v0] Multi Order Bump - Bump ja selecionado:", bumpIndex)
+          return
+        }
+        
+        // Adicionar o bump selecionado
+        selectedBumps.push(bumpIndex)
+        const currentTotalBump = (metadata?.total_bump_amount || 0) + bumpAmount
+        const bumpName = orderBumpsInfo[bumpIndex]?.name || `Order Bump ${bumpIndex + 1}`
+        
+        console.log("[v0] Multi Order Bump - Adicionado bump", bumpIndex, "total selecionados:", selectedBumps.length, "valor total bumps:", currentTotalBump)
+        
+        // Atualizar estado com o bump selecionado
+        await supabase
+          .from("user_flow_state")
+          .update({
+            metadata: {
+              ...metadata,
+              selected_bumps: selectedBumps,
+              total_bump_amount: currentTotalBump
+            },
+            updated_at: new Date().toISOString()
+          })
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+        
+        // Enviar confirmacao
+        await sendTelegramMessage(
+          botToken,
+          chatId,
+          `*${bumpName}* adicionado! (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
+          undefined
+        )
+        
+        return
+      }
+      
+      // ========== FINISH MULTI ORDER BUMP (prosseguir apos selecionar order bumps) ==========
+      if (callbackData.startsWith("ob_finish_")) {
+        console.log("[v0] Finish Multi Order Bump Callback recebido:", callbackData)
+        
+        // Answer callback query
+        await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ callback_query_id: callbackQueryId })
+        })
+        
+        // Formato: ob_finish_{mainAmount}
+        const parts = callbackData.replace("ob_finish_", "").split("_")
+        const mainAmountCents = parseInt(parts[0]) || 0
+        const mainAmount = mainAmountCents / 100
+        
+        // Buscar estado atual do usuario
+        const { data: userState } = await supabase
+          .from("user_flow_state")
+          .select("metadata, flow_id")
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+          .eq("status", "waiting_multi_order_bump")
+          .single()
+        
+        if (!userState) {
+          console.log("[v0] Finish Multi Order Bump - Estado nao encontrado, usando fallback")
+          // Fallback - buscar qualquer estado
+          const { data: fallbackState } = await supabase
+            .from("user_flow_state")
+            .select("metadata, flow_id")
+            .eq("bot_id", botUuid)
+            .eq("telegram_user_id", String(telegramUserId))
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .single()
+          
+          if (!fallbackState) {
+            await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
+            return
+          }
+        }
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const metadata = (userState?.metadata || {}) as Record<string, any>
+        const totalBumpAmount = metadata?.total_bump_amount || 0
+        const mainDescription = metadata?.main_description || "Produto Principal"
+        const selectedBumps: number[] = metadata?.selected_bumps || []
+        const orderBumpsInfo = metadata?.order_bumps || []
+        
+        // Calcular valor total
+        const totalAmount = mainAmount + totalBumpAmount
+        
+        // Construir descricao com todos os bumps selecionados
+        let description = mainDescription
+        if (selectedBumps.length > 0) {
+          const bumpNames = selectedBumps.map(idx => orderBumpsInfo[idx]?.name || `Adicional ${idx + 1}`).join(" + ")
+          description = `${mainDescription} + ${bumpNames}`
+        }
+        
+        console.log("[v0] Finish Multi Order Bump - main:", mainAmount, "bumps:", totalBumpAmount, "TOTAL:", totalAmount, "selected:", selectedBumps.length)
+        
+        if (totalAmount <= 0) {
+          await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
+          return
+        }
+        
+        // Atualizar estado
+        await supabase
+          .from("user_flow_state")
+          .update({ status: "payment_pending", updated_at: new Date().toISOString() })
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+        
+        // Enviar mensagem de processamento
+        await sendTelegramMessage(
+          botToken,
+          chatId,
+          `Gerando pagamento PIX...\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`,
+          undefined
+        )
+        
+        // Get user_id from bot to find gateway
+        const { data: botDataMulti } = await supabase
+          .from("bots")
+          .select("user_id")
+          .eq("id", botUuid)
+          .single()
+        
+        if (!botDataMulti?.user_id) {
+          await sendTelegramMessage(botToken, chatId, "Erro: Bot nao encontrado.", undefined)
+          return
+        }
+        
+        // Get gateway
+        const { data: gatewayMulti } = await supabase
+          .from("user_gateways")
+          .select("*")
+          .eq("user_id", botDataMulti.user_id)
+          .eq("is_active", true)
+          .limit(1)
+          .single()
+        
+        if (!gatewayMulti) {
+          await sendTelegramMessage(botToken, chatId, "Nenhum gateway de pagamento configurado. Configure em Configuracoes > Integracoes.", undefined)
+          return
+        }
+        
+        // Generate PIX
+        const pixResult = await generatePixPayment({
+          gateway: gatewayMulti,
+          amount: totalAmount,
+          description: description,
+          externalReference: `multi_ob_${Date.now()}_${telegramUserId}`,
+          customerEmail: `telegram_${telegramUserId}@bot.temp`
+        })
+        
+        if (!pixResult.success || !pixResult.qrCode) {
+          await sendTelegramMessage(botToken, chatId, `Erro ao gerar PIX: ${pixResult.error || "Tente novamente"}`, undefined)
+          return
+        }
+        
+        // Save transaction
+        await supabase.from("transactions").insert({
+          user_id: botDataMulti.user_id,
+          bot_id: botUuid,
+          gateway_id: gatewayMulti.id,
+          flow_id: userState?.flow_id || null,
+          telegram_user_id: String(telegramUserId),
+          telegram_chat_id: String(chatId),
+          amount: totalAmount,
+          status: "pending",
+          external_id: pixResult.transactionId || null,
+          pix_code: pixResult.pixCode || null,
+          description: description
+        })
+        
+        // Send QR code
+        const qrImageUrl = pixResult.qrCode.startsWith("data:") 
+          ? pixResult.qrCode 
+          : `data:image/png;base64,${pixResult.qrCode}`
+        
+        try {
+          const base64Data = qrImageUrl.replace(/^data:image\/\w+;base64,/, "")
+          const imageBuffer = Buffer.from(base64Data, "base64")
+          
+          const formData = new FormData()
+          formData.append("chat_id", String(chatId))
+          formData.append("photo", new Blob([imageBuffer], { type: "image/png" }), "qrcode.png")
+          formData.append("caption", "Escaneie o QR Code para pagar")
+          
+          await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+            method: "POST",
+            body: formData
+          })
+        } catch (qrErr) {
+          console.error("[v0] Erro ao enviar QR Code multi order bump:", qrErr)
+        }
+        
+        // Send PIX code
+        if (pixResult.pixCode) {
+          await sendTelegramMessage(
+            botToken,
+            chatId,
+            `Ou copie o codigo PIX:\n\n\`${pixResult.pixCode}\``,
+            undefined
+          )
+        }
+        
+        return
+      }
+      
       // ========== ORDER BUMP CALLBACKS ==========
       if (callbackData.startsWith("ob_accept_") || callbackData.startsWith("ob_decline_")) {
         console.log("[v0] Order Bump Callback recebido:", callbackData, "botUuid:", botUuid, "telegramUserId:", telegramUserId)
@@ -1578,28 +1827,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           // Se o plano tem order bumps especificos, usar eles
           if (activePlanOrderBumps.length > 0) {
-            // Usar o primeiro order bump ativo do plano
-            const planOrderBump = activePlanOrderBumps[0]
-            console.log("[v0] Usando Order Bump especifico do plano:", planOrderBump.name, "price:", planOrderBump.price)
-            
-            const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
-            const orderBumpAcceptText = planOrderBump.acceptText || "ADICIONAR"
-            const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
-            
             const mainPriceRounded = Math.round(planPrice * 100)
-            const bumpPriceRounded = Math.round(planOrderBump.price * 100)
-            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
-            const declineCallback = `ob_decline_${mainPriceRounded}_0`
-            console.log("[v0] Plan Order Bump callbacks:", acceptCallback, declineCallback)
             
-            const orderBumpKeyboard = {
-              inline_keyboard: [
-                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
-                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
-              ]
-            }
-            
-            // Enviar mensagem do plano selecionado
+            // Enviar mensagem do plano selecionado primeiro
             await sendTelegramMessage(
               botToken,
               chatId,
@@ -1607,30 +1837,100 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               undefined
             )
             
-            // Enviar midias do order bump se houver
-            if (planOrderBump.medias && planOrderBump.medias.length > 0) {
-              console.log("[v0] Enviando midias do Plan Order Bump:", planOrderBump.medias.length)
-              await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
+            // Se tem múltiplos order bumps, enviar todos com apenas botão de adicionar
+            // Se tem apenas 1, enviar com botões de adicionar e recusar
+            const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
+            console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
+            
+            // Array para armazenar info de todos os order bumps para o estado
+            const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number }> = []
+            
+            // Enviar cada order bump
+            for (let i = 0; i < activePlanOrderBumps.length; i++) {
+              const planOrderBump = activePlanOrderBumps[i]
+              const bumpId = planOrderBump.id || `bump_${i}`
+              console.log("[v0] Enviando Order Bump", i + 1, "de", activePlanOrderBumps.length, ":", planOrderBump.name)
+              
+              orderBumpsInfo.push({
+                id: bumpId,
+                name: planOrderBump.name || `Order Bump ${i + 1}`,
+                price: planOrderBump.price,
+                index: i
+              })
+              
+              const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
+              const orderBumpAcceptText = planOrderBump.acceptText || "ADICIONAR"
+              
+              const bumpPriceRounded = Math.round(planOrderBump.price * 100)
+              // Formato: ob_multi_{mainAmount}_{bumpAmount}_{bumpIndex} para múltiplos
+              // ou ob_accept_{mainAmount}_{bumpAmount} para único
+              const acceptCallback = hasMultipleOrderBumps 
+                ? `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
+                : `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+              
+              // Enviar midias do order bump se houver
+              if (planOrderBump.medias && planOrderBump.medias.length > 0) {
+                console.log("[v0] Enviando midias do Plan Order Bump", i + 1, ":", planOrderBump.medias.length)
+                await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
+              }
+              
+              if (hasMultipleOrderBumps) {
+                // Múltiplos order bumps: apenas botão de adicionar
+                const orderBumpKeyboard = {
+                  inline_keyboard: [
+                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }]
+                  ]
+                }
+                await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
+              } else {
+                // Único order bump: botões de adicionar e recusar
+                const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
+                const declineCallback = `ob_decline_${mainPriceRounded}_0`
+                const orderBumpKeyboard = {
+                  inline_keyboard: [
+                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                    [{ text: orderBumpDeclineText, callback_data: declineCallback }]
+                  ]
+                }
+                await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
+              }
             }
             
-            // Enviar oferta do Order Bump
-            await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
+            // Se múltiplos order bumps, enviar botão de finalizar/prosseguir no final
+            if (hasMultipleOrderBumps) {
+              const finishCallback = `ob_finish_${mainPriceRounded}`
+              await sendTelegramMessage(
+                botToken,
+                chatId,
+                "Clique em *PROSSEGUIR* quando terminar de selecionar os adicionais.",
+                {
+                  inline_keyboard: [
+                    [{ text: "PROSSEGUIR", callback_data: finishCallback }]
+                  ]
+                }
+              )
+            }
             
-            // Salvar estado
-            console.log("[v0] Salvando estado Plan Order Bump - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId))
+            // Salvar estado com info de todos os order bumps
+            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "total bumps:", orderBumpsInfo.length)
             const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
               bot_id: botUuid,
               telegram_user_id: String(telegramUserId),
               flow_id: flowForOrderBump.id,
-              status: "waiting_order_bump",
+              status: hasMultipleOrderBumps ? "waiting_multi_order_bump" : "waiting_order_bump",
               current_node_position: 0,
               metadata: {
                 type: "plan",
-                order_bump_name: planOrderBump.name || "Order Bump",
-                order_bump_price: planOrderBump.price,
                 main_amount: planPrice,
                 main_description: planName,
-                order_bump_source: "plan_specific"
+                order_bump_source: "plan_specific",
+                // Para múltiplos order bumps
+                order_bumps: orderBumpsInfo,
+                selected_bumps: [], // Array de índices selecionados
+                total_bump_amount: 0, // Soma dos valores selecionados
+                // Para único order bump (compatibilidade)
+                order_bump_name: orderBumpsInfo[0]?.name || "Order Bump",
+                order_bump_price: orderBumpsInfo[0]?.price || 0
               },
               updated_at: new Date().toISOString()
             }, {
