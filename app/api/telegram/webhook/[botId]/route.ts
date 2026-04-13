@@ -1950,6 +1950,16 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
             console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
             
+            // Se múltiplos order bumps, mostrar aviso sobre botão de recusar desativado
+            if (hasMultipleOrderBumps) {
+              await sendTelegramMessage(
+                botToken,
+                chatId,
+                `_Com mais de 1 adicional disponivel, o botao de recusar fica desabilitado. Basta clicar em PROSSEGUIR para continuar sem adicionais._`,
+                undefined
+              )
+            }
+            
             // Array para armazenar info de todos os order bumps para o estado
             const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; messageId?: number; description?: string }> = []
             
