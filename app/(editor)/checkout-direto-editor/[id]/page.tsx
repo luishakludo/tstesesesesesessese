@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ArrowLeft, Save, Loader2, Eye, Type, Palette, Copy, Check, Activity } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Eye, Type, Palette, Copy, Check, Activity, CreditCard, ExternalLink, Settings } from "lucide-react"
 import { PixelConfigPanel, PixelConfig } from "@/components/dragon-sites/pixel-config"
+import { useGateways, AVAILABLE_GATEWAYS } from "@/lib/gateway-context"
 import { toast } from "sonner"
 import { ImageUpload } from "@/components/image-upload"
 
@@ -46,6 +47,11 @@ export default function CheckoutDiretoEditor() {
   const params = useParams()
   const router = useRouter()
   const siteId = params?.id as string
+  const { gateways, isLoading: gatewaysLoading } = useGateways()
+  
+  // Pegar gateway ativa
+  const activeGateway = gateways.find(g => g.is_active)
+  const gatewayInfo = activeGateway ? AVAILABLE_GATEWAYS.find(g => g.id === activeGateway.gateway_name) : null
 
   const [site, setSite] = useState<{ id: string; slug: string; nome: string } | null>(null)
   const [pageData, setPageData] = useState<CheckoutDiretoData>(defaultData)
@@ -223,32 +229,71 @@ body: JSON.stringify({
                   />
                 </div>
 
+                {/* Gateway de Pagamento */}
                 <div className="border-t pt-4">
                   <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
-                    Chave PIX (Copia e Cola)
+                    Gateway de Pagamento
                   </Label>
-                  <Textarea
-                    value={pageData.pixKey}
-                    onChange={(e) => updatePageData({ pixKey: e.target.value })}
-                    className="text-sm resize-none font-mono text-xs"
-                    rows={3}
-                    placeholder="Cole aqui o codigo PIX..."
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">Cole o codigo PIX copia e cola do Mercado Pago</p>
-                </div>
-
-                <div>
-                  <Label className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-2.5 block">
-                    Access Token Mercado Pago (Opcional)
-                  </Label>
-                  <Input
-                    type="password"
-                    value={pageData.accessToken}
-                    onChange={(e) => updatePageData({ accessToken: e.target.value })}
-                    className="h-10 text-sm font-mono"
-                    placeholder="APP_USR-..."
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">Para gerar QR Code dinamico</p>
+                  
+                  {gatewaysLoading ? (
+                    <div className="flex items-center justify-center p-4">
+                      <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    </div>
+                  ) : activeGateway && gatewayInfo ? (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-white">
+                          {activeGateway.gateway_name === "mercadopago" ? (
+                            <img src="/images/mercadopago-logo.png" alt="Mercado Pago" className="w-full h-full object-cover" />
+                          ) : activeGateway.gateway_name === "pushinpay" ? (
+                            <img src="/images/pushinpay-logo.jpg" alt="Pushin Pay" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                              <CreditCard className="w-5 h-5 text-gray-500" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-gray-900">{gatewayInfo.name}</p>
+                            <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] font-semibold rounded">
+                              CONECTADO
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            PIX sera gerado automaticamente
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-emerald-200">
+                        <button
+                          type="button"
+                          onClick={() => router.push("/gateways")}
+                          className="w-full flex items-center justify-center gap-2 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
+                        >
+                          <Settings className="w-3.5 h-3.5" />
+                          Gerenciar Gateways
+                          <ExternalLink className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border-2 border-dashed border-orange-200 bg-orange-50 p-4 text-center">
+                      <CreditCard className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-orange-700 mb-1">Nenhuma gateway configurada</p>
+                      <p className="text-xs text-orange-500 mb-3">Configure uma gateway para gerar PIX automatico</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/gateways")}
+                        className="h-8 border-orange-300 text-orange-700 hover:bg-orange-100"
+                      >
+                        <CreditCard className="w-3.5 h-3.5 mr-1.5" />
+                        Configurar Gateway
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t pt-4">

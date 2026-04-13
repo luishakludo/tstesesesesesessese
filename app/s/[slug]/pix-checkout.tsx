@@ -83,6 +83,8 @@ function CheckoutDiretoPage({ data, siteId, userId }: { data: Partial<CheckoutDi
   const generatePix = async () => {
     try {
       setLoading(true)
+      console.log("[v0] CheckoutDireto generatePix - accessToken:", !!data.accessToken, "pixKey:", !!data.pixKey)
+      console.log("[v0] CheckoutDireto data received:", JSON.stringify(data, null, 2))
       
       if (data.accessToken) {
         const priceNumber = parseFloat(price.replace(",", "."))

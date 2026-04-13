@@ -69,8 +69,35 @@ export default async function DragonBioPage({ params }: PageProps) {
 
   // Se for uma pagina Checkout PIX (detecta pelo slug)
   const isCheckoutPage = site.slug?.startsWith("checkout-")
-  if (isCheckoutPage || (site.page_data && (site.page_data.accessToken || site.page_data.pixKey))) {
-    return <PixCheckout data={site.page_data || {}} siteId={site.id} userId={site.user_id} />
+  if (isCheckoutPage || (site.page_data && (site.page_data.accessToken || site.page_data.pixKey || site.page_data.price))) {
+    // Buscar gateway ativa do usuario para pegar o access_token
+    let accessToken = site.page_data?.accessToken || ""
+    
+    console.log("[v0] Checkout page detected. user_id:", site.user_id, "existing accessToken:", !!accessToken)
+    
+    if (!accessToken && site.user_id) {
+      const { data: gateway, error: gwError } = await supabase
+        .from("user_gateways")
+        .select("access_token, gateway_name")
+        .eq("user_id", site.user_id)
+        .eq("is_active", true)
+        .single()
+      
+      console.log("[v0] Gateway query result:", gateway?.gateway_name, "error:", gwError?.message, "token exists:", !!gateway?.access_token)
+      
+      if (gateway?.access_token) {
+        accessToken = gateway.access_token
+      }
+    }
+    
+    const checkoutData = {
+      ...site.page_data,
+      accessToken: accessToken,
+    }
+    
+    console.log("[v0] Final checkoutData accessToken:", !!checkoutData.accessToken)
+    
+    return <PixCheckout data={checkoutData} siteId={site.id} userId={site.user_id} />
   }
 
   // Se for uma pagina Privacy/Conversao (detecta pelo slug ou page_data)
