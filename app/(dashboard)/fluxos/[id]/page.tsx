@@ -2790,7 +2790,7 @@ const newPlan: UpsellPlan = {
                                                 onChange={(e) => {
                                                   const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: val === "" ? 0 : val }
+                                                  updatedBumps[bumpIndex] = { ...bump, price: val === "" ? 0 : val as unknown as number }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 onBlur={() => {
