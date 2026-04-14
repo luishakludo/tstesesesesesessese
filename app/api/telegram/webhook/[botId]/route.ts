@@ -75,6 +75,129 @@ async function generatePixPayment(params: {
 }
 
 // ---------------------------------------------------------------------------
+// Interface para configurações de pagamento do flow
+// ---------------------------------------------------------------------------
+interface PaymentMessagesConfig {
+  pixMessage?: string
+  showPlanBeforePix?: boolean
+  qrCodeDisplay?: string // "image" | "none"
+  pixCodeFormat?: string // "monospace" | "normal"
+  showCopyButton?: boolean
+  messageBeforeCode?: string
+  verifyStatusButtonText?: string
+  approvedMessage?: string
+  approvedMedias?: string[]
+  rejectedMessage?: string
+  expiredMessage?: string
+  showVerifyStatusButton?: boolean
+}
+
+// ---------------------------------------------------------------------------
+// Helper: Enviar mensagens de PIX de forma centralizada
+// ---------------------------------------------------------------------------
+async function sendPixPaymentMessages(params: {
+  botToken: string
+  chatId: number
+  pixCode: string
+  qrCodeUrl?: string
+  amount: number
+  productName: string
+  paymentId?: string
+  config?: PaymentMessagesConfig
+  userName?: string
+}): Promise<void> {
+  const { 
+    botToken, 
+    chatId, 
+    pixCode, 
+    qrCodeUrl, 
+    amount, 
+    productName, 
+    paymentId,
+    config,
+    userName 
+  } = params
+  
+  // Configurações padrão
+  const pixMessage = config?.pixMessage || `<b>Como realizar o pagamento:</b>
+
+1. Abra o aplicativo do seu banco.
+2. Selecione a opcao "Pagar" ou "PIX".
+3. Escolha "PIX Copia e Cola".
+4. Cole a chave que esta abaixo e finalize o pagamento com seguranca.`
+  
+  const qrCodeDisplay = config?.qrCodeDisplay || "image"
+  const showCopyButton = config?.showCopyButton !== false
+  const messageBeforeCode = config?.messageBeforeCode || "Copie o codigo abaixo:"
+  const verifyStatusButtonText = config?.verifyStatusButtonText || "Verificar Status"
+  const showVerifyStatusButton = config?.showVerifyStatusButton !== false
+  
+  // Substituir variáveis na mensagem
+  const formattedMessage = pixMessage
+    .replace(/\{nome\}/g, userName || "Cliente")
+    .replace(/\{valor\}/g, `R$ ${amount.toFixed(2).replace(".", ",")}`)
+    .replace(/\{produto\}/g, productName)
+  
+  // 1. Enviar mensagem de instruções
+  await sendTelegramMessage(botToken, chatId, formattedMessage)
+  
+  // 2. Enviar QR Code (se habilitado)
+  if (qrCodeDisplay === "image" && qrCodeUrl) {
+    await sendTelegramPhoto(
+      botToken,
+      chatId,
+      qrCodeUrl,
+      `Valor: R$ ${amount.toFixed(2).replace(".", ",")}\nProduto: ${productName}`
+    )
+  } else if (qrCodeDisplay === "image" && pixCode) {
+    // Gerar QR Code via API externa se não tiver URL
+    const generatedQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCode)}`
+    await sendTelegramPhoto(
+      botToken,
+      chatId,
+      generatedQrUrl,
+      `Valor: R$ ${amount.toFixed(2).replace(".", ",")}\nProduto: ${productName}`
+    )
+  }
+  
+  // 3. Enviar código PIX Copia e Cola
+  const codeMessage = `${messageBeforeCode}\n\n<code>${pixCode}</code>`
+  
+  // Montar botões inline
+  const inlineKeyboard: { text: string; callback_data?: string; copy_text?: { text: string } }[][] = []
+  
+  // Botão de copiar código (usando callback que envia o código)
+  if (showCopyButton) {
+    inlineKeyboard.push([
+      { text: "📋 Copiar Código PIX", callback_data: `copy_pix_${paymentId || "code"}` }
+    ])
+  }
+  
+  // Botão de verificar status
+  if (showVerifyStatusButton && paymentId) {
+    inlineKeyboard.push([
+      { text: `🔄 ${verifyStatusButtonText}`, callback_data: `check_payment_${paymentId}` }
+    ])
+  }
+  
+  // Enviar mensagem com botões
+  if (inlineKeyboard.length > 0) {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: codeMessage,
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: inlineKeyboard }
+      })
+    })
+  } else {
+    await sendTelegramMessage(botToken, chatId, codeMessage)
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helper: Busca flow ativo para um bot via flow_bots (relacao many-to-many)
 // ---------------------------------------------------------------------------
 async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, botUuid: string) {
@@ -517,6 +640,169 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
   }
   // ========== FIM ACCESS DELIVERABLE ==========
   
+  // ========== COPY PIX CODE CALLBACK ==========
+  if (callbackData.startsWith("copy_pix_")) {
+    console.log("[v0] Copy PIX Callback recebido:", callbackData)
+    
+    // Buscar pagamento para pegar o código PIX
+    const paymentIdOrCode = callbackData.replace("copy_pix_", "")
+    
+    // Buscar pagamento no banco
+    const { data: paymentData } = await supabase
+      .from("payments")
+      .select("pix_code, external_payment_id")
+      .or(`id.eq.${paymentIdOrCode},external_payment_id.eq.${paymentIdOrCode}`)
+      .limit(1)
+      .single()
+    
+    if (paymentData?.pix_code) {
+      // Enviar código PIX como mensagem separada para facilitar cópia
+      await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          callback_query_id: callbackQueryId,
+          text: "Código PIX copiado! Cole no seu app de banco.",
+          show_alert: false
+        })
+      })
+      
+      // Enviar novamente o código para facilitar cópia
+      await sendTelegramMessage(
+        botToken, 
+        chatId, 
+        `📋 <b>Código PIX Copia e Cola:</b>\n\n<code>${paymentData.pix_code}</code>\n\n<i>Toque no código acima para copiar</i>`
+      )
+    } else {
+      await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          callback_query_id: callbackQueryId,
+          text: "Código PIX não encontrado",
+          show_alert: true
+        })
+      })
+    }
+    
+    return
+  }
+  // ========== FIM COPY PIX CODE ==========
+  
+  // ========== CHECK PAYMENT STATUS CALLBACK ==========
+  if (callbackData.startsWith("check_payment_")) {
+    console.log("[v0] Check Payment Status Callback recebido:", callbackData)
+    
+    const paymentId = callbackData.replace("check_payment_", "")
+    
+    // Buscar pagamento no banco
+    const { data: paymentData } = await supabase
+      .from("payments")
+      .select("*")
+      .or(`id.eq.${paymentId},external_payment_id.eq.${paymentId}`)
+      .limit(1)
+      .single()
+    
+    if (!paymentData) {
+      await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          callback_query_id: callbackQueryId,
+          text: "Pagamento não encontrado",
+          show_alert: true
+        })
+      })
+      return
+    }
+    
+    // Verificar status no Mercado Pago
+    const { data: gateway } = await supabase
+      .from("user_gateways")
+      .select("access_token")
+      .eq("user_id", paymentData.user_id)
+      .eq("gateway", "mercadopago")
+      .single()
+    
+    let currentStatus = paymentData.status
+    
+    if (gateway?.access_token && paymentData.external_payment_id) {
+      try {
+        const mpResponse = await fetch(
+          `https://api.mercadopago.com/v1/payments/${paymentData.external_payment_id}`,
+          {
+            headers: { Authorization: `Bearer ${gateway.access_token}` }
+          }
+        )
+        const mpData = await mpResponse.json()
+        
+        if (mpData.status) {
+          currentStatus = mpData.status
+          
+          // Atualizar no banco se mudou
+          if (currentStatus !== paymentData.status) {
+            await supabase
+              .from("payments")
+              .update({ status: currentStatus, updated_at: new Date().toISOString() })
+              .eq("id", paymentData.id)
+          }
+        }
+      } catch (err) {
+        console.error("[v0] Erro ao verificar status no MP:", err)
+      }
+    }
+    
+    // Responder com o status
+    const statusMessages: Record<string, string> = {
+      approved: "✅ Pagamento APROVADO! Seu acesso será liberado.",
+      pending: "⏳ Pagamento ainda PENDENTE. Aguardando confirmação.",
+      rejected: "❌ Pagamento REJEITADO. Tente novamente.",
+      cancelled: "🚫 Pagamento CANCELADO.",
+      in_process: "⏳ Pagamento em PROCESSAMENTO.",
+      refunded: "↩️ Pagamento ESTORNADO."
+    }
+    
+    const statusText = statusMessages[currentStatus] || `Status: ${currentStatus}`
+    
+    await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        callback_query_id: callbackQueryId,
+        text: statusText,
+        show_alert: true
+      })
+    })
+    
+    // Se aprovado, processar o pagamento
+    if (currentStatus === "approved" && paymentData.status !== "approved") {
+      await sendTelegramMessage(botToken, chatId, "✅ <b>Pagamento Confirmado!</b>\n\nSeu acesso está sendo liberado...")
+      
+      // Buscar flow para config de mensagem aprovada
+      const flow = await getActiveFlowForBot(supabase, botUuid)
+      const config = flow?.config as Record<string, unknown> | undefined
+      const paymentMessages = config?.paymentMessages as PaymentMessagesConfig | undefined
+      
+      if (paymentMessages?.approvedMessage) {
+        await sendTelegramMessage(botToken, chatId, paymentMessages.approvedMessage)
+      }
+      
+      // Enviar mídias de aprovação se configuradas
+      if (paymentMessages?.approvedMedias && paymentMessages.approvedMedias.length > 0) {
+        for (const mediaUrl of paymentMessages.approvedMedias) {
+          if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+            await sendTelegramVideo(botToken, chatId, mediaUrl, "")
+          } else {
+            await sendTelegramPhoto(botToken, chatId, mediaUrl, "")
+          }
+        }
+      }
+    }
+    
+    return
+  }
+  // ========== FIM CHECK PAYMENT STATUS ==========
+  
   // Handle "ver_planos" - show plans as buttons
   if (callbackData === "ver_planos") {
         // Answer callback
@@ -918,18 +1204,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               const qrCodeUrl = txData.ticket_url
               const copyPaste = txData.qr_code
               
-              // Enviar QR Code
-              await sendTelegramPhoto(
-                botToken,
-                chatId,
-                qrCodeUrl,
-                `Escaneie o QR Code para pagar\n\nValor: R$ ${packPrice.toFixed(2).replace(".", ",")}\nProduto: ${packName}`
-              )
-              
-              // Enviar codigo PIX
-              await sendTelegramMessage(botToken, chatId, `Clique no codigo abaixo para copiar:\n\n<code>${copyPaste}</code>`)
-              
-              // Salvar pagamento
+              // Salvar pagamento primeiro para ter o ID
               console.log("[v0] Saving pack payment - user_id:", botDataPack.user_id, "bot_id:", botUuid, "amount:", packPrice)
               const { data: savedPayment, error: saveError } = await supabase.from("payments").insert({
                 user_id: botDataPack.user_id,
@@ -948,6 +1223,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 product_type: "pack",
                 qr_code_url: qrCodeUrl,
                 copy_paste: copyPaste,
+                pix_code: copyPaste,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               }).select().single()
@@ -957,6 +1233,22 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               } else {
                 console.log("[v0] Pack payment saved:", savedPayment?.id)
               }
+              
+              // Buscar config de mensagens de pagamento do flow
+              const paymentMessages = (flowConfig.paymentMessages as PaymentMessagesConfig) || {}
+              
+              // Enviar mensagens de PIX de forma centralizada
+              await sendPixPaymentMessages({
+                botToken,
+                chatId,
+                pixCode: copyPaste,
+                qrCodeUrl,
+                amount: packPrice,
+                productName: packName,
+                paymentId: String(pixData.id),
+                config: paymentMessages,
+                userName: userFirstName || "Cliente"
+              })
             } else {
               console.error("[v0] Erro PIX Pack:", pixData)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
@@ -1205,18 +1497,24 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.error("[v0] Erro ao salvar pagamento Multi Order Bump:", paymentErrorMultiOb)
         }
         
-        // Enviar QR Code usando URL externa
-        const qrCaption = `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`
-        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixResultMultiOb.qrCode)}`
-        await sendTelegramPhoto(botToken, chatId, qrImageUrl, qrCaption)
+        // Buscar config de mensagens de pagamento do flow
+        const flowMultiOb = await getActiveFlowForBot(supabase, botUuid)
+        const flowConfigMultiOb = (flowMultiOb?.config as Record<string, unknown>) || {}
+        const paymentMessagesMultiOb = (flowConfigMultiOb.paymentMessages as PaymentMessagesConfig) || {}
         
-        // Enviar codigo Pix Copia e Cola
-        await sendTelegramMessage(
+        // Enviar mensagens de PIX de forma centralizada
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixResultMultiOb.qrCode)}`
+        await sendPixPaymentMessages({
           botToken,
           chatId,
-          `<b>Pix Copia e Cola:</b>\n\n<code>${pixResultMultiOb.qrCode}</code>\n\nClique no codigo acima para copiar`,
-          undefined
-        )
+          pixCode: pixResultMultiOb.qrCode,
+          qrCodeUrl: qrImageUrl,
+          amount: totalAmount,
+          productName: description,
+          paymentId: pixResultMultiOb.paymentId,
+          config: paymentMessagesMultiOb,
+          userName: userFirstName || "Cliente"
+        })
         
         console.log("[v0] PIX Multi Order Bump gerado com sucesso - Valor:", totalAmount)
         
@@ -1558,25 +1856,23 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             return
           }
           
-          // Send QR Code
-          if (pixResultOB.qrCodeUrl) {
-            await sendTelegramPhoto(
-              botToken,
-              chatId,
-              pixResultOB.qrCodeUrl,
-              `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}\nProduto: ${description}`
-            )
-          }
+          // Buscar config de mensagens de pagamento do flow
+          const flowOB = await getActiveFlowForBot(supabase, botUuid)
+          const flowConfigOB = (flowOB?.config as Record<string, unknown>) || {}
+          const paymentMessagesOB = (flowConfigOB.paymentMessages as PaymentMessagesConfig) || {}
           
-          // Send PIX code - usando <code> HTML para ser clicavel
-          if (pixResultOB.copyPaste) {
-            await sendTelegramMessage(
-              botToken,
-              chatId,
-              `Clique no codigo abaixo para copiar:\n\n<code>${pixResultOB.copyPaste}</code>`,
-              undefined
-            )
-          }
+          // Enviar mensagens de PIX de forma centralizada
+          await sendPixPaymentMessages({
+            botToken,
+            chatId,
+            pixCode: pixResultOB.copyPaste || pixResultOB.qrCode || "",
+            qrCodeUrl: pixResultOB.qrCodeUrl,
+            amount: totalAmount,
+            productName: description,
+            paymentId: String(pixResultOB.paymentId),
+            config: paymentMessagesOB,
+            userName: userFirstName || "Cliente"
+          })
           
           // Determinar product_type baseado no tipo de compra (pack ou plan)
           const sourceType = metadata?.type === "pack" ? "pack" : "plan"
@@ -1602,6 +1898,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             gateway: "mercadopago",
             external_payment_id: String(pixResultOB.paymentId),
             copy_paste: pixResultOB.copyPaste,
+            pix_code: pixResultOB.copyPaste || pixResultOB.qrCode,
             qr_code: pixResultOB.qrCode,
             qr_code_url: pixResultOB.qrCodeUrl,
             telegram_user_id: String(telegramUserId),
@@ -1722,6 +2019,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             console.log("[v0] Upsell PIX Response:", JSON.stringify(pixData))
 
             if (pixData.id && pixData.point_of_interaction?.transaction_data?.qr_code) {
+              const pixCopiaECola = pixData.point_of_interaction.transaction_data.qr_code
+              const qrCodeBase64 = pixData.point_of_interaction.transaction_data.qr_code_base64
+              
               // Salvar pagamento do upsell
               console.log("[v0] Saving upsell payment - user_id:", botOwner?.user_id, "bot_id:", botUuid, "amount:", upsellPrice)
               const { error: upsellPaymentError } = await supabase.from("payments").insert({
@@ -1739,6 +2039,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 description: `Pagamento - ${upsellName}`,
                 product_name: upsellName,
                 product_type: "upsell",
+                pix_code: pixCopiaECola,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
@@ -1762,25 +2063,28 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 .eq("bot_id", botUuid)
                 .eq("telegram_user_id", String(telegramUserId))
 
-              // Enviar QR Code
-              const qrCodeBase64 = pixData.point_of_interaction.transaction_data.qr_code_base64
-              const pixCopiaECola = pixData.point_of_interaction.transaction_data.qr_code
-
-              if (qrCodeBase64) {
-                await sendTelegramPhoto(
-                  botToken, 
-                  chatId, 
-                  `data:image/png;base64,${qrCodeBase64}`,
-                  `<b>${upsellName}</b>\n\nValor: R$ ${upsellPrice.toFixed(2).replace(".", ",")}\n\nEscaneie o QR Code ou copie o codigo abaixo:`
-                )
-              }
-
-              // Enviar codigo PIX
-              await sendTelegramMessage(
+              // Buscar config de mensagens de pagamento do flow
+              const flowUpsell = await getActiveFlowForBot(supabase, botUuid)
+              const flowConfigUpsell = (flowUpsell?.config as Record<string, unknown>) || {}
+              const paymentMessagesUpsell = (flowConfigUpsell.paymentMessages as PaymentMessagesConfig) || {}
+              
+              // Determinar URL do QR Code
+              const qrCodeUrlUpsell = qrCodeBase64 
+                ? `data:image/png;base64,${qrCodeBase64}`
+                : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCopiaECola)}`
+              
+              // Enviar mensagens de PIX de forma centralizada
+              await sendPixPaymentMessages({
                 botToken,
                 chatId,
-                `<code>${pixCopiaECola}</code>\n\nApos o pagamento, voce recebera a confirmacao automaticamente.`
-              )
+                pixCode: pixCopiaECola,
+                qrCodeUrl: qrCodeUrlUpsell,
+                amount: upsellPrice,
+                productName: upsellName,
+                paymentId: String(pixData.id),
+                config: paymentMessagesUpsell,
+                userName: userFirstName || "Cliente"
+              })
             } else {
               console.error("[v0] Erro ao gerar PIX do upsell:", pixData)
               await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento. Tente novamente.")
@@ -2404,26 +2708,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             return
           }
           
-          // Send QR Code image
-          if (pixResult.qrCodeUrl) {
-            await sendTelegramPhoto(
-              botToken,
-              chatId,
-              pixResult.qrCodeUrl,
-              `Escaneie o QR Code para pagar\n\nValor: R$ ${planPrice.toFixed(2).replace(".", ",")}\nPlano: ${planName}`
-            )
-          }
-          
-          // Send PIX copy-paste code - usando <code> HTML para ser clicavel
-          if (pixResult.copyPaste) {
-            await sendTelegramMessage(
-              botToken,
-              chatId,
-              `Clique no codigo abaixo para copiar:\n\n<code>${pixResult.copyPaste}</code>`,
-              undefined
-            )
-          }
-          
           // Get user_id from bot
           const { data: botData } = await supabase
             .from("bots")
@@ -2450,6 +2734,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             qr_code: pixResult.qrCode,
             qr_code_url: pixResult.qrCodeUrl,
             copy_paste: pixResult.copyPaste,
+            pix_code: pixResult.copyPaste || pixResult.qrCode,
             status: "pending",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -2460,6 +2745,24 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           } else {
             console.log("[v0] Plan payment saved:", savedPlanPayment?.id)
           }
+          
+          // Buscar config de mensagens de pagamento do flow
+          const flowPlan = await getActiveFlowForBot(supabase, botUuid)
+          const flowConfigPlan = (flowPlan?.config as Record<string, unknown>) || {}
+          const paymentMessagesPlan = (flowConfigPlan.paymentMessages as PaymentMessagesConfig) || {}
+          
+          // Enviar mensagens de PIX de forma centralizada
+          await sendPixPaymentMessages({
+            botToken,
+            chatId,
+            pixCode: pixResult.copyPaste || pixResult.qrCode || "",
+            qrCodeUrl: pixResult.qrCodeUrl,
+            amount: planPrice,
+            productName: planName,
+            paymentId: String(pixResult.paymentId),
+            config: paymentMessagesPlan,
+            userName: userFirstName || "Cliente"
+          })
           
           // DOWNSELLS DO TIPO "PIX" (para quem gerou pix mas nao pagou)
           // Buscar flow para pegar config de downsell
