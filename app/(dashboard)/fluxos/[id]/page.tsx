@@ -150,9 +150,10 @@ interface FlowPlan {
 
 interface UpsellPlan {
   id: string
+  name: string
   buttonText: string
   price: number
-}
+  }
 
 interface UpsellSequence {
   id: string
@@ -429,7 +430,7 @@ export default function FlowEditorPage() {
 4. Cole a chave que esta abaixo e finalize o pagamento com seguranca.`)
   const [qrCodeDisplay, setQrCodeDisplay] = useState("image")
   const [pixCodeFormat, setPixCodeFormat] = useState("monospace")
-  const [showCopyButton, setShowCopyButton] = useState(true)
+  const [showCopyButton, setShowCopyButton] = useState(false)
   const [messageBeforeCode, setMessageBeforeCode] = useState("Copie o codigo abaixo:")
   const [verifyStatusButtonText, setVerifyStatusButtonText] = useState("Verificar Status")
   const [approvedMedias, setApprovedMedias] = useState<string[]>([])
@@ -647,7 +648,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
     setShowPlanBeforePix(config.paymentMessages.showPlanBeforePix || false)
     setQrCodeDisplay(config.paymentMessages.qrCodeDisplay || "image")
     setPixCodeFormat(config.paymentMessages.pixCodeFormat || "monospace")
-    setShowCopyButton(config.paymentMessages.showCopyButton !== false)
+    setShowCopyButton(config.paymentMessages.showCopyButton === true)
     setVerifyStatusButtonText(config.paymentMessages.verifyStatusButtonText || "Verificar Status")
     setApprovedMessage(config.paymentMessages.approvedMessage || approvedMessage)
     setApprovedMedias(config.paymentMessages.approvedMedias || [])
@@ -1231,11 +1232,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   const handleAddUpsellPlan = (seqId: string) => {
     const seq = upsellSequences.find(s => s.id === seqId)
     if (!seq || (seq.plans?.length || 0) >= 5) return
-    const newPlan: UpsellPlan = {
-      id: `plan-${Date.now()}`,
-      buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
-      price: 0
-    }
+const newPlan: UpsellPlan = {
+  id: `plan-${Date.now()}`,
+  name: `Plano ${(seq.plans?.length || 0) + 1}`,
+  buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
+  price: 0
+  }
     handleUpdateUpsellSequence(seqId, "plans", [...(seq.plans || []), newPlan])
   }
 
@@ -3279,7 +3281,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <div className="space-y-2">
                                 {(seq.plans || []).map((plan, planIndex) => (
                                   <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
-                                    <div className="flex-1 grid grid-cols-2 gap-3">
+                                    <div className="flex-1 grid grid-cols-3 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-neutral-500">Nome (interno)</Label>
+                                        <Input
+                                          value={plan.name || ""}
+                                          onChange={(e) => handleUpdateUpsellPlan(seq.id, plan.id, "name", e.target.value)}
+                                          placeholder="Ex: Plano Mensal"
+                                          className="bg-secondary/50 border-neutral-200 h-8 text-sm"
+                                        />
+                                      </div>
                                       <div className="space-y-1">
                                         <Label className="text-xs text-neutral-500">Texto do Botao</Label>
                                         <Input
@@ -3290,22 +3301,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         />
                                       </div>
                                       <div className="space-y-1">
-<Label className="text-xs text-neutral-500">Valor (R$)</Label>
-<Input
-                                                  type="text"
-                                                  inputMode="decimal"
-                                                  value={plan.price || ""}
-                                                  onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
-                                                  }}
-                                                  onBlur={() => {
-                                                    const num = parseFloat(String(plan.price).replace(",", ".")) || 0
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
-                                                  }}
-                                                  placeholder="0.00"
-                                  className="bg-secondary/50 border-neutral-200 h-8 text-sm"
-                                />
+                                        <Label className="text-xs text-neutral-500">Valor (R$)</Label>
+                                        <Input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={plan.price || ""}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                            handleUpdateUpsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
+                                          }}
+                                          onBlur={() => {
+                                            const num = parseFloat(String(plan.price).replace(",", ".")) || 0
+                                            handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
+                                          }}
+                                          placeholder="0.00"
+                                          className="bg-secondary/50 border-neutral-200 h-8 text-sm"
+                                        />
                                       </div>
                                     </div>
                                     {(seq.plans?.length || 0) > 1 && (
@@ -3348,118 +3359,26 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <p className="text-xs text-neutral-500 text-right">{seq.message.length}/4000 caracteres</p>
                             </div>
 
-                            <div className="border-t border-neutral-200 pt-4" />
-
-                            {/* Botao de Recusar */}
-                            <div className="space-y-3">
-                              <h4 className="font-medium">Botao de Recusar</h4>
-                              <p className="text-sm text-neutral-500">
-                                Os planos acima serao exibidos como botoes. Configure aqui o botao de recusar opcional.
-                              </p>
-                              <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                                <div>
-                                  <p className="text-sm font-medium">Mostrar botao de recusar</p>
-                                  <p className="text-xs text-neutral-500">Adiciona um botao para o cliente pular a oferta</p>
-                                </div>
-                                <Switch
-                                  checked={!seq.hideRejectButton}
-                                  onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", !checked)}
+                            {/* Texto dos Botoes - Aceitar e Recusar lado a lado */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-neutral-500">Texto Aceitar</Label>
+                                <Input
+                                  value={seq.acceptButtonText}
+                                  onChange={(e) => handleUpdateUpsellSequence(seq.id, "acceptButtonText", e.target.value)}
+                                  placeholder="Quero essa oferta!"
+                                  className="bg-neutral-50 border-neutral-200"
                                 />
                               </div>
-                              {!seq.hideRejectButton && (
-                                <div className="space-y-2">
-                                  <Label className="text-sm text-neutral-500">Texto do Botao</Label>
-                                  <div className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
-                                    <X className="h-4 w-4 text-destructive" />
-                                    <Input
-                                      value={seq.rejectButtonText}
-                                      onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
-                                      className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
-                                      placeholder="Nao tenho interesse"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Entrega */}
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium">Entrega</h4>
-                                <span className="text-sm text-neutral-500">Opcional</span>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-neutral-500">Texto Recusar</Label>
+                                <Input
+                                  value={seq.rejectButtonText}
+                                  onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
+                                  placeholder="Nao tenho interesse"
+                                  className="bg-neutral-50 border-neutral-200"
+                                />
                               </div>
-                              <p className="text-sm text-neutral-500">
-                                Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
-                              </p>
-                              <Select
-                                value={seq.deliveryType}
-                                onValueChange={(value: "global" | "custom") => {
-                                  handleUpdateUpsellSequence(seq.id, "deliveryType", value)
-                                  if (value === "global") {
-                                    handleUpdateUpsellSequence(seq.id, "deliverableId", "")
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="bg-white border-neutral-200">
-                                  <div className="flex items-center gap-2">
-                                    <RefreshCw className="h-4 w-4 text-neutral-500" />
-                                    <SelectValue />
-                                  </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="global">Usar entregavel principal</SelectItem>
-                                  <SelectItem value="custom">Selecionar entregavel</SelectItem>
-                                </SelectContent>
-                              </Select>
-
-                              {/* Seletor de entregavel */}
-                              {seq.deliveryType === "custom" && (
-                                <div className="space-y-2 pt-2">
-                                  {deliverables.length === 0 ? (
-                                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
-                                      <div className="flex items-start gap-2">
-                                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
-                                        <div className="text-sm">
-                                          <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
-                                          <p className="text-neutral-500">
-                                            Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <Label className="text-sm">Selecione o entregavel</Label>
-                                      <Select
-                                        value={seq.deliverableId || "none"}
-                                        onValueChange={(value) => handleUpdateUpsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
-                                      >
-                                        <SelectTrigger className="bg-white border-neutral-200">
-                                          <SelectValue placeholder="Selecione..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">Nenhum selecionado</SelectItem>
-                                          {deliverables.map((d) => (
-                                            <SelectItem key={d.id} value={d.id}>
-                                              <div className="flex items-center gap-2">
-                                                {d.type === "media" && <ImageIcon className="h-3 w-3" />}
-                                                {d.type === "link" && <Link2 className="h-3 w-3" />}
-                                                {d.type === "vip_group" && <Users className="h-3 w-3" />}
-                                                {d.name}
-                                              </div>
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      {seq.deliverableId && (
-                                        <p className="text-xs text-neutral-500">
-                                          Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
-                                        </p>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-                              )}
                             </div>
                           </div>
                         )}
@@ -4913,7 +4832,32 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               </div>
 
-              {/* 3. Mensagem antes do Código PIX */}
+              {/* 3. Botao Copiar PIX */}
+              <Card className="border border-neutral-200 bg-white">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                        <Copy className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Botao Copiar PIX</p>
+                        <p className="text-sm text-neutral-500">Adiciona um botao para copiar o codigo facilmente</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={showCopyButton} 
+                      onCheckedChange={(c) => { setShowCopyButton(c); setHasChanges(true) }} 
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500 bg-neutral-50 p-3 rounded-lg">
+                    Quando ativado, envia um botao clicavel que copia automaticamente o codigo PIX para a area de transferencia do cliente, 
+                    junto com uma mensagem de reforco explicando como usar o codigo copiado no app do banco.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* 4. Mensagem antes do Código PIX */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4939,7 +4883,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </CardContent>
               </Card>
 
-              {/* 4. Botão Verificar Status */}
+              {/* 5. Botão Verificar Status */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4965,7 +4909,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                 </CardContent>
               </Card>
 
-              {/* 5. Mensagem de Pagamento Aprovado */}
+              {/* 6. Mensagem de Pagamento Aprovado */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">

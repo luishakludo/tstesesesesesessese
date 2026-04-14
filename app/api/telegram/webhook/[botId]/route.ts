@@ -1512,10 +1512,13 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
       // ========== FIM ORDER BUMP CALLBACKS ==========
 
       // ========== UPSELL CALLBACKS ==========
-      if (callbackData.startsWith("up_accept_") || callbackData.startsWith("up_decline_")) {
+      // Suporta: up_accept_, up_decline_, up_plan_ (novo formato com multiplos planos)
+      if (callbackData.startsWith("up_accept_") || callbackData.startsWith("up_decline_") || callbackData.startsWith("up_plan_")) {
         console.log("[v0] Upsell Callback recebido:", callbackData)
         
         const isAccept = callbackData.startsWith("up_accept_")
+        const isPlan = callbackData.startsWith("up_plan_")
+        const isDecline = callbackData.startsWith("up_decline_")
         
         // Buscar estado atual do usuario
         const { data: userState } = await supabase
@@ -1537,8 +1540,26 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const metadata = userState.metadata as Record<string, any> | null
         const currentUpsellIndex = metadata?.upsell_index || 0
-        const upsellPrice = metadata?.upsell_price || 0
-        const upsellName = metadata?.upsell_name || "Upsell"
+        let upsellPrice = metadata?.upsell_price || 0
+        let upsellName = metadata?.upsell_name || "Upsell"
+        let selectedPlanId = ""
+
+        // Se for callback de plano especifico (up_plan_{upsellIndex}_{planId}_{priceInCents})
+        if (isPlan) {
+          const planParts = callbackData.replace("up_plan_", "").split("_")
+          // planParts = [upsellIndex, planId, priceInCents]
+          selectedPlanId = planParts[1] || ""
+          const priceInCents = parseInt(planParts[2]) || 0
+          upsellPrice = priceInCents / 100
+          
+          // Buscar nome do plano no metadata
+          const plans = metadata?.plans || []
+          const selectedPlan = plans.find((p: { id: string; name: string }) => p.id === selectedPlanId)
+          if (selectedPlan) {
+            upsellName = selectedPlan.name
+          }
+          console.log(`[v0] Plano selecionado: ${selectedPlanId}, preco: R$ ${upsellPrice}`)
+        }
 
         // Buscar config do fluxo
         const { data: flowData } = await supabase
@@ -1551,9 +1572,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const flowConfig = flowData?.config as Record<string, any> | null
         const upsellSequences = flowConfig?.upsell?.sequences || []
 
-        if (isAccept) {
-          // Usuario aceitou o upsell - gerar pagamento
-          console.log(`[v0] Usuario ${telegramUserId} aceitou upsell ${currentUpsellIndex} - R$ ${upsellPrice}`)
+        if (isAccept || isPlan) {
+          // Usuario aceitou o upsell (ou selecionou um plano) - gerar pagamento
+          console.log(`[v0] Usuario ${telegramUserId} aceitou upsell ${currentUpsellIndex} - R$ ${upsellPrice} (plano: ${selectedPlanId || "default"})`)
           
           await answerCallback(botToken, callbackQueryId, "Gerando pagamento...")
 
@@ -1641,6 +1662,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   metadata: {
                     ...metadata,
                     upsell_payment_id: pixData.id,
+                    selected_plan_id: selectedPlanId || null,
+                    upsell_amount: upsellPrice,
                   },
                   updated_at: new Date().toISOString(),
                 })
@@ -1677,7 +1700,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             console.error("[v0] Erro ao processar upsell:", error)
             await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
           }
-        } else {
+        } else if (isDecline) {
           // Usuario recusou o upsell
           console.log(`[v0] Usuario ${telegramUserId} recusou upsell ${currentUpsellIndex}`)
           
@@ -1689,6 +1712,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             // Tem mais upsell - verificar timing e enviar proximo
             const nextUpsell = upsellSequences[nextIndex]
             
+            // Pegar os planos do proximo upsell
+            const nextPlans = nextUpsell.plans || []
+            const firstNextPlan = nextPlans[0]
+            
             // Atualizar estado com proximo upsell
             await supabase
               .from("user_flow_state")
@@ -1697,7 +1724,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 metadata: {
                   upsell_index: nextIndex,
                   upsell_name: nextUpsell.name,
-                  upsell_price: nextUpsell.price,
+                  upsell_price: firstNextPlan?.price || nextUpsell.price,
+                  upsell_sequence_id: nextUpsell.id,
+                  plans: nextPlans.map((p: { id: string; name: string; price: number }) => ({ id: p.id, name: p.name, price: p.price })),
                 },
                 updated_at: new Date().toISOString(),
               })
@@ -1718,17 +1747,46 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 }
               }
 
-              // Montar botoes
+              // Montar botoes - suporte a multiplos planos
               const inlineKeyboard: { inline_keyboard: { text: string; callback_data: string }[][] } = {
-                inline_keyboard: [
-                  [{ text: nextUpsell.acceptButtonText || "Quero essa oferta!", callback_data: `up_accept_${nextUpsell.price}_${nextIndex}` }]
-                ]
+                inline_keyboard: []
               }
 
-              if (!nextUpsell.hideRejectButton) {
+              if (nextPlans.length > 0) {
+                // Se tem planos, mostrar cada plano como botao
+                const planButtons: { text: string; callback_data: string }[] = []
+                for (const plan of nextPlans) {
+                  const priceInCents = Math.round((plan.price || 0) * 100)
+                  const buttonText = plan.buttonText || plan.name || `R$ ${(plan.price || 0).toFixed(2).replace(".", ",")}`
+                  planButtons.push({
+                    text: buttonText,
+                    callback_data: `up_plan_${nextIndex}_${plan.id}_${priceInCents}`
+                  })
+                }
+                // Colocar botoes lado a lado (max 2 por linha)
+                for (let i = 0; i < planButtons.length; i += 2) {
+                  const row = planButtons.slice(i, i + 2)
+                  inlineKeyboard.inline_keyboard.push(row)
+                }
+              } else {
+                // Fallback: botao unico de aceitar
                 inlineKeyboard.inline_keyboard.push([
-                  { text: nextUpsell.rejectButtonText || "Nao tenho interesse", callback_data: `up_decline_${nextIndex}` }
+                  { text: nextUpsell.acceptButtonText || "Quero essa oferta!", callback_data: `up_accept_${nextUpsell.price}_${nextIndex}` }
                 ])
+              }
+
+              // Botao de recusar
+              if (!nextUpsell.hideRejectButton) {
+                const rejectButton = { 
+                  text: nextUpsell.rejectButtonText || "Nao tenho interesse", 
+                  callback_data: `up_decline_${nextIndex}` 
+                }
+                const lastRow = inlineKeyboard.inline_keyboard[inlineKeyboard.inline_keyboard.length - 1]
+                if (nextPlans.length > 0 && lastRow && lastRow.length === 1) {
+                  lastRow.push(rejectButton)
+                } else {
+                  inlineKeyboard.inline_keyboard.push([rejectButton])
+                }
               }
 
               const message = nextUpsell.message || `Oferta especial: ${nextUpsell.name}\n\nValor: R$ ${(nextUpsell.price || 0).toFixed(2).replace(".", ",")}`

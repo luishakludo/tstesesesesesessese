@@ -115,6 +115,7 @@ async function sendUpsellOffer(
   upsellIndex: number
 ) {
   console.log(`[UPSELL] Sending upsell ${upsellIndex} to user ${chatId}`)
+  console.log(`[UPSELL] Upsell data:`, JSON.stringify(upsell))
 
   // Enviar midias se existirem
   if (upsell.medias && upsell.medias.length > 0) {
@@ -128,25 +129,63 @@ async function sendUpsellOffer(
     }
   }
 
-  // Montar botoes
+  // Montar botoes - suporte a multiplos planos
+  const plans = upsell.plans || []
   const inlineKeyboard: { inline_keyboard: { text: string; callback_data: string }[][] } = {
-    inline_keyboard: [
-      [{ text: upsell.acceptButtonText || "Quero essa oferta!", callback_data: `up_accept_${upsell.price}_${upsellIndex}` }]
-    ]
+    inline_keyboard: []
   }
 
-  // Adicionar botao de recusar se nao estiver escondido
-  if (!upsell.hideRejectButton) {
+  if (plans.length > 0) {
+    // Se tem planos configurados, mostrar cada plano como um botao
+    // Formato: up_plan_{upsellIndex}_{planId}_{priceInCents}
+    const planButtons: { text: string; callback_data: string }[] = []
+    
+    for (const plan of plans) {
+      const priceInCents = Math.round((plan.price || 0) * 100)
+      const buttonText = plan.buttonText || plan.name || `R$ ${(plan.price || 0).toFixed(2).replace(".", ",")}`
+      planButtons.push({
+        text: buttonText,
+        callback_data: `up_plan_${upsellIndex}_${plan.id}_${priceInCents}`
+      })
+    }
+
+    // Colocar botoes de planos lado a lado (max 2 por linha)
+    for (let i = 0; i < planButtons.length; i += 2) {
+      const row = planButtons.slice(i, i + 2)
+      inlineKeyboard.inline_keyboard.push(row)
+    }
+  } else {
+    // Fallback: botao unico de aceitar (compatibilidade com formato antigo)
     inlineKeyboard.inline_keyboard.push([
-      { text: upsell.rejectButtonText || "Nao tenho interesse", callback_data: `up_decline_${upsellIndex}` }
+      { text: upsell.acceptButtonText || "Quero essa oferta!", callback_data: `up_accept_${upsell.price}_${upsellIndex}` }
     ])
+  }
+
+  // Adicionar botao de recusar na mesma linha (se nao estiver escondido)
+  if (!upsell.hideRejectButton) {
+    const rejectButton = { 
+      text: upsell.rejectButtonText || "Nao tenho interesse", 
+      callback_data: `up_decline_${upsellIndex}` 
+    }
+    
+    // Se tem planos e a ultima linha tem espaco, adicionar na mesma linha
+    // Senao, criar nova linha
+    const lastRow = inlineKeyboard.inline_keyboard[inlineKeyboard.inline_keyboard.length - 1]
+    if (plans.length > 0 && lastRow && lastRow.length === 1) {
+      // Adicionar ao lado do ultimo botao de plano
+      lastRow.push(rejectButton)
+    } else {
+      // Criar nova linha para o botao de recusar
+      inlineKeyboard.inline_keyboard.push([rejectButton])
+    }
   }
 
   // Enviar mensagem
   const message = upsell.message || `Oferta especial: ${upsell.name || "Produto exclusivo"}\n\nValor: R$ ${(upsell.price || 0).toFixed(2).replace(".", ",")}`
   await sendTelegramMessage(botToken, chatId, message, inlineKeyboard)
 
-  // Atualizar estado
+  // Atualizar estado - salvar info do primeiro plano se existir
+  const firstPlan = plans[0]
   await supabase
     .from("user_flow_state")
     .upsert({
@@ -157,12 +196,14 @@ async function sendUpsellOffer(
       metadata: {
         upsell_index: upsellIndex,
         upsell_name: upsell.name,
-        upsell_price: upsell.price,
+        upsell_price: firstPlan?.price || upsell.price,
+        upsell_sequence_id: upsell.id,
+        plans: plans.map((p: { id: string; name: string; price: number }) => ({ id: p.id, name: p.name, price: p.price })),
       },
       updated_at: new Date().toISOString()
     }, { onConflict: "bot_id,telegram_user_id" })
 
-  console.log(`[UPSELL] Upsell ${upsellIndex} sent successfully`)
+  console.log(`[UPSELL] Upsell ${upsellIndex} sent successfully with ${plans.length} plans`)
 }
 
 // Interface para entregavel
@@ -678,6 +719,68 @@ export async function POST(request: NextRequest) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const flowConfig = flowData?.config as Record<string, any> | null
                   const upsellSequences = flowConfig?.upsell?.sequences || []
+
+                  // Verificar se tem order bump global para upsell
+                  const orderBumpConfig = flowConfig?.orderBump as { 
+                    upsell?: { enabled?: boolean; name?: string; price?: number; description?: string; acceptText?: string; rejectText?: string; medias?: string[] }
+                    applyInicialTo?: { upsell?: boolean }
+                    inicial?: { enabled?: boolean; name?: string; price?: number; description?: string; acceptText?: string; rejectText?: string; medias?: string[] }
+                  } | undefined
+                  
+                  // Verificar se deve usar order bump do upsell ou aplicar o inicial
+                  let orderBumpToUse = orderBumpConfig?.upsell
+                  if (orderBumpConfig?.applyInicialTo?.upsell && orderBumpConfig?.inicial?.enabled) {
+                    orderBumpToUse = orderBumpConfig.inicial
+                  }
+                  
+                  console.log(`[UPSELL] Order bump check - upsell enabled: ${orderBumpToUse?.enabled}, price: ${orderBumpToUse?.price}`)
+
+                  // Se tem order bump para upsell e ainda nao foi mostrado neste ciclo
+                  if (orderBumpToUse?.enabled && orderBumpToUse?.price && orderBumpToUse.price > 0 && !metadata?.order_bump_shown) {
+                    console.log(`[UPSELL] Showing order bump for upsell payment`)
+                    
+                    // Atualizar estado para aguardar order bump
+                    await supabase.from("user_flow_state").upsert({
+                      bot_id: bot.id,
+                      telegram_user_id: String(chatId),
+                      flow_id: state.flow_id,
+                      status: "waiting_order_bump",
+                      metadata: {
+                        ...metadata,
+                        type: "upsell",
+                        upsell_index: currentIndex,
+                        main_amount: payment.amount,
+                        order_bump_name: orderBumpToUse.name || "Oferta Especial",
+                        order_bump_price: orderBumpToUse.price,
+                        order_bump_shown: true,
+                      },
+                      updated_at: new Date().toISOString()
+                    }, { onConflict: "bot_id,telegram_user_id" })
+                    
+                    // Enviar midias do order bump se houver
+                    if (orderBumpToUse.medias && orderBumpToUse.medias.length > 0) {
+                      for (const mediaUrl of orderBumpToUse.medias) {
+                        if (mediaUrl.includes(".mp4") || mediaUrl.includes("video")) {
+                          await sendTelegramVideo(bot.token, chatId, mediaUrl, "")
+                        } else {
+                          await sendTelegramPhoto(bot.token, chatId, mediaUrl, "")
+                        }
+                        await sleep(500)
+                      }
+                    }
+                    
+                    // Enviar mensagem do order bump
+                    const obMessage = `*${orderBumpToUse.name || "Oferta Especial"}*\n\n${orderBumpToUse.description || ""}\n\n Por apenas *R$ ${orderBumpToUse.price.toFixed(2).replace(".", ",")}*`
+                    
+                    await sendTelegramMessage(bot.token, chatId, obMessage, {
+                      inline_keyboard: [
+                        [{ text: orderBumpToUse.acceptText || "QUERO", callback_data: `ob_accept_${Math.round(payment.amount * 100)}_${Math.round(orderBumpToUse.price * 100)}` }],
+                        [{ text: orderBumpToUse.rejectText || "NAO QUERO", callback_data: `ob_decline_${Math.round(payment.amount * 100)}_0` }]
+                      ]
+                    })
+                    
+                    return NextResponse.json({ received: true })
+                  }
 
                   if (nextIndex < upsellSequences.length) {
                     // Tem mais upsell - enviar proximo
