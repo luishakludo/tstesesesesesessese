@@ -99,39 +99,107 @@ export async function GET(
     // ===============================================
     let botInfo = null
     let tipoVinculo = "NENHUM"
+    let debugBotSearch = {
+      flow_bot_id_raw: flow.bot_id,
+      flow_bot_id_type: typeof flow.bot_id,
+      flow_bot_id_truthy: !!flow.bot_id,
+      busca_direta: null as string | null,
+      busca_flow_bots: null as string | null,
+      bot_encontrado: false
+    }
 
     // Verificar vinculo direto (flow.bot_id)
-    if (flow.bot_id) {
-      const { data: bot } = await supabase
+    // IMPORTANTE: Verificar se bot_id existe e nao e string vazia
+    const temBotIdValido = flow.bot_id && flow.bot_id.trim && flow.bot_id.trim() !== ""
+    
+    if (temBotIdValido) {
+      debugBotSearch.busca_direta = `Buscando bot com id: ${flow.bot_id}`
+      
+      const { data: bot, error: botError } = await supabase
         .from("bots")
-        .select("id, name, username, telegram_bot_id, status")
+        .select("id, name, username, telegram_bot_id, status, token")
         .eq("id", flow.bot_id)
         .single()
       
-      if (bot) {
-        botInfo = bot
+      if (botError) {
+        debugBotSearch.busca_direta = `ERRO: ${botError.message}`
+      } else if (bot) {
+        debugBotSearch.busca_direta = `ENCONTRADO: ${bot.name}`
+        debugBotSearch.bot_encontrado = true
+        
+        // Validar bot no Telegram para pegar username atualizado
+        let telegramUsername = bot.username
+        if (bot.token) {
+          try {
+            const telegramRes = await fetch(`https://api.telegram.org/bot${bot.token}/getMe`)
+            const telegramData = await telegramRes.json()
+            if (telegramData.ok) {
+              telegramUsername = telegramData.result.username
+            }
+          } catch {
+            // Manter username do banco
+          }
+        }
+        
+        botInfo = {
+          id: bot.id,
+          name: bot.name,
+          username: telegramUsername,
+          telegram_bot_id: bot.telegram_bot_id,
+          status: bot.status
+        }
         tipoVinculo = "direto (flow.bot_id)"
+      } else {
+        debugBotSearch.busca_direta = `Bot com id ${flow.bot_id} NAO existe na tabela bots`
       }
+    } else {
+      debugBotSearch.busca_direta = `flow.bot_id esta vazio ou nulo: "${flow.bot_id}"`
     }
 
     // Se nao tem vinculo direto, verificar flow_bots
     if (!botInfo) {
-      const { data: flowBot } = await supabase
+      const { data: flowBot, error: flowBotError } = await supabase
         .from("flow_bots")
         .select("bot_id")
         .eq("flow_id", flowId)
         .limit(1)
         .single()
 
-      if (flowBot?.bot_id) {
+      if (flowBotError) {
+        debugBotSearch.busca_flow_bots = `Nenhum registro em flow_bots: ${flowBotError.message}`
+      } else if (flowBot?.bot_id) {
+        debugBotSearch.busca_flow_bots = `Encontrado em flow_bots: ${flowBot.bot_id}`
+        
         const { data: bot } = await supabase
           .from("bots")
-          .select("id, name, username, telegram_bot_id, status")
+          .select("id, name, username, telegram_bot_id, status, token")
           .eq("id", flowBot.bot_id)
           .single()
 
         if (bot) {
-          botInfo = bot
+          debugBotSearch.bot_encontrado = true
+          
+          // Validar bot no Telegram
+          let telegramUsername = bot.username
+          if (bot.token) {
+            try {
+              const telegramRes = await fetch(`https://api.telegram.org/bot${bot.token}/getMe`)
+              const telegramData = await telegramRes.json()
+              if (telegramData.ok) {
+                telegramUsername = telegramData.result.username
+              }
+            } catch {
+              // Manter username do banco
+            }
+          }
+          
+          botInfo = {
+            id: bot.id,
+            name: bot.name,
+            username: telegramUsername,
+            telegram_bot_id: bot.telegram_bot_id,
+            status: bot.status
+          }
           tipoVinculo = "indireto (flow_bots)"
         }
       }
@@ -201,8 +269,8 @@ export async function GET(
               acceptText: ob.acceptText || "ADICIONAR",
               rejectText: ob.rejectText || "NAO QUERO",
               telegram_callbacks: {
-                aceitar: `mob_accept_${planoPriceCents}_${bumpPriceCentsLocal}_${idx}`,
-                recusar: `mob_decline_${planoPriceCents}_${idx}`
+                aceitar: `ob_multi_${planoPriceCents}_${bumpPriceCentsLocal}_${idx}`,
+                recusar: `ob_decline_${planoPriceCents}_0`
               }
             }
           }),
@@ -226,8 +294,8 @@ export async function GET(
                 bumps: activePlanOrderBumps.map((ob: { name: string; price: number }, idx: number) => ({
                   name: ob.name,
                   price: ob.price,
-                  callback_aceitar: `mob_accept_${planoPriceCents}_${Math.round(ob.price * 100)}_${idx}`,
-                  callback_recusar: `mob_decline_${planoPriceCents}_${idx}`
+                  callback_aceitar: `ob_multi_${planoPriceCents}_${Math.round(ob.price * 100)}_${idx}`,
+                  callback_recusar: `ob_decline_${planoPriceCents}_0`
                 }))
               }
             : usarOrderBumpGlobal 
@@ -444,20 +512,58 @@ export async function GET(
       bot: {
         vinculado: !!botInfo,
         tipo_vinculo: tipoVinculo,
+        
+        // DEBUG: Mostra exatamente o que foi buscado
+        debug: debugBotSearch,
+        
         dados: botInfo ? {
           id: botInfo.id,
           name: botInfo.name,
           username: botInfo.username,
           telegram_bot_id: botInfo.telegram_bot_id,
-          status: botInfo.status
+          status: botInfo.status,
+          telegram_link: botInfo.username ? `https://t.me/${botInfo.username}` : null
         } : null,
-        problema: !botInfo ? "ATENCAO: Este fluxo NAO esta vinculado a nenhum bot! O Order Bump NAO funcionara no Telegram." : null,
+        
+        // PROBLEMA CRITICO SE NAO TIVER BOT
+        problema: !botInfo ? {
+          titulo: "FLUXO SEM BOT VINCULADO!",
+          descricao: "Este fluxo NAO esta vinculado a nenhum bot do Telegram. Os callbacks do Order Bump NAO vao funcionar porque nao ha bot para processar as mensagens.",
+          impacto: [
+            "Order Bump nao vai aparecer para usuarios",
+            "Callbacks como ob_accept, ob_decline nao serao processados",
+            "Fluxo de venda esta incompleto"
+          ],
+          causa_provavel: debugBotSearch.flow_bot_id_raw 
+            ? `O fluxo tem bot_id="${debugBotSearch.flow_bot_id_raw}" mas o bot NAO foi encontrado na tabela bots. Verifique se o UUID esta correto.`
+            : "O campo bot_id esta NULO ou VAZIO na tabela flows. Voce precisa vincular um bot a este fluxo."
+        } : null,
+        
+        // COMO RESOLVER
         como_vincular: !botInfo ? {
-          passo_1: "Acesse /bots",
-          passo_2: "Crie ou selecione um bot",
-          passo_3: "No bot, vincule este fluxo (flow_id: " + flowId + ")",
-          alternativa: "Ou acesse /fluxos/" + flowId + " e selecione um bot na configuracao"
-        } : null
+          opcao_1_api: {
+            titulo: "Via API (Recomendado)",
+            passo_1: `GET /api/fluxo/${flowId}/vincular-bot para ver bots disponiveis`,
+            passo_2: `POST /api/fluxo/${flowId}/vincular-bot com body: { "bot_id": "UUID_DO_BOT" }`,
+            passo_3: `GET /api/fluxo/${flowId} para verificar se vinculou`
+          },
+          opcao_2_interface: {
+            titulo: "Via Interface",
+            passo_1: "Acesse /fluxos/" + flowId,
+            passo_2: "Na aba 'Configuracoes' ou 'Bot', selecione um bot",
+            passo_3: "Clique em Salvar"
+          },
+          opcao_3_criar_bot: {
+            titulo: "Se nao tem bot ainda",
+            passo_1: "Acesse /bots e crie um novo bot",
+            passo_2: "Fale com @BotFather no Telegram para criar o token",
+            passo_3: "Cadastre o bot na plataforma",
+            passo_4: "Volte e vincule ao fluxo"
+          }
+        } : null,
+        
+        // Endpoint direto para vincular
+        endpoint_vincular: `/api/fluxo/${flowId}/vincular-bot`
       },
 
       // Planos
@@ -493,42 +599,73 @@ export async function GET(
       },
 
       // Fluxo completo simulado (como o bot se comportara)
-      simulacao_fluxo: {
-        passo_1_inicio: {
-          descricao: "Usuario envia /start ou mensagem inicial",
-          acao: "Bot mostra mensagem de boas vindas"
-        },
-        passo_2_ver_planos: {
-          descricao: "Usuario clica em Ver Planos",
-          callback: "ver_planos",
-          resposta: {
-            tipo: "MESSAGE_WITH_INLINE_KEYBOARD",
-            botoes: planosComCallbacks.map(p => ({
-              text: p.name,
-              callback_data: p.telegram.botao_selecionar.callback_data
-            }))
+      simulacao_fluxo: (() => {
+        // Verificar se algum plano tem order bumps ativos
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const algumPlanoTemBumps = planosComCallbacks.some((p: any) => 
+          p.order_bumps_do_plano?.total_ativos > 0
+        )
+        const temOrderBumpGlobal = obInicialVaiMostrar
+        const temAlgumOrderBump = algumPlanoTemBumps || temOrderBumpGlobal
+        const fonteOrderBump = algumPlanoTemBumps ? "PLANO" : (temOrderBumpGlobal ? "GLOBAL" : "NENHUM")
+        
+        return {
+          passo_1_inicio: {
+            descricao: "Usuario envia /start ou mensagem inicial",
+            acao: "Bot mostra mensagem de boas vindas"
+          },
+          passo_2_ver_planos: {
+            descricao: "Usuario clica em Ver Planos",
+            callback: "ver_planos",
+            resposta: {
+              tipo: "MESSAGE_WITH_INLINE_KEYBOARD",
+              botoes: planosComCallbacks.map(p => ({
+                text: p.name,
+                callback_data: p.telegram.botao_selecionar.callback_data
+              }))
+            }
+          },
+          passo_3_selecionar_plano: {
+            descricao: "Usuario seleciona um plano",
+            
+            // CORRECAO: Verificar AMBAS as fontes de order bump (plano E global)
+            order_bump_existe: temAlgumOrderBump,
+            order_bump_fonte: fonteOrderBump,
+            order_bump_sera_mostrado: temAlgumOrderBump, // TRUE se existe, independente do bot
+            order_bump_vai_funcionar: temAlgumOrderBump && !!botInfo, // FALSE se nao tem bot
+            
+            // ALERTA se tem order bump mas nao tem bot
+            alerta: (temAlgumOrderBump && !botInfo) ? {
+              tipo: "ERRO_CRITICO",
+              mensagem: "TEM ORDER BUMP CONFIGURADO, MAS NAO TEM BOT VINCULADO!",
+              explicacao: "O order bump existe e esta ativo, mas sem bot vinculado os callbacks nao serao processados.",
+              impacto: "Usuario vai selecionar plano mas o order bump NAO vai aparecer porque nao ha bot para mostrar.",
+              solucao: "Vincule um bot a este fluxo ANTES de testar."
+            } : null,
+            
+            se_order_bump_ativo: temAlgumOrderBump ? {
+              passo: "3a - Mostrar Order Bump",
+              fonte: fonteOrderBump,
+              vai_funcionar: !!botInfo,
+              mensagem: fonteOrderBump === "PLANO" 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ? `Order bump do plano selecionado (${planosComCallbacks.filter((p: any) => p.order_bumps_do_plano?.total_ativos > 0).length} planos tem bumps)`
+                : orderBumpInicialProcessado.exemplo_mensagem
+            } : {
+              passo: "3a - Gerar PIX direto",
+              descricao: "Sem order bump configurado, vai direto para pagamento"
+            }
+          },
+          passo_4_pagamento: {
+            descricao: "Gerar PIX e aguardar pagamento",
+            acao: "Bot envia QR Code e codigo copia-cola"
+          },
+          passo_5_confirmacao: {
+            descricao: "Webhook do Mercado Pago confirma pagamento",
+            acao: "Bot envia mensagem de sucesso e deliverables"
           }
-        },
-        passo_3_selecionar_plano: {
-          descricao: "Usuario seleciona um plano",
-          order_bump_sera_mostrado: orderBumpInicialProcessado.analise?.vai_mostrar || false,
-          se_order_bump_ativo: orderBumpInicialProcessado.analise?.vai_mostrar ? {
-            passo: "3a - Mostrar Order Bump",
-            mensagem: orderBumpInicialProcessado.exemplo_mensagem
-          } : {
-            passo: "3a - Gerar PIX direto",
-            descricao: "Sem order bump, vai direto para pagamento"
-          }
-        },
-        passo_4_pagamento: {
-          descricao: "Gerar PIX e aguardar pagamento",
-          acao: "Bot envia QR Code e codigo copia-cola"
-        },
-        passo_5_confirmacao: {
-          descricao: "Webhook do Mercado Pago confirma pagamento",
-          acao: "Bot envia mensagem de sucesso e deliverables"
         }
-      },
+      })(),
 
       // Debug info
       debug: {
