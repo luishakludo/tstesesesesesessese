@@ -2784,14 +2784,19 @@ const newPlan: UpsellPlan = {
                                             <div className="space-y-1">
                                               <Label className="text-xs text-neutral-500">Preco (R$)</Label>
                                               <Input
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
+                                                type="text"
+                                                inputMode="decimal"
                                                 value={bump.price || ""}
                                                 onChange={(e) => {
-                                                  const val = parseFloat(e.target.value) || 0
+                                                  const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: val }
+                                                  updatedBumps[bumpIndex] = { ...bump, price: val === "" ? 0 : val }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                onBlur={() => {
+                                                  const num = parseFloat(String(bump.price).replace(",", ".")) || 0
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, price: num }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 placeholder="0.00"
