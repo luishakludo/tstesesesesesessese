@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Se tiver userId, buscar os bots desse usuario
-    // INCLUI bots com user_id = userId OU bots sem user_id (null) que podem ter sido criados antes da associacao
     let userBotIds: string[] = []
     if (userId) {
       // Buscar bots do usuario
@@ -25,17 +24,9 @@ export async function GET(request: NextRequest) {
         .select("id")
         .eq("user_id", userId)
       
-      // Tambem buscar bots sem user_id (legado) - esses precisam ser associados
-      const { data: orphanBots } = await supabase
-        .from("bots")
-        .select("id")
-        .is("user_id", null)
+      userBotIds = userBots?.map(b => b.id) || []
       
-      const ownedBotIds = userBots?.map(b => b.id) || []
-      const orphanBotIds = orphanBots?.map(b => b.id) || []
-      userBotIds = [...ownedBotIds, ...orphanBotIds]
-      
-      console.log("[v0] Payments list - userId:", userId, "ownedBots:", ownedBotIds.length, "orphanBots:", orphanBotIds.length, "totalBotIds:", userBotIds.length, "error:", botsError)
+      console.log("[v0] Payments list - userId:", userId, "userBots:", userBotIds.length, "error:", botsError)
     }
 
     // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
@@ -52,17 +43,20 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     // Filtrar por bot_id dos bots do usuario OU user_id direto (checkout)
+    // IMPORTANTE: Tambem incluir pagamentos onde user_id e null (order bumps de bots orfaos)
     if (userId) {
       if (userBotIds.length > 0) {
-        // Tem bots: buscar por bot_id OU user_id
-        // Formato correto para .or() - SEM aspas nos UUIDs
+        // Tem bots: buscar por bot_id OU user_id OU user_id null (pagamentos de bots orfaos)
         const botIdsString = userBotIds.join(",")
-        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
+        // Buscar: 1) pagamentos dos bots do usuario, 2) pagamentos com user_id do usuario, 3) pagamentos com user_id null
+        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId},user_id.is.null`
         console.log("[v0] Payments list - OR filter:", orFilter)
         query = query.or(orFilter)
       } else {
-        // Sem bots: buscar apenas por user_id
-        query = query.eq("user_id", userId)
+        // Sem bots: buscar por user_id OU user_id null (pode ter pagamentos orfaos)
+        const orFilter = `user_id.eq.${userId},user_id.is.null`
+        console.log("[v0] Payments list - OR filter (no bots):", orFilter)
+        query = query.or(orFilter)
       }
     }
 
@@ -91,7 +85,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Calculate stats - mesmo filtro
+    // Calculate stats - mesmo filtro da query principal
     let statsQuery = supabase
       .from("payments")
       .select("status, amount")
@@ -99,9 +93,13 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         const botIdsString = userBotIds.join(",")
-        statsQuery = statsQuery.or(`bot_id.in.(${botIdsString}),user_id.eq.${userId}`)
+        // Mesmo filtro: pagamentos dos bots do usuario, com user_id, ou user_id null
+        const statsOrFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId},user_id.is.null`
+        statsQuery = statsQuery.or(statsOrFilter)
       } else {
-        statsQuery = statsQuery.eq("user_id", userId)
+        // Sem bots: buscar por user_id OU user_id null
+        const statsOrFilter = `user_id.eq.${userId},user_id.is.null`
+        statsQuery = statsQuery.or(statsOrFilter)
       }
     }
 

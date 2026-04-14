@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 export async function GET() {
   const supabase = getSupabaseAdmin()
   const flowId = "bd37e11c-705a-4bf5-81a0-ccefdd2fcad0"
+  const loggedUserId = "7db32fb5-e69a-42ff-9157-f92fc30269a1" // Usuario que esta logado
   
   // Buscar flow
   const { data: flow } = await supabase
@@ -27,11 +28,26 @@ export async function GET() {
   
   // Buscar o bot que TEM os order bumps (65f4a521-b310-4638-bfb3-522895406e30)
   const obBotId = "65f4a521-b310-4638-bfb3-522895406e30"
-  const { data: obBot } = await supabase
+  const { data: obBot, error: obBotError } = await supabase
     .from("bots")
     .select("id, name, user_id")
     .eq("id", obBotId)
     .single()
+  
+  // Buscar TODOS os bots sem user_id para debug
+  const { data: orphanBots, error: orphanBotsError } = await supabase
+    .from("bots")
+    .select("id, name, user_id")
+    .is("user_id", null)
+    .limit(10)
+  
+  // Buscar pagamentos com user_id null
+  const { data: nullUserPayments, error: nullPaymentsError } = await supabase
+    .from("payments")
+    .select("id, bot_id, user_id, product_type, amount, status, created_at")
+    .is("user_id", null)
+    .order("created_at", { ascending: false })
+    .limit(20)
   
   // TODOS os pagamentos recentes
   const { data: allPayments } = await supabase
@@ -114,15 +130,49 @@ export async function GET() {
       IMPORTANTE: "Este bot tem os order bumps salvos. O user_id dele precisa ser o mesmo do usuario logado no painel."
     } : "NAO ENCONTRADO",
     
+    // DEBUG: Pagamentos com user_id NULL
+    pagamentos_sem_user_id: {
+      total: nullUserPayments?.length || 0,
+      error: nullPaymentsError?.message || null,
+      lista: nullUserPayments?.map(p => ({
+        id: p.id,
+        bot_id: p.bot_id,
+        user_id: p.user_id,
+        tipo: p.product_type,
+        valor: p.amount,
+        status: p.status,
+        data: p.created_at
+      }))
+    },
+    
+    // DEBUG: Bots orfaos (sem user_id)
+    bots_orfaos: {
+      total: orphanBots?.length || 0,
+      error: orphanBotsError?.message || null,
+      lista: orphanBots
+    },
+    
+    // DEBUG: Erro ao buscar bot 65f4a521
+    debug_ob_bot: {
+      found: !!obBot,
+      error: obBotError?.message || null,
+      data: obBot
+    },
+    
     diagnostico: {
       flow_tem_bot: !!flow?.bot_id,
       order_bump_ativo: !!flow?.config?.orderBump?.inicial?.enabled,
       total_order_bumps_sistema: allOrderBumps.length,
+      total_pagamentos_sem_user_id: nullUserPayments?.length || 0,
+      total_bots_orfaos: orphanBots?.length || 0,
+      logged_user_id: loggedUserId,
       problema: !flow?.bot_id 
         ? "FLOW NAO TEM BOT_ID ASSOCIADO" 
         : allOrderBumps.length === 0 
-          ? "NENHUM ORDER BUMP FOI SALVO NO SISTEMA" 
-          : "OK"
+          ? "NENHUM ORDER BUMP FOI SALVO NO SISTEMA"
+          : (nullUserPayments?.length || 0) > 0
+            ? "EXISTEM PAGAMENTOS COM USER_ID NULL - ESSES NAO APARECEM NO PAINEL"
+            : "OK"
     }
   })
 }
