@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify current password by signing in
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password: currentPassword,
