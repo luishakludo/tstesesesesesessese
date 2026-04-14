@@ -82,20 +82,41 @@ export async function GET() {
       }
 
       // ========== 3. VERIFICAR GATEWAY ==========
-      const { data: gw } = await supabase
+      // IMPORTANTE: O webhook usa user_id (dono do bot), NAO bot_id!
+      // Codigo REAL do webhook linha 1164:
+      //   .eq("user_id", botDataPack.user_id)
+      //   .eq("is_active", true)
+      
+      // Primeira tentativa: buscar por user_id (como o webhook faz)
+      const { data: gwByUser } = await supabase
+        .from("user_gateways")
+        .select("*")
+        .eq("user_id", bot.user_id)
+        .eq("is_active", true)
+        .limit(1)
+        .single()
+      
+      // Segunda tentativa: buscar por bot_id (algumas partes do codigo usam isso)
+      const { data: gwByBot } = await supabase
         .from("user_gateways")
         .select("*")
         .eq("bot_id", bot.id)
         .eq("is_active", true)
         .limit(1)
         .single()
+      
+      const gw = gwByUser || gwByBot
 
       if (gw && gw.access_token) {
         botSim.gateway = {
           id: gw.id,
-          nome: gw.gateway_name || "Mercado Pago",
+          nome: gw.gateway_name || gw.gateway || "Mercado Pago",
           configurado: true,
-          token_presente: true
+          token_presente: true,
+          encontrado_por: gwByUser ? "user_id" : "bot_id",
+          user_id_usado: bot.user_id,
+          bot_id_usado: bot.id,
+          codigo_webhook: `supabase.from("user_gateways").select("*").eq("user_id", "${bot.user_id}").eq("is_active", true)`
         }
         resultado.resumo.gateways_configurados++
       } else {
@@ -103,9 +124,19 @@ export async function GET() {
           id: null,
           nome: null,
           configurado: false,
-          token_presente: false
+          token_presente: false,
+          encontrado_por: null,
+          user_id_usado: bot.user_id,
+          bot_id_usado: bot.id,
+          codigo_webhook: `supabase.from("user_gateways").select("*").eq("user_id", "${bot.user_id}").eq("is_active", true)`,
+          debug_info: {
+            tentou_user_id: bot.user_id,
+            resultado_user_id: gwByUser ? "encontrou" : "NAO ENCONTROU",
+            tentou_bot_id: bot.id,
+            resultado_bot_id: gwByBot ? "encontrou" : "NAO ENCONTROU"
+          }
         }
-        botSim.problemas.push("GATEWAY NAO CONFIGURADO - Pagamentos vao falhar!")
+        botSim.problemas.push(`GATEWAY NAO CONFIGURADO - Buscou por user_id="${bot.user_id}" e bot_id="${bot.id}" mas nao encontrou nenhum ativo!`)
       }
 
       // ========== 4. BUSCAR FLUXO ==========
@@ -397,6 +428,16 @@ interface BotSimulacao {
     nome: string | null
     configurado: boolean
     token_presente: boolean
+    encontrado_por: "user_id" | "bot_id" | null
+    user_id_usado: string | null
+    bot_id_usado: string | null
+    codigo_webhook: string
+    debug_info?: {
+      tentou_user_id: string | null
+      resultado_user_id: string
+      tentou_bot_id: string | null
+      resultado_bot_id: string
+    }
   } | null
   
   fluxo: {
