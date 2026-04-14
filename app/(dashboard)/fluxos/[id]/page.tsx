@@ -4913,33 +4913,33 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
               </div>
 
-              {/* 3. Botao Copiar Pix */}
+              {/* 3. Mensagem antes do Código PIX */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                      <Copy className="h-5 w-5 text-blue-500" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
+                      <MessageSquare className="h-5 w-5 text-purple-500" />
                     </div>
                     <div>
-                      <p className="font-semibold">Botao Copiar Pix</p>
-                      <p className="text-sm text-neutral-500">Personalize o texto exibido antes do codigo PIX copiavel</p>
+                      <p className="font-semibold">Mensagem antes do Código PIX</p>
+                      <p className="text-sm text-neutral-500">Texto exibido acima do código copiável</p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs text-neutral-500">Texto exibido acima do codigo PIX copiavel</p>
-                    <Label className="text-neutral-700 font-medium">Texto do Botao</Label>
+                    <p className="text-xs text-neutral-500">Esta mensagem aparece logo acima do código PIX copiável na conversa</p>
+                    <Label className="text-neutral-700 font-medium">Texto da Mensagem</Label>
                     <Input
                       value={messageBeforeCode}
                       onChange={(e) => { setMessageBeforeCode(e.target.value); setHasChanges(true) }}
-                      placeholder="Ex: Copie o codigo abaixo:"
+                      placeholder="Ex: Copie o código abaixo:"
                       className="bg-white border border-neutral-200"
                     />
                   </div>
                 </CardContent>
               </Card>
 
-              {/* 4. Botao Verificar Status */}
+              {/* 4. Botão Verificar Status */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4947,14 +4947,14 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <Check className="h-5 w-5 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="font-semibold">Botao Verificar Status</p>
-                      <p className="text-sm text-neutral-500">Personalize o texto do botao de verificacao de pagamento</p>
+                      <p className="font-semibold">Botão Verificar Status</p>
+                      <p className="text-sm text-neutral-500">Texto exibido no botão de verificação</p>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs text-neutral-500">Texto exibido no botao para verificar o status do pagamento</p>
-                    <Label className="text-neutral-700 font-medium">Texto do Botao</Label>
+                    <p className="text-xs text-neutral-500">Este texto aparece dentro do botão que o cliente clica para verificar o pagamento</p>
+                    <Label className="text-neutral-700 font-medium">Texto do Botão</Label>
                     <Input
                       value={verifyStatusButtonText}
                       onChange={(e) => { setVerifyStatusButtonText(e.target.value); setHasChanges(true) }}
