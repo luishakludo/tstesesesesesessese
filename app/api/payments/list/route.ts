@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         // Tem bots: buscar por bot_id OU user_id
-        query = query.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+        // Formato correto para .or() com in
+        const botIdsString = userBotIds.map(id => `"${id}"`).join(",")
+        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
+        console.log("[v0] Payments list - OR filter:", orFilter)
+        query = query.or(orFilter)
       } else {
         // Sem bots: buscar apenas por user_id
         query = query.eq("user_id", userId)
@@ -61,6 +65,11 @@ export async function GET(request: NextRequest) {
     const { data: payments, error, count } = await query
 
     console.log("[v0] Payments query result - count:", count, "payments:", payments?.length, "error:", error)
+    
+    // Debug: mostrar os product_types encontrados
+    const productTypes = payments?.map(p => p.product_type).filter(Boolean)
+    const uniqueTypes = [...new Set(productTypes)]
+    console.log("[v0] Product types found:", uniqueTypes, "order_bump count:", payments?.filter(p => p.product_type?.includes("order_bump")).length)
 
     if (error) {
       console.error("[v0] Error fetching payments:", error)
@@ -77,7 +86,8 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       if (userBotIds.length > 0) {
-        statsQuery = statsQuery.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+        const botIdsString = userBotIds.map(id => `"${id}"`).join(",")
+        statsQuery = statsQuery.or(`bot_id.in.(${botIdsString}),user_id.eq.${userId}`)
       } else {
         statsQuery = statsQuery.eq("user_id", userId)
       }
