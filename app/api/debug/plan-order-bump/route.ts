@@ -211,45 +211,97 @@ export async function GET() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const p of todosPlanos as any[]) {
         const preco = Number(p.price) || 0
+        
+        // ========== BUSCAR ORDER BUMPS ESPECIFICOS DO PLANO ==========
+        // PRIORIDADE (igual webhook linhas 2425-2473):
+        // 1. Se plano veio do banco (flow_plans) e tem order_bumps -> usar dbPlan.order_bumps
+        // 2. Se plano esta no config JSON e tem order_bumps -> usar flowConfig.plans[].order_bumps
+        // 3. Se nenhum dos acima -> usar order bump global (orderBumpConfig.inicial)
+        
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let planOrderBumps: any[] = []
+        let orderBumpSource = "nenhum"
+        
+        // PRIMEIRO: Verificar se plano do banco tem order_bumps
+        if (planosDb && planosDb.length > 0 && p.order_bumps && Array.isArray(p.order_bumps)) {
+          planOrderBumps = p.order_bumps
+          orderBumpSource = "flow_plans.order_bumps (banco)"
+        } else {
+          // SEGUNDO: Buscar no config JSON (flows.config.plans[])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const selectedPlanConfig = planosConfig.find((cp: any) => 
+            cp.id === p.id || cp.name?.toLowerCase().trim() === p.name?.toLowerCase().trim()
+          )
+          if (selectedPlanConfig?.order_bumps) {
+            planOrderBumps = selectedPlanConfig.order_bumps
+            orderBumpSource = "flows.config.plans[].order_bumps (JSON)"
+          }
+        }
+        
+        // Filtrar apenas order bumps ATIVOS com preco > 0
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const activePlanOrderBumps = planOrderBumps.filter((ob: any) => 
+          ob.enabled && ob.price && ob.price > 0
+        )
+        
         botSim.planos.push({
           id: p.id,
           nome: p.name,
           preco: preco,
           preco_formatado: formatarPreco(preco),
-          callback: `plan_${p.id}`
+          callback: `plan_${p.id}`,
+          // NOVO: Order bumps especificos do plano
+          order_bumps_especificos: {
+            fonte: orderBumpSource,
+            total_configurados: planOrderBumps.length,
+            total_ativos: activePlanOrderBumps.length,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            lista: activePlanOrderBumps.map((ob: any, idx: number) => ({
+              index: idx,
+              id: ob.id || `bump_${idx}`,
+              nome: ob.name || `Order Bump ${idx + 1}`,
+              preco: ob.price,
+              preco_formatado: formatarPreco(ob.price),
+              enabled: ob.enabled,
+              descricao: ob.description || null,
+              botao_aceitar: ob.acceptText || "ADICIONAR",
+              botao_recusar: ob.rejectText || "NAO QUERO",
+              callback_aceitar: `ob_multi_${Math.round(preco * 100)}_${Math.round(ob.price * 100)}_${idx}`
+            })),
+            codigo_webhook: `activePlanOrderBumps = planOrderBumps.filter(ob => ob.enabled && ob.price > 0) // linha 2466-2468`
+          }
         })
         resultado.resumo.total_planos++
+        
+        // Contar order bumps ativos
+        if (activePlanOrderBumps.length > 0) {
+          resultado.resumo.order_bumps_ativos += activePlanOrderBumps.length
+        }
       }
 
-      // ========== 6. BUSCAR ORDER BUMP ==========
+      // ========== 6. BUSCAR ORDER BUMP GLOBAL (fallback) ==========
       const obConfig = config.orderBump || config.order_bump || {}
-      const obEnabled = obConfig.enabled === true
-      const obPrice = Number(obConfig.price) || 0
+      const obInicial = obConfig.inicial || obConfig
+      const obEnabled = obInicial.enabled === true
+      const obPrice = Number(obInicial.price) || 0
       const obAtivo = obEnabled && obPrice > 0
 
-      if (obAtivo) {
-        resultado.resumo.order_bumps_ativos++
-        botSim.order_bump = {
-          ativo: true,
-          nome: obConfig.name || "Order Bump",
-          preco: obPrice,
-          preco_formatado: formatarPreco(obPrice),
-          descricao: obConfig.description || null,
-          botao_aceitar: obConfig.acceptText || obConfig.acceptButtonText || "ADICIONAR",
-          botao_recusar: obConfig.rejectText || obConfig.declineButtonText || "NAO QUERO"
-        }
-      } else {
-        botSim.order_bump = {
-          ativo: false,
-          nome: null,
-          preco: 0,
-          preco_formatado: null,
-          descricao: null,
-          botao_aceitar: "ADICIONAR",
-          botao_recusar: "NAO QUERO"
-        }
-        if (obConfig.enabled === false) {
-          botSim.problemas.push("ORDER BUMP DESABILITADO - enabled=false no config")
+      botSim.order_bump_global = {
+        ativo: obAtivo,
+        nome: obInicial.name || "Order Bump Global",
+        preco: obPrice,
+        preco_formatado: obAtivo ? formatarPreco(obPrice) : null,
+        descricao: obInicial.description || null,
+        botao_aceitar: obInicial.acceptText || obInicial.acceptButtonText || "ADICIONAR",
+        botao_recusar: obInicial.rejectText || obInicial.declineButtonText || "NAO QUERO",
+        explicacao: "Este order bump global so eh usado se o plano NAO tiver order bumps especificos"
+      }
+      
+      if (!obAtivo && obConfig.enabled === false) {
+        // Nao eh problema se o plano tem order bumps especificos
+        const planoComOB = botSim.planos.some(p => p.order_bumps_especificos?.total_ativos > 0)
+        if (!planoComOB) {
+          botSim.problemas.push("ORDER BUMP GLOBAL DESABILITADO e planos nao tem order bumps especificos")
         }
       }
 
@@ -310,37 +362,61 @@ export async function GET() {
       // --- ETAPA 2: Usuario seleciona um plano ---
       const callbackPlano = `plan_${planoEscolhido.id}`
       
-      if (obAtivo && botSim.order_bump) {
-        // Com Order Bump
-        const obAcceptCallback = `ob_accept_${Math.round(planoEscolhido.preco * 100)}_${Math.round(obPrice * 100)}`
-        const obDeclineCallback = `ob_decline_${Math.round(planoEscolhido.preco * 100)}_0`
+      // VERIFICAR ORDER BUMPS - Prioridade:
+      // 1. Order bumps ESPECIFICOS do plano (plan.order_bumps_especificos)
+      // 2. Order bump GLOBAL (orderBumpConfig.inicial)
+      // 3. Se nenhum -> vai direto pro PIX
+      
+      const temOrderBumpEspecifico = planoEscolhido.order_bumps_especificos?.total_ativos > 0
+      const temOrderBumpGlobal = obAtivo
+      const temAlgumOrderBump = temOrderBumpEspecifico || temOrderBumpGlobal
+      
+      // Adicionar debug sobre qual order bump sera usado
+      botSim.simulacao.decisao_order_bump = {
+        tem_order_bump_especifico: temOrderBumpEspecifico,
+        total_especificos_ativos: planoEscolhido.order_bumps_especificos?.total_ativos || 0,
+        tem_order_bump_global: temOrderBumpGlobal,
+        qual_sera_usado: temOrderBumpEspecifico ? "ESPECIFICO_DO_PLANO" : (temOrderBumpGlobal ? "GLOBAL" : "NENHUM"),
+        codigo_webhook_decisao: "if (activePlanOrderBumps.length > 0) { /* usa especifico */ } else if (orderBumpInicial?.enabled) { /* usa global */ } else { /* PIX direto */ }"
+      }
+      
+      if (temOrderBumpEspecifico) {
+        // COM ORDER BUMP ESPECIFICO DO PLANO (prioridade 1)
+        const primeiroOB = planoEscolhido.order_bumps_especificos!.lista[0]
+        const obAcceptCallback = primeiroOB.callback_aceitar
+        const mainPriceRounded = Math.round(planoEscolhido.preco * 100)
 
         botSim.simulacao.etapas.push({
           numero: etapaNum++,
           acao_usuario: `Seleciona plano "${planoEscolhido.nome}"`,
           callback_enviado: callbackPlano,
           resposta_bot: {
-            texto: botSim.order_bump.descricao || `Aproveite! Adicione ${botSim.order_bump.nome} por apenas ${botSim.order_bump.preco_formatado}!`,
-            botoes: [
-              { texto: botSim.order_bump.botao_aceitar, callback: obAcceptCallback },
-              { texto: botSim.order_bump.botao_recusar, callback: obDeclineCallback }
-            ]
+            texto: primeiroOB.descricao || `Deseja adicionar ${primeiroOB.nome} por apenas ${primeiroOB.preco_formatado}?`,
+            botoes: planoEscolhido.order_bumps_especificos!.lista.map(ob => ({
+              texto: ob.botao_aceitar,
+              callback: ob.callback_aceitar
+            }))
           },
           status: "OK",
-          erro: null
+          erro: null,
+          debug_order_bump: {
+            tipo: "ESPECIFICO_DO_PLANO",
+            fonte: planoEscolhido.order_bumps_especificos!.fonte,
+            total_bumps: planoEscolhido.order_bumps_especificos!.total_ativos
+          }
         })
 
-        // --- ETAPA 3: Usuario aceita Order Bump ---
-        const totalComBump = planoEscolhido.preco + obPrice
+        // --- ETAPA 3: Usuario clica ADICIONAR ---
+        const totalComBump = planoEscolhido.preco + primeiroOB.preco
         
         botSim.simulacao.etapas.push({
           numero: etapaNum++,
-          acao_usuario: `Clica em "${botSim.order_bump.botao_aceitar}"`,
+          acao_usuario: `Clica em "${primeiroOB.botao_aceitar}" (${primeiroOB.nome})`,
           callback_enviado: obAcceptCallback,
           resposta_bot: {
-            texto: `Adicionado!\n\nResumo do Pedido:\n${planoEscolhido.nome}: ${planoEscolhido.preco_formatado}\n${botSim.order_bump.nome}: ${botSim.order_bump.preco_formatado}\n\nEscolha um dos produtos acima ou continue com o conteudo principal`,
+            texto: `Adicionado!\n\nResumo do Pedido:\n${planoEscolhido.nome}: ${planoEscolhido.preco_formatado}\n${primeiroOB.nome}: ${primeiroOB.preco_formatado}\n\nEscolha um dos produtos acima ou continue com o conteudo principal`,
             botoes: [
-              { texto: `PROSSEGUIR - ${formatarPreco(totalComBump)}`, callback: "proceed_payment" }
+              { texto: `PROSSEGUIR - ${formatarPreco(totalComBump)}`, callback: `ob_finish_${mainPriceRounded}` }
             ]
           },
           status: "OK",
@@ -348,29 +424,18 @@ export async function GET() {
         })
 
         // --- ETAPA 4: Usuario clica PROSSEGUIR ---
-        // AQUI EH ONDE O ERRO ACONTECE!
-        // Codigo REAL do webhook linhas 1543-1603:
-        // 1. Busca estado com status = "waiting_multi_order_bump"
-        // 2. Se nao encontrar -> "Erro ao processar. Tente novamente."
-        // 3. Se totalAmount <= 0 -> "Erro ao processar. Tente novamente."
-        // 4. Se gateway nao configurado -> "Nenhum gateway de pagamento configurado"
+        const obFinishCallback = `ob_finish_${mainPriceRounded}`
         
-        const obFinishCallback = `ob_finish_${Math.round(planoEscolhido.preco * 100)}`
-        
-        // Verificar se vai dar erro no PROSSEGUIR
         let erroProsseguir: string | null = null
         let textoResposta = ""
         
         if (!botSim.estado_usuarios?.tem_waiting_multi_order_bump) {
-          // ERRO MAIS COMUM: Estado nao existe ou status errado
           erroProsseguir = `ESTADO NAO ENCONTRADO! O webhook busca user_flow_state com status="waiting_multi_order_bump" mas nao encontrou. Estados atuais: ${botSim.estado_usuarios?.estados.map(e => e.status).join(", ") || "nenhum"}`
           textoResposta = "Erro ao processar. Tente novamente."
         } else if (totalComBump <= 0) {
-          // ERRO: Valor zero
           erroProsseguir = "VALOR TOTAL ZERADO! mainAmount + totalBumpAmount <= 0"
           textoResposta = "Erro ao processar. Tente novamente."
         } else if (!botSim.gateway?.configurado) {
-          // ERRO: Gateway nao configurado
           erroProsseguir = "Gateway de pagamento nao configurado!"
           textoResposta = "Nenhum gateway de pagamento configurado. Configure em Configuracoes > Integracoes."
         }
@@ -380,10 +445,7 @@ export async function GET() {
             numero: etapaNum++,
             acao_usuario: "Clica em 'PROSSEGUIR'",
             callback_enviado: obFinishCallback,
-            resposta_bot: {
-              texto: textoResposta,
-              botoes: []
-            },
+            resposta_bot: { texto: textoResposta, botoes: [] },
             status: "ERRO",
             erro: erroProsseguir,
             codigo_executado: {
@@ -400,10 +462,7 @@ export async function GET() {
             numero: etapaNum++,
             acao_usuario: "Clica em 'PROSSEGUIR'",
             callback_enviado: obFinishCallback,
-            resposta_bot: {
-              texto: `Gerando PIX no valor de ${formatarPreco(totalComBump)}...\n\n[QR CODE SERIA GERADO AQUI]\n\nPix Copia e Cola: 00020126...`,
-              botoes: []
-            },
+            resposta_bot: { texto: `Gerando PIX no valor de ${formatarPreco(totalComBump)}...`, botoes: [] },
             status: "OK",
             erro: null
           })
@@ -412,28 +471,101 @@ export async function GET() {
           resultado.resumo.pode_processar_pagamento = true
         }
 
-      } else {
-        // Sem Order Bump - vai direto pro pagamento
+      } else if (temOrderBumpGlobal && botSim.order_bump_global) {
+        // COM ORDER BUMP GLOBAL (prioridade 2)
+        const obGlobal = botSim.order_bump_global
+        const obAcceptCallback = `ob_accept_${Math.round(planoEscolhido.preco * 100)}_${Math.round(obGlobal.preco * 100)}`
+        const obDeclineCallback = `ob_decline_${Math.round(planoEscolhido.preco * 100)}_0`
+
         botSim.simulacao.etapas.push({
           numero: etapaNum++,
           acao_usuario: `Seleciona plano "${planoEscolhido.nome}"`,
           callback_enviado: callbackPlano,
           resposta_bot: {
-            texto: `Voce selecionou: ${planoEscolhido.nome}\nValor: ${planoEscolhido.preco_formatado}`,
+            texto: obGlobal.descricao || `Aproveite! Adicione ${obGlobal.nome} por apenas ${obGlobal.preco_formatado}!`,
             botoes: [
-              { texto: `PROSSEGUIR - ${planoEscolhido.preco_formatado}`, callback: "proceed_payment" }
+              { texto: obGlobal.botao_aceitar, callback: obAcceptCallback },
+              { texto: obGlobal.botao_recusar, callback: obDeclineCallback }
             ]
+          },
+          status: "OK",
+          erro: null,
+          debug_order_bump: {
+            tipo: "GLOBAL",
+            fonte: "flows.config.orderBump.inicial",
+            total_bumps: 1
+          }
+        })
+
+        // Continua com order bump global...
+        const totalComBump = planoEscolhido.preco + obGlobal.preco
+        
+        botSim.simulacao.etapas.push({
+          numero: etapaNum++,
+          acao_usuario: `Clica em "${obGlobal.botao_aceitar}"`,
+          callback_enviado: obAcceptCallback,
+          resposta_bot: {
+            texto: `Adicionado!\n\nResumo:\n${planoEscolhido.nome}: ${planoEscolhido.preco_formatado}\n${obGlobal.nome}: ${obGlobal.preco_formatado}`,
+            botoes: [{ texto: `PROSSEGUIR - ${formatarPreco(totalComBump)}`, callback: "proceed_payment" }]
           },
           status: "OK",
           erro: null
         })
 
-        // --- ETAPA 3: Usuario clica PROSSEGUIR ---
+        // Etapa PROSSEGUIR com order bump global usa callback diferente!
         if (botSim.gateway?.configurado) {
           botSim.simulacao.etapas.push({
             numero: etapaNum++,
             acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: obAcceptCallback,
+            resposta_bot: { texto: `Gerando PIX no valor de ${formatarPreco(totalComBump)}...`, botoes: [] },
+            status: "OK",
+            erro: null
+          })
+          botSim.simulacao.resultado_final = "SUCESSO"
+          botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${formatarPreco(totalComBump)} seria gerado.`
+          resultado.resumo.pode_processar_pagamento = true
+        } else {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
             callback_enviado: "proceed_payment",
+            resposta_bot: { texto: "Erro ao processar. Tente novamente.", botoes: [] },
+            status: "ERRO",
+            erro: "Gateway de pagamento nao configurado!"
+          })
+          botSim.simulacao.resultado_final = "ERRO_GATEWAY"
+          botSim.simulacao.mensagem_final = "Pagamento falha porque gateway nao esta configurado"
+        }
+
+      } else {
+        // SEM ORDER BUMP - vai direto pro PIX (linha 2651-2766 do webhook)
+        // Codigo webhook: if (activePlanOrderBumps.length === 0 && !orderBumpInicial?.enabled) { /* gera PIX direto */ }
+        
+        botSim.simulacao.etapas.push({
+          numero: etapaNum++,
+          acao_usuario: `Seleciona plano "${planoEscolhido.nome}"`,
+          callback_enviado: callbackPlano,
+          resposta_bot: {
+            texto: `Voce selecionou: ${planoEscolhido.nome}\nValor: ${planoEscolhido.preco_formatado}\n\nGerando pagamento PIX...`,
+            botoes: [] // SEM BOTAO PROSSEGUIR! VAI DIRETO PRO PIX!
+          },
+          status: "OK",
+          erro: null,
+          debug_order_bump: {
+            tipo: "NENHUM",
+            fonte: "N/A - vai direto pro PIX",
+            total_bumps: 0,
+            codigo_webhook: "// Linha 2651: Send processing message, Linha 2694: Generate PIX"
+          }
+        })
+
+        // PIX eh gerado automaticamente, sem botao PROSSEGUIR
+        if (botSim.gateway?.configurado) {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "AUTOMATICO - Sistema gera PIX direto (sem botao PROSSEGUIR)",
+            callback_enviado: "N/A - PIX automatico",
             resposta_bot: {
               texto: `Gerando PIX no valor de ${planoEscolhido.preco_formatado}...\n\n[QR CODE SERIA GERADO AQUI]\n\nPix Copia e Cola: 00020126...`,
               botoes: []
@@ -442,15 +574,15 @@ export async function GET() {
             erro: null
           })
           botSim.simulacao.resultado_final = "SUCESSO"
-          botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${planoEscolhido.preco_formatado} seria gerado.`
+          botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${planoEscolhido.preco_formatado} seria gerado DIRETO (sem order bump).`
           resultado.resumo.pode_processar_pagamento = true
         } else {
           botSim.simulacao.etapas.push({
             numero: etapaNum++,
-            acao_usuario: "Clica em 'PROSSEGUIR'",
-            callback_enviado: "proceed_payment",
+            acao_usuario: "AUTOMATICO - Sistema tenta gerar PIX",
+            callback_enviado: "N/A - PIX automatico",
             resposta_bot: {
-              texto: "Erro ao processar. Tente novamente.",
+              texto: "Gateway de pagamento nao configurado. Entre em contato com o suporte.",
               botoes: []
             },
             status: "ERRO",
@@ -538,9 +670,29 @@ interface BotSimulacao {
     preco: number
     preco_formatado: string
     callback: string
+    // Order bumps especificos do plano (prioridade 1)
+    order_bumps_especificos?: {
+      fonte: string
+      total_configurados: number
+      total_ativos: number
+      lista: Array<{
+        index: number
+        id: string
+        nome: string
+        preco: number
+        preco_formatado: string
+        enabled: boolean
+        descricao: string | null
+        botao_aceitar: string
+        botao_recusar: string
+        callback_aceitar: string
+      }>
+      codigo_webhook: string
+    }
   }>
   
-  order_bump: {
+  // Order bump global (prioridade 2 - usado se plano nao tem especificos)
+  order_bump_global?: {
     ativo: boolean
     nome: string | null
     preco: number
@@ -548,9 +700,18 @@ interface BotSimulacao {
     descricao: string | null
     botao_aceitar: string
     botao_recusar: string
-  } | null
+    explicacao: string
+  }
   
   simulacao: {
+    // Decisao sobre qual order bump usar
+    decisao_order_bump?: {
+      tem_order_bump_especifico: boolean
+      total_especificos_ativos: number
+      tem_order_bump_global: boolean
+      qual_sera_usado: "ESPECIFICO_DO_PLANO" | "GLOBAL" | "NENHUM"
+      codigo_webhook_decisao: string
+    }
     etapas: Array<{
       numero: number
       acao_usuario: string
@@ -566,6 +727,12 @@ interface BotSimulacao {
         linha_1571?: string
         linha_1597?: string
         linha_1652?: string
+      }
+      debug_order_bump?: {
+        tipo: string
+        fonte: string
+        total_bumps: number
+        codigo_webhook?: string
       }
     }>
     resultado_final: "NAO_INICIADO" | "SUCESSO" | "ERRO" | "ERRO_GATEWAY"
