@@ -599,42 +599,73 @@ export async function GET(
       },
 
       // Fluxo completo simulado (como o bot se comportara)
-      simulacao_fluxo: {
-        passo_1_inicio: {
-          descricao: "Usuario envia /start ou mensagem inicial",
-          acao: "Bot mostra mensagem de boas vindas"
-        },
-        passo_2_ver_planos: {
-          descricao: "Usuario clica em Ver Planos",
-          callback: "ver_planos",
-          resposta: {
-            tipo: "MESSAGE_WITH_INLINE_KEYBOARD",
-            botoes: planosComCallbacks.map(p => ({
-              text: p.name,
-              callback_data: p.telegram.botao_selecionar.callback_data
-            }))
+      simulacao_fluxo: (() => {
+        // Verificar se algum plano tem order bumps ativos
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const algumPlanoTemBumps = planosComCallbacks.some((p: any) => 
+          p.order_bumps_do_plano?.total_ativos > 0
+        )
+        const temOrderBumpGlobal = obInicialVaiMostrar
+        const temAlgumOrderBump = algumPlanoTemBumps || temOrderBumpGlobal
+        const fonteOrderBump = algumPlanoTemBumps ? "PLANO" : (temOrderBumpGlobal ? "GLOBAL" : "NENHUM")
+        
+        return {
+          passo_1_inicio: {
+            descricao: "Usuario envia /start ou mensagem inicial",
+            acao: "Bot mostra mensagem de boas vindas"
+          },
+          passo_2_ver_planos: {
+            descricao: "Usuario clica em Ver Planos",
+            callback: "ver_planos",
+            resposta: {
+              tipo: "MESSAGE_WITH_INLINE_KEYBOARD",
+              botoes: planosComCallbacks.map(p => ({
+                text: p.name,
+                callback_data: p.telegram.botao_selecionar.callback_data
+              }))
+            }
+          },
+          passo_3_selecionar_plano: {
+            descricao: "Usuario seleciona um plano",
+            
+            // CORRECAO: Verificar AMBAS as fontes de order bump (plano E global)
+            order_bump_existe: temAlgumOrderBump,
+            order_bump_fonte: fonteOrderBump,
+            order_bump_sera_mostrado: temAlgumOrderBump, // TRUE se existe, independente do bot
+            order_bump_vai_funcionar: temAlgumOrderBump && !!botInfo, // FALSE se nao tem bot
+            
+            // ALERTA se tem order bump mas nao tem bot
+            alerta: (temAlgumOrderBump && !botInfo) ? {
+              tipo: "ERRO_CRITICO",
+              mensagem: "TEM ORDER BUMP CONFIGURADO, MAS NAO TEM BOT VINCULADO!",
+              explicacao: "O order bump existe e esta ativo, mas sem bot vinculado os callbacks nao serao processados.",
+              impacto: "Usuario vai selecionar plano mas o order bump NAO vai aparecer porque nao ha bot para mostrar.",
+              solucao: "Vincule um bot a este fluxo ANTES de testar."
+            } : null,
+            
+            se_order_bump_ativo: temAlgumOrderBump ? {
+              passo: "3a - Mostrar Order Bump",
+              fonte: fonteOrderBump,
+              vai_funcionar: !!botInfo,
+              mensagem: fonteOrderBump === "PLANO" 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ? `Order bump do plano selecionado (${planosComCallbacks.filter((p: any) => p.order_bumps_do_plano?.total_ativos > 0).length} planos tem bumps)`
+                : orderBumpInicialProcessado.exemplo_mensagem
+            } : {
+              passo: "3a - Gerar PIX direto",
+              descricao: "Sem order bump configurado, vai direto para pagamento"
+            }
+          },
+          passo_4_pagamento: {
+            descricao: "Gerar PIX e aguardar pagamento",
+            acao: "Bot envia QR Code e codigo copia-cola"
+          },
+          passo_5_confirmacao: {
+            descricao: "Webhook do Mercado Pago confirma pagamento",
+            acao: "Bot envia mensagem de sucesso e deliverables"
           }
-        },
-        passo_3_selecionar_plano: {
-          descricao: "Usuario seleciona um plano",
-          order_bump_sera_mostrado: orderBumpInicialProcessado.analise?.vai_mostrar || false,
-          se_order_bump_ativo: orderBumpInicialProcessado.analise?.vai_mostrar ? {
-            passo: "3a - Mostrar Order Bump",
-            mensagem: orderBumpInicialProcessado.exemplo_mensagem
-          } : {
-            passo: "3a - Gerar PIX direto",
-            descricao: "Sem order bump, vai direto para pagamento"
-          }
-        },
-        passo_4_pagamento: {
-          descricao: "Gerar PIX e aguardar pagamento",
-          acao: "Bot envia QR Code e codigo copia-cola"
-        },
-        passo_5_confirmacao: {
-          descricao: "Webhook do Mercado Pago confirma pagamento",
-          acao: "Bot envia mensagem de sucesso e deliverables"
         }
-      },
+      })(),
 
       // Debug info
       debug: {
