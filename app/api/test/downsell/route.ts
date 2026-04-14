@@ -189,11 +189,162 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const {
+      flow_id = null,
       simulate_time_passed_minutes = 0,
       dry_run = true,
       bot_id = null,
-      telegram_user_id = "TEST_USER_123"
+      telegram_user_id = "TEST_USER_123",
+      telegram_chat_id = "TEST_CHAT_123"
     } = body
+
+    // Se passou flow_id, simula direto com esse fluxo
+    if (flow_id) {
+      const { data: flow, error: flowError } = await supabase
+        .from("flows")
+        .select("id, name, config, status, bot_id")
+        .eq("id", flow_id)
+        .single()
+
+      if (flowError || !flow) {
+        return NextResponse.json({ error: "Fluxo nao encontrado", flow_id, details: flowError?.message }, { status: 404 })
+      }
+
+      // Buscar bot se existir
+      let botToken = "TEST_BOT_TOKEN"
+      let botName = "N/A"
+      if (flow.bot_id) {
+        const { data: bot } = await supabase
+          .from("bots")
+          .select("id, name, token")
+          .eq("id", flow.bot_id)
+          .single()
+        if (bot) {
+          botToken = bot.token
+          botName = bot.name
+        }
+      }
+
+      const config = flow.config as Record<string, unknown> || {}
+      const downsellConfig = config.downsell as {
+        enabled?: boolean
+        sequences?: Array<{
+          id: string
+          message: string
+          medias?: string[]
+          sendTiming?: string
+          sendDelayValue?: number
+          sendDelayUnit?: string
+          plans?: Array<{ id: string; buttonText: string; price: number }>
+          deliveryType?: string
+          deliverableId?: string
+          customDelivery?: string
+        }>
+      } | undefined
+
+      if (!downsellConfig?.enabled) {
+        return NextResponse.json({
+          error: "Downsell desativado neste fluxo",
+          flow_id,
+          flow_name: flow.name,
+          downsell_config: downsellConfig
+        }, { status: 400 })
+      }
+
+      if (!downsellConfig.sequences || downsellConfig.sequences.length === 0) {
+        return NextResponse.json({
+          error: "Nenhuma sequencia de downsell configurada",
+          flow_id,
+          flow_name: flow.name
+        }, { status: 400 })
+      }
+
+      const now = new Date()
+      const simulatedNow = new Date(now.getTime() + simulate_time_passed_minutes * 60 * 1000)
+      const actions = []
+
+      for (const seq of downsellConfig.sequences) {
+        let delayMinutes = seq.sendDelayValue || 1
+        if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
+        else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
+
+        const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
+        const shouldSendNow = simulatedNow >= scheduledFor
+
+        const action: Record<string, unknown> = {
+          sequence_id: seq.id,
+          sequence_index: downsellConfig.sequences.indexOf(seq),
+          delay_config: `${seq.sendDelayValue || 1} ${seq.sendDelayUnit || "minutes"}`,
+          delay_minutes: delayMinutes,
+          scheduled_for: scheduledFor.toISOString(),
+          scheduled_for_local: scheduledFor.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+          simulated_now: simulatedNow.toISOString(),
+          should_send_now: shouldSendNow,
+          falta_minutos: shouldSendNow ? 0 : Math.round((scheduledFor.getTime() - simulatedNow.getTime()) / 60000),
+          message: seq.message,
+          medias: seq.medias || [],
+          plans: seq.plans || [],
+          will_insert_to_db: !dry_run
+        }
+
+        if (!dry_run) {
+          // Usar um bot_id fake se nao tiver
+          const useBotId = flow.bot_id || "00000000-0000-0000-0000-000000000000"
+          
+          const { data: inserted, error: insertError } = await supabase
+            .from("scheduled_messages")
+            .insert({
+              bot_id: useBotId,
+              flow_id: flow.id,
+              telegram_user_id: telegram_user_id,
+              telegram_chat_id: telegram_chat_id,
+              message_type: "downsell",
+              sequence_id: seq.id,
+              sequence_index: downsellConfig.sequences.indexOf(seq),
+              scheduled_for: scheduledFor.toISOString(),
+              status: "pending",
+              metadata: {
+                message: seq.message,
+                medias: seq.medias || [],
+                plans: seq.plans || [],
+                deliveryType: seq.deliveryType,
+                deliverableId: seq.deliverableId,
+                customDelivery: seq.customDelivery,
+                botToken: botToken,
+                is_test: true
+              }
+            })
+            .select()
+
+          action.inserted = inserted?.[0] || null
+          action.insert_error = insertError?.message || null
+        }
+
+        actions.push(action)
+      }
+
+      return NextResponse.json({
+        status: "OK",
+        simulation: {
+          flow_id: flow.id,
+          flow_name: flow.name,
+          flow_status: flow.status,
+          bot_id: flow.bot_id,
+          bot_name: botName,
+          timestamp_real: now.toISOString(),
+          timestamp_real_local: now.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }),
+          simulated_time_passed: `${simulate_time_passed_minutes} minutos`,
+          timestamp_simulado: simulatedNow.toISOString(),
+          dry_run,
+          telegram_user_id,
+          telegram_chat_id
+        },
+        downsell: {
+          enabled: downsellConfig.enabled,
+          total_sequences: downsellConfig.sequences.length,
+          sequences: actions
+        }
+      })
+    }
 
     let botsQuery = supabase
       .from("bots")
