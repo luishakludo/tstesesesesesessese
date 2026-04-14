@@ -2015,11 +2015,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             ob.enabled && ob.price && ob.price > 0
           )
           
-          console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial:", !!orderBumpInicial?.enabled)
+          // PRIORIDADE: Se o order bump GLOBAL (fluxo inicial) estiver ativado, ele ANULA os order bumps do plano
+          const globalOrderBumpEnabled = orderBumpInicial?.enabled && orderBumpInicial?.price > 0
           
-          // Se o plano tem order bumps especificos, usar eles
-          // USANDO MESMA LOGICA DO ORDER BUMP GLOBAL (ob_accept_ e ob_decline_)
-          if (activePlanOrderBumps.length > 0) {
+          console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial ativo:", globalOrderBumpEnabled)
+          
+          // Se o plano tem order bumps especificos E o global NAO esta ativado, usar os do plano
+          // Se o global esta ativado, ignora os do plano e usa o global (tratado mais abaixo)
+          if (activePlanOrderBumps.length > 0 && !globalOrderBumpEnabled) {
             const mainPriceRounded = Math.round(planPrice * 100)
             const hasMultipleBumps = activePlanOrderBumps.length > 1
             
