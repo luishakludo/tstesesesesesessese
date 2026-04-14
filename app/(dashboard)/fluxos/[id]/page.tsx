@@ -126,7 +126,7 @@ interface PlanOrderBump {
 interface FlowPlan {
   id: string
   name: string
-  price: number
+  price: number | string
   duration_days: number
   duration_type: "daily" | "weekly" | "monthly" | "yearly" | "lifetime"
   description?: string
@@ -137,7 +137,7 @@ interface FlowPlan {
   // Legado (manter para compatibilidade)
   order_bump_custom: boolean
   order_bump_name?: string
-  order_bump_price?: number
+  order_bump_price?: number | string
   order_bump_description?: string
   order_bump_accept_text?: string
   order_bump_reject_text?: string
