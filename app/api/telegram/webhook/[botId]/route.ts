@@ -102,7 +102,7 @@ async function editTelegramMessage(
   messageId: number,
   text: string,
   replyMarkup?: object,
-): Promise<boolean> {
+): Promise<{ ok: boolean; error?: string; errorCode?: number }> {
   const url = `https://api.telegram.org/bot${botToken}/editMessageText`
   const body: Record<string, unknown> = { 
     chat_id: chatId, 
@@ -112,18 +112,31 @@ async function editTelegramMessage(
   }
   if (replyMarkup) body.reply_markup = replyMarkup
   try {
-    console.log("[v0] editTelegramMessage - messageId:", messageId, "text preview:", text.substring(0, 50))
+    console.log("[v0] editTelegramMessage - CHAMANDO API")
+    console.log("[v0] editTelegramMessage - chatId:", chatId)
+    console.log("[v0] editTelegramMessage - messageId:", messageId)
+    console.log("[v0] editTelegramMessage - text:", text)
+    console.log("[v0] editTelegramMessage - replyMarkup:", JSON.stringify(replyMarkup))
+    
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     })
     const data = await res.json()
-    console.log("[v0] editTelegramMessage - response ok:", data?.ok, "error:", data?.description)
-    return data?.ok || false
+    
+    console.log("[v0] editTelegramMessage - RESPOSTA COMPLETA:", JSON.stringify(data))
+    
+    if (!data?.ok) {
+      console.log("[v0] editTelegramMessage - ERRO:", data?.description, "error_code:", data?.error_code)
+      return { ok: false, error: data?.description, errorCode: data?.error_code }
+    }
+    
+    console.log("[v0] editTelegramMessage - SUCESSO")
+    return { ok: true }
   } catch (err) {
-    console.log("[v0] editTelegramMessage - error:", err)
-    return false
+    console.log("[v0] editTelegramMessage - EXCEPTION:", err)
+    return { ok: false, error: String(err) }
   }
 }
 
@@ -975,6 +988,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const mainDescription = metadata?.main_description || "Plano"
         const summaryMsgId = metadata?.summary_message_id || metadata?.progress_message_id
         
+        // DEBUG: Log all metadata
+        console.log("[v0] DEBUG - METADATA COMPLETO:", JSON.stringify(metadata, null, 2))
+        console.log("[v0] DEBUG - summary_message_id:", metadata?.summary_message_id)
+        console.log("[v0] DEBUG - progress_message_id:", metadata?.progress_message_id)
+        console.log("[v0] DEBUG - summaryMsgId usado:", summaryMsgId)
+        console.log("[v0] DEBUG - chatId:", chatId)
+        console.log("[v0] DEBUG - orderBumpsInfo:", JSON.stringify(orderBumpsInfo))
+        
         // Verificar se este bump já foi selecionado
         if (selectedBumps.includes(bumpIndex)) {
           console.log("[v0] Multi Order Bump - Bump ja selecionado:", bumpIndex)
@@ -987,25 +1008,37 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const bumpMsgId = orderBumpsInfo[bumpIndex]?.messageId
         const bumpDesc = orderBumpsInfo[bumpIndex]?.description || ""
         selectedBumpNames.push(bumpName)
-        const currentTotalBump = (metadata?.total_bump_amount || 0) + bumpAmount
+        const previousTotalBump = metadata?.total_bump_amount || 0
+        const currentTotalBump = previousTotalBump + bumpAmount
         
-        console.log("[v0] Multi Order Bump - Adicionado bump", bumpIndex, "total selecionados:", selectedBumps.length, "valor total bumps:", currentTotalBump)
+        // DEBUG: Log valores antes da edicao
+        console.log("[v0] DEBUG - VALORES:")
+        console.log("[v0] DEBUG - mainAmount:", mainAmount)
+        console.log("[v0] DEBUG - previousTotalBump:", previousTotalBump)
+        console.log("[v0] DEBUG - bumpAmount adicionado:", bumpAmount)
+        console.log("[v0] DEBUG - currentTotalBump (novo):", currentTotalBump)
         
         // Calcular valor total
         const totalAmount = mainAmount + currentTotalBump
+        console.log("[v0] DEBUG - TOTAL FINAL:", totalAmount)
         
         // 1. Editar a mensagem do ORDER BUMP para marcar como ADICIONADO (remover botoes)
+        console.log("[v0] DEBUG - Editando mensagem do bump - bumpMsgId:", bumpMsgId)
         if (bumpMsgId) {
-          await editTelegramMessage(
+          const bumpEditResult = await editTelegramMessage(
             botToken,
             chatId,
             bumpMsgId,
             `${bumpDesc}\n\n<b>ADICIONADO</b> (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
             undefined // Remove os botões
           )
+          console.log("[v0] DEBUG - Resultado edicao bump:", bumpEditResult)
+        } else {
+          console.log("[v0] DEBUG - bumpMsgId NAO EXISTE, nao editou mensagem do bump")
         }
         
         // 2. Editar a mensagem de RESUMO com valor atualizado
+        console.log("[v0] DEBUG - Editando mensagem RESUMO - summaryMsgId:", summaryMsgId)
         if (summaryMsgId) {
           const finishCallback = `ob_finish_${Math.round(mainAmount * 100)}`
           
@@ -1022,7 +1055,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           summaryText += `\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`
           
-          await editTelegramMessage(
+          console.log("[v0] DEBUG - NOVO TEXTO RESUMO:", summaryText)
+          console.log("[v0] DEBUG - NOVO VALOR BOTAO:", `PROSSEGUIR - R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
+          
+          const summaryEditResult = await editTelegramMessage(
             botToken,
             chatId,
             summaryMsgId,
@@ -1033,6 +1069,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               ]
             }
           )
+          console.log("[v0] DEBUG - Resultado edicao RESUMO:", summaryEditResult)
+        } else {
+          console.log("[v0] DEBUG - summaryMsgId NAO EXISTE, nao editou mensagem de resumo")
         }
         
         // Atualizar estado com o bump selecionado
