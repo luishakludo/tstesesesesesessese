@@ -495,6 +495,18 @@ export async function POST(request: NextRequest) {
                 .eq("status", "pending")
               
               console.log(`[DOWNSELL] Cancelled pending downsells for user ${payment.telegram_user_id}`)
+              
+              // ATUALIZAR user_flow_state para "paid" (usado pelo cron para verificar se deve enviar downsell)
+              await supabase
+                .from("user_flow_state")
+                .upsert({
+                  bot_id: payment.bot_id,
+                  telegram_user_id: payment.telegram_user_id,
+                  status: "paid",
+                  updated_at: new Date().toISOString()
+                }, { onConflict: "bot_id,telegram_user_id" })
+              
+              console.log(`[PAYMENT] User ${payment.telegram_user_id} marked as paid in user_flow_state`)
 
               // Se for pagamento do produto principal ou order bump, verificar se tem upsell
               if (payment.product_type === "main_product" || payment.product_type === "order_bump" || payment.product_type === "plan" || payment.product_type === "plan_order_bump" || payment.product_type === "pack" || payment.product_type === "pack_order_bump") {
