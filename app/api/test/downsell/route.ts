@@ -2,32 +2,81 @@ import { getSupabaseAdmin } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
 // GET - Lista todos os bots com downsell configurado
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()
+  const { searchParams } = new URL(request.url)
+  const flowId = searchParams.get("flow_id")
 
   try {
-    // 1. Buscar todos os bots ativos
+    // Se passou flow_id, busca direto esse fluxo
+    if (flowId) {
+      const { data: flow, error: flowError } = await supabase
+        .from("flows")
+        .select("id, name, config, status, bot_id")
+        .eq("id", flowId)
+        .single()
+
+      if (flowError || !flow) {
+        return NextResponse.json({ error: "Fluxo nao encontrado", flow_id: flowId, details: flowError?.message }, { status: 404 })
+      }
+
+      const { data: bot } = await supabase
+        .from("bots")
+        .select("id, name, token")
+        .eq("id", flow.bot_id)
+        .single()
+
+      const config = flow.config as Record<string, unknown> || {}
+      const downsellConfig = config.downsell as {
+        enabled?: boolean
+        sequences?: Array<{
+          id: string
+          message: string
+          medias?: string[]
+          sendTiming?: string
+          sendDelayValue?: number
+          sendDelayUnit?: string
+          plans?: Array<{ id: string; buttonText: string; price: number }>
+        }>
+      } | undefined
+
+      return NextResponse.json({
+        timestamp: new Date().toISOString(),
+        flow: {
+          id: flow.id,
+          name: flow.name,
+          status: flow.status,
+          bot_id: flow.bot_id,
+          bot_name: bot?.name || "N/A"
+        },
+        downsell_enabled: downsellConfig?.enabled || false,
+        downsell_sequences: downsellConfig?.sequences?.length || 0,
+        downsell_config: downsellConfig,
+        config_completo: config
+      })
+    }
+
+    // 1. Buscar todos os bots (ativos e inativos para debug)
     const { data: bots, error: botsError } = await supabase
       .from("bots")
       .select("id, name, token, status")
-      .eq("status", "active")
 
     if (botsError) {
       return NextResponse.json({ error: "Erro ao buscar bots", details: botsError.message }, { status: 500 })
     }
 
     if (!bots || bots.length === 0) {
-      return NextResponse.json({ message: "Nenhum bot ativo encontrado", bots: [] })
+      return NextResponse.json({ message: "Nenhum bot encontrado", bots: [] })
     }
 
     const results = []
 
     for (const bot of bots) {
+      // Buscar TODOS os fluxos do bot (nao apenas ativos)
       const { data: flows } = await supabase
         .from("flows")
         .select("id, name, config, status")
         .eq("bot_id", bot.id)
-        .eq("status", "ativo")
 
       if (!flows || flows.length === 0) {
         results.push({
