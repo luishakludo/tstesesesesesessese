@@ -542,27 +542,55 @@ export async function GET(
       // ===============================================
       // DIAGNOSTICO RAPIDO
       // ===============================================
-      diagnostico: {
-        status_geral: (!!botInfo && obInicialVaiMostrar) ? "OK" : "PROBLEMAS_DETECTADOS",
-        problemas: [
-          ...(!botInfo ? ["FLUXO_SEM_BOT: Este fluxo nao esta vinculado a nenhum bot. Vincule um bot primeiro."] : []),
-          ...(!obInicialVaiMostrar ? ["ORDER_BUMP_INATIVO: Order Bump esta desativado ou sem preco. Configure e ative o Order Bump."] : []),
-        ],
-        checklist: {
-          "fluxo_existe": true,
-          "fluxo_ativo": flow.status === "active" || flow.status === "ativo" || !flow.status,
-          "tem_planos": planosComCallbacks.length > 0,
-          "bot_vinculado": !!botInfo,
-          "order_bump_enabled": obInicialEnabled,
-          "order_bump_price_ok": obInicialPrice > 0,
-          "order_bump_vai_funcionar": !!botInfo && obInicialVaiMostrar
-        },
-        proximos_passos: [
-          ...(!botInfo ? ["1. Vincular um bot: Acesse /bots e vincule este fluxo"] : []),
-          ...(!obInicialVaiMostrar ? ["2. Ativar Order Bump: Acesse /fluxos/" + flowId + ", va em Order Bump e ative"] : []),
-          ...(!!botInfo && obInicialVaiMostrar ? ["Tudo OK! Teste o bot no Telegram."] : [])
-        ]
-      }
+      // IMPORTANTE: Order bumps podem vir de 3 fontes:
+      // 1. Plan-level order bumps (plans[].order_bumps[]) - MAIOR PRIORIDADE
+      // 2. Order bump global (config.orderBump.inicial) - FALLBACK
+      // 3. Nenhum - vai direto para pagamento
+      diagnostico: (() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const algumPlanoTemOrderBumps = planosComCallbacks.some((p: any) => 
+          p.order_bumps_do_plano?.total_ativos > 0
+        )
+        const orderBumpVaiFuncionar = !!botInfo && (algumPlanoTemOrderBumps || obInicialVaiMostrar)
+        const temAlgumOrderBump = algumPlanoTemOrderBumps || obInicialVaiMostrar
+        
+        return {
+          status_geral: (!!botInfo && temAlgumOrderBump) ? "OK" : "PROBLEMAS_DETECTADOS",
+          problemas: [
+            ...(!botInfo ? ["FLUXO_SEM_BOT: Este fluxo nao esta vinculado a nenhum bot. Vincule um bot primeiro."] : []),
+            ...(!temAlgumOrderBump ? ["ORDER_BUMP_INATIVO: Nenhum order bump configurado (nem global, nem nos planos)."] : []),
+          ],
+          checklist: {
+            "fluxo_existe": true,
+            "fluxo_ativo": flow.status === "active" || flow.status === "ativo" || !flow.status,
+            "tem_planos": planosComCallbacks.length > 0,
+            "bot_vinculado": !!botInfo,
+            "order_bump_global_enabled": obInicialEnabled,
+            "order_bump_global_price_ok": obInicialPrice > 0,
+            "algum_plano_tem_order_bumps": algumPlanoTemOrderBumps,
+            "tem_algum_order_bump_ativo": temAlgumOrderBump,
+            "order_bump_vai_funcionar": orderBumpVaiFuncionar
+          },
+          order_bump_info: {
+            fonte_principal: algumPlanoTemOrderBumps ? "PLAN_LEVEL" : (obInicialVaiMostrar ? "GLOBAL" : "NENHUM"),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            planos_com_bumps: planosComCallbacks
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .filter((p: any) => p.order_bumps_do_plano?.total_ativos > 0)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .map((p: any) => ({
+                plano: p.name,
+                total_bumps: p.order_bumps_do_plano.total_ativos
+              })),
+            global_ativo: obInicialVaiMostrar
+          },
+          proximos_passos: [
+            ...(!botInfo ? ["1. Vincular um bot: Acesse /bots e vincule este fluxo"] : []),
+            ...(!temAlgumOrderBump ? ["2. Adicionar Order Bumps: Configure order bumps nos planos ou ative o global"] : []),
+            ...(!!botInfo && temAlgumOrderBump ? ["Tudo OK! Teste o bot no Telegram."] : [])
+          ]
+        }
+      })()
     }
 
     return NextResponse.json(response, { status: 200 })

@@ -1995,25 +1995,44 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           const orderBumpInicial = orderBumpConfig?.inicial
           
           // ========== VERIFICAR ORDER BUMPS ESPECIFICOS DO PLANO ==========
-          // Primeiro verificar se o plano tem order bumps especificos
+          // PRIORIDADE DE ORDER BUMPS:
+          // 1. Se o plano veio do banco (flow_plans) e tem order_bumps -> usar dbPlan.order_bumps
+          // 2. Se o plano esta no config JSON e tem order_bumps -> usar flowConfig.plans[].order_bumps
+          // 3. Se nenhum dos acima -> usar order bump global (orderBumpConfig.inicial) SE estiver ativo
+          // 
+          // IMPORTANTE: Plan-level order bumps funcionam INDEPENDENTE de config.orderBump.enabled
+          // O global "enabled" so controla o order bump global, nao os especificos do plano
+          
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const configPlans = (flowConfig.plans as Array<Record<string, any>>) || []
+          let planOrderBumps: Array<any> = []
           
-          // Se o plano veio da tabela flow_plans, buscar pelo nome (pois o ID pode ser diferente)
-          // Se veio da config JSON, buscar pelo ID
-          let selectedPlanConfig = null
-          if (planFromDb) {
-            // Buscar pelo nome do plano (case insensitive e trim)
-            selectedPlanConfig = configPlans.find(p => 
-              p.name?.toLowerCase().trim() === planName.toLowerCase().trim()
-            )
-            console.log("[v0] Order Bump - Plano veio da tabela flow_plans, buscando por nome:", planName, "encontrado:", !!selectedPlanConfig)
+          // PRIMEIRO: Verificar se dbPlan (da tabela flow_plans) tem order_bumps
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (planFromDb && dbPlan && (dbPlan as any).order_bumps && Array.isArray((dbPlan as any).order_bumps)) {
+            planOrderBumps = (dbPlan as any).order_bumps
+            console.log("[v0] Order Bump - Usando order_bumps do flow_plans (banco):", planOrderBumps.length, "bumps")
           } else {
-            // Buscar pelo ID exato
-            selectedPlanConfig = configPlans.find(p => p.id === planId)
+            // SEGUNDO: Buscar no config JSON (flows.config.plans[])
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const configPlans = (flowConfig.plans as Array<Record<string, any>>) || []
+            
+            // Se o plano veio da tabela flow_plans, buscar pelo nome (pois o ID pode ser diferente)
+            // Se veio da config JSON, buscar pelo ID
+            let selectedPlanConfig = null
+            if (planFromDb) {
+              // Buscar pelo nome do plano (case insensitive e trim)
+              selectedPlanConfig = configPlans.find(p => 
+                p.name?.toLowerCase().trim() === planName.toLowerCase().trim()
+              )
+              console.log("[v0] Order Bump - Plano veio da tabela flow_plans, buscando por nome:", planName, "encontrado:", !!selectedPlanConfig)
+            } else {
+              // Buscar pelo ID exato
+              selectedPlanConfig = configPlans.find(p => p.id === planId)
+            }
+            
+            planOrderBumps = selectedPlanConfig?.order_bumps || []
+            console.log("[v0] Order Bump - Usando order_bumps do config JSON:", planOrderBumps.length, "bumps")
           }
-          
-          const planOrderBumps = selectedPlanConfig?.order_bumps || []
           
           // Filtrar apenas order bumps ativos e com preco > 0
           const activePlanOrderBumps = planOrderBumps.filter((ob: { enabled?: boolean; price?: number }) => 
