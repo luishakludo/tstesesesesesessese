@@ -1,81 +1,47 @@
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
+// GET - Lista todos os bots com downsell configurado
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ 
-      error: "Configuracao faltando", 
-      details: {
-        NEXT_PUBLIC_SUPABASE_URL: supabaseUrl ? "OK" : "FALTANDO",
-        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceKey ? "OK" : "FALTANDO"
-      }
-    }, { status: 500 })
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
-  const results: Array<{
-    bot_id: string
-    bot_name: string
-    flow_id: string
-    downsell_enabled: boolean
-    sequences: Array<{
-      id: string
-      message: string
-      delay_minutes: number
-      scheduled_for: string
-      plans: Array<{ id: string; buttonText: string; price: number }>
-    }>
-    simulation: {
-      would_send: boolean
-      reason: string
-    }
-  }> = []
+  const supabase = getSupabaseAdmin()
 
   try {
     // 1. Buscar todos os bots ativos
     const { data: bots, error: botsError } = await supabase
       .from("bots")
-      .select("id, name, token, user_id")
-      .eq("status", "ativo")
+      .select("id, name, token, status")
+      .eq("status", "active")
 
     if (botsError) {
       return NextResponse.json({ error: "Erro ao buscar bots", details: botsError.message }, { status: 500 })
     }
 
     if (!bots || bots.length === 0) {
-      return NextResponse.json({ message: "Nenhum bot ativo encontrado", results: [] })
+      return NextResponse.json({ message: "Nenhum bot ativo encontrado", bots: [] })
     }
 
-    // 2. Para cada bot, buscar flow ativo e verificar downsell
+    const results = []
+
     for (const bot of bots) {
-      const { data: flow } = await supabase
+      const { data: flows } = await supabase
         .from("flows")
-        .select("id, config")
+        .select("id, name, config, status")
         .eq("bot_id", bot.id)
         .eq("status", "ativo")
-        .limit(1)
-        .single()
 
-      if (!flow) {
+      if (!flows || flows.length === 0) {
         results.push({
           bot_id: bot.id,
-          bot_name: bot.name || "Sem nome",
-          flow_id: "",
-          downsell_enabled: false,
-          sequences: [],
-          simulation: {
-            would_send: false,
-            reason: "Nenhum flow ativo encontrado"
-          }
+          bot_name: bot.name,
+          status: "SEM_FLUXO_ATIVO",
+          downsell: null
         })
         continue
       }
 
-      const flowConfig = (flow.config as Record<string, unknown>) || {}
-      const downsellConfig = flowConfig.downsell as {
+      const flow = flows[0]
+      const config = flow.config as Record<string, unknown> || {}
+      const downsellConfig = config.downsell as {
         enabled?: boolean
         sequences?: Array<{
           id: string
@@ -85,28 +51,23 @@ export async function GET() {
           sendDelayValue?: number
           sendDelayUnit?: string
           plans?: Array<{ id: string; buttonText: string; price: number }>
-          deliveryType?: string
         }>
       } | undefined
 
       if (!downsellConfig?.enabled || !downsellConfig.sequences?.length) {
         results.push({
           bot_id: bot.id,
-          bot_name: bot.name || "Sem nome",
+          bot_name: bot.name,
           flow_id: flow.id,
-          downsell_enabled: false,
-          sequences: [],
-          simulation: {
-            would_send: false,
-            reason: "Downsell nao habilitado ou sem sequencias"
-          }
+          flow_name: flow.name,
+          status: "DOWNSELL_DESATIVADO",
+          downsell: downsellConfig
         })
         continue
       }
 
-      // 3. Processar cada sequencia de downsell
       const now = new Date()
-      const sequences = downsellConfig.sequences.map(seq => {
+      const sequencesInfo = downsellConfig.sequences.map((seq, index) => {
         let delayMinutes = seq.sendDelayValue || 1
         if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
         else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
@@ -114,102 +75,117 @@ export async function GET() {
         const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
 
         return {
+          index,
           id: seq.id,
-          message: seq.message || "(sem mensagem)",
+          message_preview: seq.message?.substring(0, 50) + (seq.message?.length > 50 ? "..." : ""),
+          delay_config: `${seq.sendDelayValue || 1} ${seq.sendDelayUnit || "minutes"}`,
           delay_minutes: delayMinutes,
-          scheduled_for: scheduledFor.toISOString(),
-          plans: seq.plans || []
+          seria_enviado_em: scheduledFor.toISOString(),
+          plans_count: seq.plans?.length || 0,
+          medias_count: seq.medias?.length || 0
         }
       })
 
       results.push({
         bot_id: bot.id,
-        bot_name: bot.name || "Sem nome",
+        bot_name: bot.name,
         flow_id: flow.id,
-        downsell_enabled: true,
-        sequences,
-        simulation: {
-          would_send: true,
-          reason: `${sequences.length} downsell(s) seriam agendados`
-        }
+        flow_name: flow.name,
+        status: "DOWNSELL_CONFIGURADO",
+        total_sequences: downsellConfig.sequences.length,
+        sequences: sequencesInfo
       })
     }
 
+    // Buscar mensagens agendadas pendentes
+    const { data: pendingMessages } = await supabase
+      .from("scheduled_messages")
+      .select("*")
+      .eq("status", "pending")
+      .eq("message_type", "downsell")
+      .order("scheduled_for", { ascending: true })
+
     return NextResponse.json({
-      message: "Simulacao concluida",
       timestamp: new Date().toISOString(),
       total_bots: bots.length,
-      bots_with_downsell: results.filter(r => r.downsell_enabled).length,
-      results
+      bots_com_downsell: results.filter(r => r.status === "DOWNSELL_CONFIGURADO").length,
+      results,
+      mensagens_pendentes: {
+        total: pendingMessages?.length || 0,
+        mensagens: pendingMessages?.map(m => ({
+          id: m.id,
+          bot_id: m.bot_id,
+          telegram_user_id: m.telegram_user_id,
+          sequence_id: m.sequence_id,
+          scheduled_for: m.scheduled_for,
+          status: m.status,
+          ja_passou: new Date(m.scheduled_for) < new Date(),
+          falta_minutos: Math.round((new Date(m.scheduled_for).getTime() - Date.now()) / 60000)
+        })) || []
+      }
     })
 
   } catch (error) {
-    return NextResponse.json({ 
-      error: "Erro na simulacao", 
-      details: error instanceof Error ? error.message : "Erro desconhecido" 
+    return NextResponse.json({
+      error: "Erro interno",
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
   }
 }
 
-// POST - Simula um /start completo e agenda os downsells de verdade (para teste)
+// POST - Simula agendamento de downsells
 export async function POST(request: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabase = getSupabaseAdmin()
 
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ 
-      error: "Configuracao faltando", 
-      details: {
-        NEXT_PUBLIC_SUPABASE_URL: supabaseUrl ? "OK" : "FALTANDO",
-        SUPABASE_SERVICE_ROLE_KEY: supabaseServiceKey ? "OK" : "FALTANDO"
-      }
-    }, { status: 500 })
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
-  
   try {
     const body = await request.json().catch(() => ({}))
-    const { simulate_time_passed_minutes = 0, dry_run = true } = body
+    const {
+      simulate_time_passed_minutes = 0,
+      dry_run = true,
+      bot_id = null,
+      telegram_user_id = "TEST_USER_123"
+    } = body
 
-    // 1. Buscar todos os bots ativos com downsell
-    const { data: bots } = await supabase
+    let botsQuery = supabase
       .from("bots")
-      .select("id, name, token")
-      .eq("status", "ativo")
+      .select("id, name, token, status")
+      .eq("status", "active")
 
-    if (!bots || bots.length === 0) {
-      return NextResponse.json({ message: "Nenhum bot encontrado" })
+    if (bot_id) {
+      botsQuery = botsQuery.eq("id", bot_id)
     }
 
-    const testResults: Array<{
-      bot_id: string
-      bot_name: string
-      scheduled_messages: Array<{
-        sequence_id: string
-        scheduled_for: string
-        would_be_sent_now: boolean
-        time_until_send_minutes: number
-      }>
-      cron_simulation: {
-        messages_that_would_send: number
-        details: string[]
-      }
-    }> = []
+    const { data: bots, error: botsError } = await botsQuery
+
+    if (botsError || !bots || bots.length === 0) {
+      return NextResponse.json({ error: "Nenhum bot encontrado", details: botsError?.message }, { status: 404 })
+    }
+
+    const simulationResults = []
+    const now = new Date()
+    const simulatedNow = new Date(now.getTime() + simulate_time_passed_minutes * 60 * 1000)
 
     for (const bot of bots) {
-      const { data: flow } = await supabase
+      const { data: flows } = await supabase
         .from("flows")
-        .select("id, config")
+        .select("id, name, config")
         .eq("bot_id", bot.id)
         .eq("status", "ativo")
         .limit(1)
-        .single()
 
-      if (!flow) continue
+      if (!flows || flows.length === 0) {
+        simulationResults.push({
+          bot_id: bot.id,
+          bot_name: bot.name,
+          status: "SEM_FLUXO",
+          actions: []
+        })
+        continue
+      }
 
-      const flowConfig = (flow.config as Record<string, unknown>) || {}
-      const downsellConfig = flowConfig.downsell as {
+      const flow = flows[0]
+      const config = flow.config as Record<string, unknown> || {}
+      const downsellConfig = config.downsell as {
         enabled?: boolean
         sequences?: Array<{
           id: string
@@ -225,94 +201,99 @@ export async function POST(request: Request) {
         }>
       } | undefined
 
-      if (!downsellConfig?.enabled || !downsellConfig.sequences?.length) continue
+      if (!downsellConfig?.enabled || !downsellConfig.sequences?.length) {
+        simulationResults.push({
+          bot_id: bot.id,
+          bot_name: bot.name,
+          status: "DOWNSELL_DESATIVADO",
+          actions: []
+        })
+        continue
+      }
 
-      const now = new Date()
-      const simulatedNow = new Date(now.getTime() + simulate_time_passed_minutes * 60 * 1000)
-      
-      const scheduledMessages: Array<{
-        sequence_id: string
-        scheduled_for: string
-        would_be_sent_now: boolean
-        time_until_send_minutes: number
-      }> = []
+      const actions = []
 
-      const cronDetails: string[] = []
-      let messagesThatWouldSend = 0
-
-      // Simular agendamento de cada sequencia
       for (const seq of downsellConfig.sequences) {
         let delayMinutes = seq.sendDelayValue || 1
         if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
         else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
 
         const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
-        const wouldBeSentNow = simulatedNow >= scheduledFor
-        const timeUntilSend = Math.round((scheduledFor.getTime() - simulatedNow.getTime()) / 60000)
+        const shouldSendNow = simulatedNow >= scheduledFor
 
-        scheduledMessages.push({
+        const action: Record<string, unknown> = {
           sequence_id: seq.id,
+          sequence_index: downsellConfig.sequences.indexOf(seq),
+          delay_config: `${seq.sendDelayValue || 1} ${seq.sendDelayUnit || "minutes"}`,
+          delay_minutes: delayMinutes,
           scheduled_for: scheduledFor.toISOString(),
-          would_be_sent_now: wouldBeSentNow,
-          time_until_send_minutes: timeUntilSend
-        })
-
-        if (wouldBeSentNow) {
-          messagesThatWouldSend++
-          cronDetails.push(`[ENVIARIA] Seq ${seq.id}: "${seq.message?.substring(0, 50)}..." com ${seq.plans?.length || 0} plano(s)`)
-        } else {
-          cronDetails.push(`[AGUARDANDO] Seq ${seq.id}: faltam ${Math.abs(timeUntilSend)} minutos`)
+          simulated_now: simulatedNow.toISOString(),
+          should_send_now: shouldSendNow,
+          message_preview: seq.message?.substring(0, 100),
+          plans: seq.plans || [],
+          will_insert_to_db: !dry_run
         }
 
-        // Se nao for dry_run, realmente insere no banco
         if (!dry_run) {
-          await supabase.from("scheduled_messages").insert({
-            bot_id: bot.id,
-            flow_id: flow.id,
-            telegram_user_id: "TEST_USER_" + Date.now(),
-            telegram_chat_id: "TEST_CHAT_" + Date.now(),
-            message_type: "downsell",
-            sequence_id: seq.id,
-            sequence_index: downsellConfig.sequences.indexOf(seq),
-            scheduled_for: scheduledFor.toISOString(),
-            status: "pending",
-            metadata: {
-              message: seq.message,
-              medias: seq.medias || [],
-              plans: seq.plans || [],
-              deliveryType: seq.deliveryType,
-              deliverableId: seq.deliverableId,
-              customDelivery: seq.customDelivery,
-              botToken: bot.token,
-              is_test: true
-            }
-          })
+          const { data: inserted, error: insertError } = await supabase
+            .from("scheduled_messages")
+            .insert({
+              bot_id: bot.id,
+              flow_id: flow.id,
+              telegram_user_id: telegram_user_id,
+              telegram_chat_id: telegram_user_id,
+              message_type: "downsell",
+              sequence_id: seq.id,
+              sequence_index: downsellConfig.sequences.indexOf(seq),
+              scheduled_for: scheduledFor.toISOString(),
+              status: "pending",
+              metadata: {
+                message: seq.message,
+                medias: seq.medias || [],
+                plans: seq.plans || [],
+                deliveryType: seq.deliveryType,
+                deliverableId: seq.deliverableId,
+                customDelivery: seq.customDelivery,
+                botToken: bot.token,
+                is_test: true
+              }
+            })
+            .select()
+
+          action.inserted = inserted?.[0] || null
+          action.insert_error = insertError?.message || null
         }
+
+        actions.push(action)
       }
 
-      testResults.push({
+      simulationResults.push({
         bot_id: bot.id,
-        bot_name: bot.name || "Sem nome",
-        scheduled_messages: scheduledMessages,
-        cron_simulation: {
-          messages_that_would_send: messagesThatWouldSend,
-          details: cronDetails
-        }
+        bot_name: bot.name,
+        flow_id: flow.id,
+        flow_name: flow.name,
+        status: "SIMULADO",
+        total_sequences: downsellConfig.sequences.length,
+        actions
       })
     }
 
     return NextResponse.json({
-      message: dry_run ? "Simulacao concluida (dry run)" : "Teste executado - mensagens agendadas no banco",
-      timestamp: new Date().toISOString(),
-      simulated_time_passed_minutes: simulate_time_passed_minutes,
-      dry_run,
-      results: testResults
+      simulation: {
+        timestamp_real: now.toISOString(),
+        simulated_time_passed: `${simulate_time_passed_minutes} minutos`,
+        timestamp_simulado: simulatedNow.toISOString(),
+        dry_run,
+        telegram_user_id
+      },
+      total_bots: bots.length,
+      results: simulationResults
     })
 
   } catch (error) {
-    return NextResponse.json({ 
-      error: "Erro no teste", 
-      details: error instanceof Error ? error.message : "Erro desconhecido" 
+    return NextResponse.json({
+      error: "Erro interno",
+      details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
   }
 }
