@@ -133,7 +133,27 @@ export async function GET(
     // PROCESSAR ORDER BUMPS
     // ===============================================
     const orderBump = config.orderBump || {}
-    const orderBumpInicial = orderBump.inicial || null
+    
+    // Order Bump Inicial pode estar em diferentes lugares:
+    // 1. config.orderBump.inicial (nova estrutura)
+    // 2. config.orderBump direto com enabled/name/price (estrutura intermediaria)
+    // 3. dentro de cada plano (estrutura legada)
+    
+    let orderBumpInicial = orderBump.inicial || null
+    
+    // Se nao tem inicial mas tem dados no orderBump raiz, usar esses
+    if (!orderBumpInicial && (orderBump.enabled !== undefined || orderBump.name || orderBump.price > 0)) {
+      orderBumpInicial = {
+        enabled: orderBump.enabled || false,
+        name: orderBump.name || "",
+        price: orderBump.price || 0,
+        description: orderBump.description || "",
+        acceptText: orderBump.acceptText || "ADICIONAR",
+        rejectText: orderBump.rejectText || "NAO QUERO",
+        medias: orderBump.medias || []
+      }
+    }
+    
     const orderBumpPacks = orderBump.packs || null
     const upsell = config.upsell || null
     const downsell = config.downsell || null
@@ -170,39 +190,65 @@ export async function GET(
     // ===============================================
     // PROCESSAR ORDER BUMP INICIAL
     // ===============================================
-    const orderBumpInicialProcessado = orderBumpInicial ? {
-      configurado: true,
-      enabled: orderBumpInicial.enabled,
-      name: orderBumpInicial.name,
-      price: orderBumpInicial.price,
-      description: orderBumpInicial.description,
-      acceptText: orderBumpInicial.acceptText || "ADICIONAR",
-      rejectText: orderBumpInicial.rejectText || "NAO QUERO",
-      medias: orderBumpInicial.medias || [],
-      // Analise
+    
+    // Verificar se o order bump esta realmente ativo
+    const obInicialEnabled = orderBumpInicial?.enabled === true
+    const obInicialPrice = orderBumpInicial?.price || 0
+    const obInicialVaiMostrar = obInicialEnabled && obInicialPrice > 0
+    
+    const orderBumpInicialProcessado = {
+      // Dados RAW (como esta salvo)
+      raw_config: orderBump,
+      raw_inicial: orderBumpInicial,
+      
+      // Dados processados
+      configurado: !!orderBumpInicial,
+      enabled: obInicialEnabled,
+      name: orderBumpInicial?.name || "",
+      price: obInicialPrice,
+      description: orderBumpInicial?.description || "",
+      acceptText: orderBumpInicial?.acceptText || "ADICIONAR",
+      rejectText: orderBumpInicial?.rejectText || "NAO QUERO",
+      medias: orderBumpInicial?.medias || [],
+      
+      // Analise detalhada
       analise: {
-        vai_mostrar: orderBumpInicial.enabled && orderBumpInicial.price > 0,
-        motivo: !orderBumpInicial.enabled 
-          ? "Order Bump desabilitado (enabled = false)" 
-          : !orderBumpInicial.price || orderBumpInicial.price <= 0 
-            ? "Preco invalido (price <= 0)" 
-            : "Configuracao OK - Sera exibido apos selecao de plano"
+        vai_mostrar: obInicialVaiMostrar,
+        checklist: {
+          "1_tem_orderBump_no_config": !!orderBump && Object.keys(orderBump).length > 0,
+          "2_tem_inicial": !!orderBumpInicial,
+          "3_enabled_true": obInicialEnabled,
+          "4_price_maior_que_zero": obInicialPrice > 0,
+          "5_tem_nome": !!(orderBumpInicial?.name),
+        },
+        motivo: !orderBumpInicial 
+          ? "PROBLEMA: orderBump.inicial nao existe no config"
+          : !obInicialEnabled 
+            ? "PROBLEMA: Order Bump desabilitado (enabled = false). Va em /fluxos/{id} e ative o Order Bump."
+            : obInicialPrice <= 0 
+              ? "PROBLEMA: Preco invalido (price <= 0). Configure um preco maior que zero."
+              : !orderBumpInicial?.name
+                ? "AVISO: Nome nao configurado, mas vai funcionar."
+                : "OK: Order Bump configurado corretamente! Sera exibido apos selecao de plano."
       },
-      // Exemplo de uso
-      exemplo_mensagem: orderBumpInicial.enabled && orderBumpInicial.price > 0 ? {
-        texto: orderBumpInicial.description || `Aproveite! Adicione ${orderBumpInicial.name} por apenas R$ ${orderBumpInicial.price?.toFixed(2).replace(".", ",")}!`,
+      
+      // Exemplo de como vai aparecer
+      exemplo_mensagem: obInicialVaiMostrar ? {
+        texto: orderBumpInicial?.description || `Aproveite! Adicione ${orderBumpInicial?.name} por apenas R$ ${obInicialPrice.toFixed(2).replace(".", ",")}!`,
         botoes: [
-          { text: orderBumpInicial.acceptText || "ADICIONAR", callback_data: "ob_accept_{plan_price}_{bump_price}" },
-          { text: orderBumpInicial.rejectText || "NAO QUERO", callback_data: "ob_decline_{plan_price}_0" }
+          { text: orderBumpInicial?.acceptText || "ADICIONAR", callback_data: "ob_accept_{plan_price}_{bump_price}" },
+          { text: orderBumpInicial?.rejectText || "NAO QUERO", callback_data: "ob_decline_{plan_price}_0" }
         ]
+      } : null,
+      
+      // INSTRUCOES PARA CORRIGIR
+      como_ativar: !obInicialVaiMostrar ? {
+        passo_1: "Acesse /fluxos/" + flowId,
+        passo_2: "Va na aba 'Order Bump'",
+        passo_3: "Ative o switch 'Habilitar Order Bump'",
+        passo_4: "Configure nome, preco e descricao",
+        passo_5: "Clique em 'Salvar Alteracoes'"
       } : null
-    } : {
-      configurado: false,
-      enabled: false,
-      analise: {
-        vai_mostrar: false,
-        motivo: "Order Bump nao configurado no fluxo"
-      }
     }
 
     // ===============================================
@@ -332,7 +378,13 @@ export async function GET(
           telegram_bot_id: botInfo.telegram_bot_id,
           status: botInfo.status
         } : null,
-        problema: !botInfo ? "ATENCAO: Este fluxo nao esta vinculado a nenhum bot! O Order Bump nao funcionara." : null
+        problema: !botInfo ? "ATENCAO: Este fluxo NAO esta vinculado a nenhum bot! O Order Bump NAO funcionara no Telegram." : null,
+        como_vincular: !botInfo ? {
+          passo_1: "Acesse /bots",
+          passo_2: "Crie ou selecione um bot",
+          passo_3: "No bot, vincule este fluxo (flow_id: " + flowId + ")",
+          alternativa: "Ou acesse /fluxos/" + flowId + " e selecione um bot na configuracao"
+        } : null
       },
 
       // Planos
@@ -410,6 +462,31 @@ export async function GET(
         config_keys: Object.keys(config),
         total_planos_config: configPlans.length,
         total_planos_db: dbPlans?.length || 0
+      },
+      
+      // ===============================================
+      // DIAGNOSTICO RAPIDO
+      // ===============================================
+      diagnostico: {
+        status_geral: (!!botInfo && obInicialVaiMostrar) ? "OK" : "PROBLEMAS_DETECTADOS",
+        problemas: [
+          ...(!botInfo ? ["FLUXO_SEM_BOT: Este fluxo nao esta vinculado a nenhum bot. Vincule um bot primeiro."] : []),
+          ...(!obInicialVaiMostrar ? ["ORDER_BUMP_INATIVO: Order Bump esta desativado ou sem preco. Configure e ative o Order Bump."] : []),
+        ],
+        checklist: {
+          "fluxo_existe": true,
+          "fluxo_ativo": flow.status === "active" || flow.status === "ativo" || !flow.status,
+          "tem_planos": planosComCallbacks.length > 0,
+          "bot_vinculado": !!botInfo,
+          "order_bump_enabled": obInicialEnabled,
+          "order_bump_price_ok": obInicialPrice > 0,
+          "order_bump_vai_funcionar": !!botInfo && obInicialVaiMostrar
+        },
+        proximos_passos: [
+          ...(!botInfo ? ["1. Vincular um bot: Acesse /bots e vincule este fluxo"] : []),
+          ...(!obInicialVaiMostrar ? ["2. Ativar Order Bump: Acesse /fluxos/" + flowId + ", va em Order Bump e ative"] : []),
+          ...(!!botInfo && obInicialVaiMostrar ? ["Tudo OK! Teste o bot no Telegram."] : [])
+        ]
       }
     }
 
