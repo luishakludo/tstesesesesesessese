@@ -1535,11 +1535,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           }
           
           // Save payment - IMPORTANTE: usar ownerUserId que foi encontrado corretamente
-          // Schema: user_id, amount, status, payment_method, gateway, external_payment_id, product_type, bot_id
-          console.log("[v0] Saving OB payment - user_id:", ownerUserId, "bot_id:", botUuid, "amount:", totalAmount, "productType:", productType)
+          console.log("[v0] Saving OB payment - user_id:", ownerUserId, "bot_id:", botUuid, "amount:", totalAmount, "productType:", productType, "telegram_user_id:", telegramUserId, "telegram_username:", userUsername)
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: ownerUserId,
+            telegram_user_id: String(telegramUserId),
+            telegram_username: userUsername || null,
+            telegram_first_name: userFirstName || null,
+            telegram_last_name: userLastName || null,
             amount: totalAmount,
             status: "pending",
             payment_method: "pix",
