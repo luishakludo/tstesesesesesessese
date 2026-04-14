@@ -2018,149 +2018,74 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial:", !!orderBumpInicial?.enabled)
           
           // Se o plano tem order bumps especificos, usar eles
+          // USANDO MESMA LOGICA DO ORDER BUMP GLOBAL (ob_accept_ e ob_decline_)
           if (activePlanOrderBumps.length > 0) {
             const mainPriceRounded = Math.round(planPrice * 100)
-            const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
-            console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
             
-            // Array para armazenar info de todos os order bumps para o estado
-            const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; messageId?: number; description?: string; acceptText?: string; rejectText?: string }> = []
+            // Pegar o PRIMEIRO order bump ativo (mesma logica do global)
+            const planOrderBump = activePlanOrderBumps[0]
+            const bumpPriceRounded = Math.round(planOrderBump.price * 100)
             
-            // Enviar CADA order bump com sua PROPRIA mensagem (imagem + texto + botao)
-            for (let i = 0; i < activePlanOrderBumps.length; i++) {
-              const planOrderBump = activePlanOrderBumps[i]
-              const bumpId = planOrderBump.id || `bump_${i}`
-              const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
-              const orderBumpAcceptText = planOrderBump.acceptText || "QUERO"
-              
-              const bumpPriceRounded = Math.round(planOrderBump.price * 100)
-              const acceptCallback = `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
-              
-              // Enviar midias do order bump se houver
-              if (planOrderBump.medias && planOrderBump.medias.length > 0) {
-                console.log("[v0] Enviando midias do Plan Order Bump", i + 1, ":", planOrderBump.medias.length)
-                await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
-              }
-              
-              // Enviar mensagem do order bump com botao ADICIONAR
-              const bumpKeyboard = {
-                inline_keyboard: [
-                  [{ text: orderBumpAcceptText, callback_data: acceptCallback }]
-                ]
-              }
-              
-              // Se apenas 1 order bump, adicionar botao de recusar
-              if (!hasMultipleOrderBumps) {
-                const declineCallback = `ob_decline_${mainPriceRounded}_0`
-                bumpKeyboard.inline_keyboard.push([{ text: planOrderBump.rejectText || "NAO QUERO", callback_data: declineCallback }])
-              }
-              
-              const bumpMsgId = await sendTelegramMessage(botToken, chatId, orderBumpDesc, bumpKeyboard)
-              
-              orderBumpsInfo.push({
-                id: bumpId,
-                name: planOrderBump.name || `Order Bump ${i + 1}`,
-                price: planOrderBump.price,
-                index: i,
-                messageId: bumpMsgId || undefined,
-                description: orderBumpDesc,
-                acceptText: orderBumpAcceptText,
-                rejectText: planOrderBump.rejectText || "NAO QUERO"
-              })
-            }
+            const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price.toFixed(2).replace(".", ",")}?`
+            const orderBumpAcceptText = planOrderBump.acceptText || "QUERO"
+            const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
             
-            // Enviar mensagem de RESUMO separada (esta sera editada quando clicar em ADICIONAR)
-            const finishCallback = `ob_finish_${mainPriceRounded}`
-            // Usar ctaMessage do primeiro order bump se existir, senao usar mensagem padrao
-            const ctaMessage = activePlanOrderBumps[0]?.ctaMessage || "Escolha um dos produtos acima ou continue com o conteudo principal"
-            const summaryText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>${ctaMessage}</i>`
+            // USAR MESMOS CALLBACKS DO ORDER BUMP GLOBAL
+            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+            const declineCallback = `ob_decline_${mainPriceRounded}_0`
             
-            const summaryMsgId = await sendTelegramMessage(
+            console.log("[v0] Plan Order Bump - usando callbacks padrao:", acceptCallback, declineCallback)
+            
+            // Enviar mensagem do plano selecionado
+            await sendTelegramMessage(
               botToken,
               chatId,
-              summaryText,
-              {
-                inline_keyboard: [
-                  [{ text: `PROSSEGUIR - R$ ${planPrice.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }]
-                ]
-              }
+              `Voce selecionou: *${planName}*\n\nValor: R$ ${planPrice.toFixed(2).replace(".", ",")}`,
+              undefined
             )
             
-            // Salvar estado com info de todos os order bumps e message_id do resumo
-            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId), "total bumps:", orderBumpsInfo.length, "summaryMsgId:", summaryMsgId)
-            
-            // PRIMEIRO: Deletar qualquer estado anterior para evitar conflitos
-            const { error: deleteError } = await supabase
-              .from("user_flow_state")
-              .delete()
-              .eq("bot_id", botUuid)
-              .eq("telegram_user_id", String(telegramUserId))
-            
-            if (deleteError) {
-              console.log("[v0] Aviso ao deletar estado anterior:", deleteError.message)
+            // Enviar midias do order bump se houver
+            if (planOrderBump.medias && planOrderBump.medias.length > 0) {
+              console.log("[v0] Enviando midias do Plan Order Bump:", planOrderBump.medias.length)
+              await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
             }
             
-            // SEGUNDO: Inserir novo estado (em vez de upsert)
-            const stateData = {
+            // Montar teclado com botoes ADICIONAR e NAO QUERO
+            const orderBumpKeyboard = {
+              inline_keyboard: [
+                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
+              ]
+            }
+            
+            // Enviar oferta do Order Bump
+            await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
+            
+            // Salvar estado USANDO MESMO STATUS DO ORDER BUMP GLOBAL (waiting_order_bump)
+            console.log("[v0] Salvando estado Plan Order Bump - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId))
+            const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
               bot_id: botUuid,
               telegram_user_id: String(telegramUserId),
               flow_id: flowForOrderBump.id,
-              status: "waiting_multi_order_bump",
+              status: "waiting_order_bump", // MESMO STATUS DO ORDER BUMP GLOBAL
               current_node_position: 0,
               metadata: {
                 type: "plan",
+                order_bump_name: planOrderBump.name || "Order Bump",
+                order_bump_price: planOrderBump.price,
                 main_amount: planPrice,
                 main_description: planName,
-                order_bump_source: "plan_specific",
-                // Info de todos os order bumps
-                order_bumps: orderBumpsInfo,
-                selected_bumps: [], // Array de índices selecionados
-                selected_bump_names: [], // Array de nomes selecionados
-                total_bump_amount: 0, // Soma dos valores selecionados
-                summary_message_id: summaryMsgId, // ID da mensagem de resumo para editar
-                // Para único order bump (compatibilidade)
-                order_bump_name: orderBumpsInfo[0]?.name || "Order Bump",
-                order_bump_price: orderBumpsInfo[0]?.price || 0
+                order_bump_source: "plan_specific"
               },
               updated_at: new Date().toISOString()
-            }
+            }, {
+              onConflict: "bot_id,telegram_user_id"
+            })
             
-            console.log("[v0] Inserindo estado:", JSON.stringify(stateData, null, 2))
-            
-            const { data: insertedState, error: stateInsertError } = await supabase
-              .from("user_flow_state")
-              .insert(stateData)
-              .select()
-              .single()
-            
-            if (stateInsertError) {
-              console.error("[v0] ERRO ao inserir estado Plan Order Bump:", stateInsertError.message, stateInsertError.details, stateInsertError.hint)
-              // Tentar upsert como fallback
-              console.log("[v0] Tentando upsert como fallback...")
-              const { error: upsertError } = await supabase.from("user_flow_state").upsert(stateData, {
-                onConflict: "bot_id,telegram_user_id"
-              })
-              if (upsertError) {
-                console.error("[v0] ERRO no upsert fallback:", upsertError.message)
-              } else {
-                console.log("[v0] Upsert fallback OK")
-              }
+            if (stateUpsertError) {
+              console.error("[v0] Erro ao salvar estado Plan Order Bump:", stateUpsertError)
             } else {
-              console.log("[v0] Estado Plan Order Bump inserido com sucesso! ID:", insertedState?.id)
-            }
-            
-            // TERCEIRO: Verificar se foi salvo
-            const { data: verifyState, error: verifyError } = await supabase
-              .from("user_flow_state")
-              .select("*")
-              .eq("bot_id", botUuid)
-              .eq("telegram_user_id", String(telegramUserId))
-              .single()
-            
-            if (verifyError) {
-              console.error("[v0] ERRO ao verificar estado salvo:", verifyError.message)
-            } else {
-              console.log("[v0] Estado verificado - status:", verifyState?.status, "metadata keys:", Object.keys(verifyState?.metadata || {}))
+              console.log("[v0] Estado Plan Order Bump salvo com sucesso")
             }
             
             return // STOP - aguardar decisao do Order Bump
@@ -2457,196 +2382,6 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         return
       }
     }
-    
-    // ========== COMANDO /debug - Mostra status do Order Bump de Planos ==========
-    if (text.toLowerCase() === "/debug" || text.toLowerCase().startsWith("/debug ")) {
-      console.log("[v0] Comando /debug recebido - botId:", botUuid, "userId:", telegramUserId)
-      
-      try {
-        // Buscar todas as informacoes do Order Bump de Planos para este bot
-        const debugInfo: string[] = []
-        const problemas: string[] = []
-        
-        debugInfo.push("<b>DEBUG - Order Bump de Planos</b>")
-        debugInfo.push(`<code>Bot ID: ${botUuid}</code>`)
-        debugInfo.push(`<code>User ID: ${telegramUserId}</code>`)
-        debugInfo.push("")
-        
-        // 1. Info do Bot
-        debugInfo.push("<b>BOT:</b>")
-        debugInfo.push(`Nome: ${bot.name || "N/A"}`)
-        debugInfo.push(`Token OK: ${bot.token ? "Sim" : "Nao"}`)
-        debugInfo.push("")
-        
-        // 2. Buscar Gateway
-        const { data: gateway } = await supabase
-          .from("user_gateways")
-          .select("*")
-          .eq("user_id", bot.user_id)
-          .eq("is_active", true)
-          .limit(1)
-          .single()
-        
-        debugInfo.push("<b>GATEWAY:</b>")
-        if (gateway) {
-          debugInfo.push(`Nome: ${gateway.gateway || gateway.name || "MercadoPago"}`)
-          debugInfo.push(`Ativo: Sim`)
-          debugInfo.push(`Token: ${gateway.access_token ? "Configurado" : "NAO CONFIGURADO"}`)
-        } else {
-          debugInfo.push("NAO CONFIGURADO!")
-          problemas.push("Gateway de pagamento nao configurado")
-        }
-        debugInfo.push("")
-        
-        // 3. Buscar Fluxo vinculado
-        let fluxoAtivo = null
-        
-        // Tentar flow_bots primeiro
-        const { data: flowBotLink } = await supabase
-          .from("flow_bots")
-          .select("flow_id")
-          .eq("bot_id", botUuid)
-          .limit(1)
-          .single()
-        
-        if (flowBotLink) {
-          const { data: linkedFlow } = await supabase
-            .from("flows")
-            .select("*")
-            .eq("id", flowBotLink.flow_id)
-            .single()
-          if (linkedFlow) fluxoAtivo = linkedFlow
-        }
-        
-        // Fallback para flows.bot_id
-        if (!fluxoAtivo) {
-          const { data: directFlow } = await supabase
-            .from("flows")
-            .select("*")
-            .eq("bot_id", botUuid)
-            .eq("status", "ativo")
-            .limit(1)
-            .single()
-          if (directFlow) fluxoAtivo = directFlow
-        }
-        
-        debugInfo.push("<b>FLUXO:</b>")
-        if (fluxoAtivo) {
-          debugInfo.push(`Nome: ${fluxoAtivo.name || "Sem nome"}`)
-          debugInfo.push(`ID: <code>${fluxoAtivo.id}</code>`)
-          debugInfo.push(`Status: ${fluxoAtivo.status || "N/A"}`)
-        } else {
-          debugInfo.push("Nenhum fluxo vinculado!")
-          problemas.push("Nenhum fluxo vinculado ao bot")
-        }
-        debugInfo.push("")
-        
-        // 4. Buscar Planos do fluxo
-        if (fluxoAtivo) {
-          const { data: planos } = await supabase
-            .from("plans")
-            .select("*")
-            .eq("flow_id", fluxoAtivo.id)
-            .eq("is_active", true)
-            .order("display_order", { ascending: true })
-          
-          debugInfo.push("<b>PLANOS:</b>")
-          if (planos && planos.length > 0) {
-            planos.forEach((p, i) => {
-              const preco = typeof p.price === "number" ? p.price.toFixed(2).replace(".", ",") : "0,00"
-              debugInfo.push(`${i + 1}. ${p.name} - R$ ${preco}`)
-              debugInfo.push(`   Callback: <code>plan_${p.id}</code>`)
-            })
-          } else {
-            debugInfo.push("Nenhum plano cadastrado!")
-            problemas.push("Nenhum plano cadastrado no fluxo")
-          }
-          debugInfo.push("")
-          
-          // 5. Order Bump Config
-          const flowConfig = (fluxoAtivo.config as Record<string, unknown>) || {}
-          const orderBumpConfig = flowConfig.orderBump as Record<string, unknown> | undefined
-          
-          debugInfo.push("<b>ORDER BUMP (Config):</b>")
-          if (orderBumpConfig) {
-            debugInfo.push(`Ativo: ${orderBumpConfig.enabled ? "SIM" : "NAO"}`)
-            debugInfo.push(`Nome: ${orderBumpConfig.name || "N/A"}`)
-            debugInfo.push(`Preco: R$ ${typeof orderBumpConfig.price === "number" ? (orderBumpConfig.price as number).toFixed(2).replace(".", ",") : "N/A"}`)
-            debugInfo.push(`Descricao: ${orderBumpConfig.description || "N/A"}`)
-            debugInfo.push(`Botao Aceitar: ${orderBumpConfig.acceptButtonText || "ADICIONAR"}`)
-            debugInfo.push(`Botao Recusar: ${orderBumpConfig.declineButtonText || "NAO QUERO"}`)
-            
-            if (!orderBumpConfig.enabled) {
-              problemas.push("Order Bump desabilitado (enabled = false)")
-            }
-          } else {
-            debugInfo.push("Nao configurado no fluxo")
-            problemas.push("Order Bump nao configurado")
-          }
-        }
-        debugInfo.push("")
-        
-        // 6. Estado atual do usuario
-        const { data: userState } = await supabase
-          .from("user_flow_state")
-          .select("*")
-          .eq("bot_id", botUuid)
-          .eq("telegram_user_id", String(telegramUserId))
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .single()
-        
-        debugInfo.push("<b>ESTADO DO USUARIO:</b>")
-        if (userState) {
-          debugInfo.push(`Status: ${userState.status || "N/A"}`)
-          debugInfo.push(`Atualizado: ${userState.updated_at || "N/A"}`)
-          if (userState.metadata) {
-            debugInfo.push(`Metadata: <code>${JSON.stringify(userState.metadata).slice(0, 100)}...</code>`)
-          }
-        } else {
-          debugInfo.push("Nenhum estado encontrado")
-        }
-        debugInfo.push("")
-        
-        // 7. Ultimos pagamentos
-        const { data: pagamentos } = await supabase
-          .from("payments")
-          .select("id, amount, status, product_name, created_at")
-          .eq("bot_id", botUuid)
-          .eq("telegram_user_id", String(telegramUserId))
-          .order("created_at", { ascending: false })
-          .limit(3)
-        
-        debugInfo.push("<b>ULTIMOS PAGAMENTOS:</b>")
-        if (pagamentos && pagamentos.length > 0) {
-          pagamentos.forEach(p => {
-            const valor = typeof p.amount === "number" ? p.amount.toFixed(2).replace(".", ",") : "0,00"
-            debugInfo.push(`- R$ ${valor} | ${p.status} | ${p.product_name || "N/A"}`)
-          })
-        } else {
-          debugInfo.push("Nenhum pagamento encontrado")
-        }
-        debugInfo.push("")
-        
-        // 8. Problemas encontrados
-        if (problemas.length > 0) {
-          debugInfo.push("<b>PROBLEMAS ENCONTRADOS:</b>")
-          problemas.forEach(p => debugInfo.push(`- ${p}`))
-        } else {
-          debugInfo.push("<b>STATUS: OK - Nenhum problema encontrado</b>")
-        }
-        
-        // Enviar mensagem formatada
-        await sendTelegramMessage(botToken, chatId, debugInfo.join("\n"))
-        
-      } catch (debugError) {
-        console.error("[v0] Erro no comando /debug:", debugError)
-        await sendTelegramMessage(botToken, chatId, "Erro ao gerar debug. Tente novamente.")
-      }
-      
-      return
-    }
-    
     // 4. Check if /start command
     const isStart = text.toLowerCase().startsWith("/start")
 
