@@ -7,44 +7,65 @@ export async function GET() {
   const supabase = getSupabaseAdmin()
   const flowId = "bd37e11c-705a-4bf5-81a0-ccefdd2fcad0"
   
-  // Buscar flow e bot
+  // Buscar flow
   const { data: flow } = await supabase
     .from("flows")
-    .select("id, name, bot_id, config, bots(id, name, user_id)")
+    .select("*")
     .eq("id", flowId)
     .single()
   
-  const botId = flow?.bot_id
+  // Buscar bot se tiver
+  let bot = null
+  if (flow?.bot_id) {
+    const { data: botData } = await supabase
+      .from("bots")
+      .select("*")
+      .eq("id", flow.bot_id)
+      .single()
+    bot = botData
+  }
   
-  // Pagamentos desse bot
-  const { data: botPayments } = await supabase
-    .from("payments")
-    .select("*")
-    .eq("bot_id", botId)
-    .order("created_at", { ascending: false })
-    .limit(15)
-  
-  // TODOS os pagamentos recentes (para comparar)
+  // TODOS os pagamentos recentes
   const { data: allPayments } = await supabase
     .from("payments")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(30)
+    .limit(50)
+  
+  // Pagamentos desse flow especificamente
+  const { data: flowPayments } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("flow_id", flowId)
+    .order("created_at", { ascending: false })
+    .limit(20)
   
   // Filtrar order bumps
-  const obFromBot = botPayments?.filter(p => p.product_type?.includes("order_bump")) || []
-  const obFromAll = allPayments?.filter(p => p.product_type?.includes("order_bump")) || []
+  const allOrderBumps = allPayments?.filter(p => p.product_type?.includes("order_bump")) || []
+  const flowOrderBumps = flowPayments?.filter(p => p.product_type?.includes("order_bump")) || []
+  
+  // Buscar bots do sistema para referencia
+  const { data: allBots } = await supabase
+    .from("bots")
+    .select("id, name")
+    .limit(10)
   
   return NextResponse.json({
-    flow: { id: flow?.id, name: flow?.name },
-    bot: { id: botId, name: (flow?.bots as { name?: string })?.name },
+    flow: { 
+      id: flow?.id, 
+      name: flow?.name,
+      bot_id: flow?.bot_id,
+      ALERTA: flow?.bot_id ? null : "FLOW SEM BOT_ID - ISSO PODE SER O PROBLEMA!"
+    },
+    bot: bot ? { id: bot.id, name: bot.name, user_id: bot.user_id } : "NENHUM BOT ASSOCIADO",
     order_bump_config: flow?.config?.orderBump?.inicial,
     
-    pagamentos_deste_bot: {
-      total: botPayments?.length || 0,
-      com_order_bump: obFromBot.length,
-      ultimos_10: botPayments?.slice(0, 10).map(p => ({
+    pagamentos_deste_flow: {
+      total: flowPayments?.length || 0,
+      com_order_bump: flowOrderBumps.length,
+      lista: flowPayments?.map(p => ({
         id: p.id,
+        bot_id: p.bot_id,
         valor: p.amount,
         status: p.status,
         tipo: p.product_type,
@@ -53,11 +74,22 @@ export async function GET() {
       }))
     },
     
-    todos_order_bumps_sistema: {
-      total: obFromAll.length,
-      lista: obFromAll.map(p => ({
+    todos_pagamentos_recentes: {
+      total: allPayments?.length || 0,
+      com_order_bump: allOrderBumps.length,
+      order_bumps: allOrderBumps.map(p => ({
         id: p.id,
         bot_id: p.bot_id,
+        flow_id: p.flow_id,
+        valor: p.amount,
+        status: p.status,
+        tipo: p.product_type,
+        data: p.created_at
+      })),
+      ultimos_10: allPayments?.slice(0, 10).map(p => ({
+        id: p.id,
+        bot_id: p.bot_id,
+        flow_id: p.flow_id,
         valor: p.amount,
         status: p.status,
         tipo: p.product_type,
@@ -65,9 +97,18 @@ export async function GET() {
       }))
     },
     
-    diagnostico: obFromBot.length === 0 
-      ? "PROBLEMA: Nenhum pagamento com order_bump encontrado para este bot"
-      : "OK: Pagamentos com order bump encontrados"
+    bots_no_sistema: allBots,
+    
+    diagnostico: {
+      flow_tem_bot: !!flow?.bot_id,
+      order_bump_ativo: !!flow?.config?.orderBump?.inicial?.enabled,
+      total_order_bumps_sistema: allOrderBumps.length,
+      problema: !flow?.bot_id 
+        ? "FLOW NAO TEM BOT_ID ASSOCIADO" 
+        : allOrderBumps.length === 0 
+          ? "NENHUM ORDER BUMP FOI SALVO NO SISTEMA" 
+          : "OK"
+    }
   })
 }
 
