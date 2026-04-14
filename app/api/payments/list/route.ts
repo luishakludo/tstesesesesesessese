@@ -16,14 +16,26 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Se tiver userId, buscar os bots desse usuario
+    // INCLUI bots com user_id = userId OU bots sem user_id (null) que podem ter sido criados antes da associacao
     let userBotIds: string[] = []
     if (userId) {
+      // Buscar bots do usuario
       const { data: userBots, error: botsError } = await supabase
         .from("bots")
         .select("id")
         .eq("user_id", userId)
-      userBotIds = userBots?.map(b => b.id) || []
-      console.log("[v0] Payments list - userId:", userId, "userBots:", userBots?.length, "botIds:", userBotIds, "error:", botsError)
+      
+      // Tambem buscar bots sem user_id (legado) - esses precisam ser associados
+      const { data: orphanBots } = await supabase
+        .from("bots")
+        .select("id")
+        .is("user_id", null)
+      
+      const ownedBotIds = userBots?.map(b => b.id) || []
+      const orphanBotIds = orphanBots?.map(b => b.id) || []
+      userBotIds = [...ownedBotIds, ...orphanBotIds]
+      
+      console.log("[v0] Payments list - userId:", userId, "ownedBots:", ownedBotIds.length, "orphanBots:", orphanBotIds.length, "totalBotIds:", userBotIds.length, "error:", botsError)
     }
 
     // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
