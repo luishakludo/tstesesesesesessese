@@ -1498,8 +1498,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           })
           if (obPaymentError) {
             console.error("[v0] Error saving OB payment:", obPaymentError)
+            console.error("[v0] OB payment error details:", JSON.stringify(obPaymentError))
           } else {
-            console.log("[v0] OB payment saved successfully")
+            console.log("[v0] OB payment saved successfully - bot_id:", botUuid, "user_id:", botDataOB.user_id, "amount:", totalAmount, "product_type:", productType)
           }
           
         } catch (pixError) {

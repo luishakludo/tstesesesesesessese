@@ -16,14 +16,26 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Se tiver userId, buscar os bots desse usuario
+    // INCLUI bots com user_id = userId OU bots sem user_id (null) que podem ter sido criados antes da associacao
     let userBotIds: string[] = []
     if (userId) {
+      // Buscar bots do usuario
       const { data: userBots, error: botsError } = await supabase
         .from("bots")
         .select("id")
         .eq("user_id", userId)
-      userBotIds = userBots?.map(b => b.id) || []
-      console.log("[v0] Payments list - userId:", userId, "userBots:", userBots?.length, "botIds:", userBotIds, "error:", botsError)
+      
+      // Tambem buscar bots sem user_id (legado) - esses precisam ser associados
+      const { data: orphanBots } = await supabase
+        .from("bots")
+        .select("id")
+        .is("user_id", null)
+      
+      const ownedBotIds = userBots?.map(b => b.id) || []
+      const orphanBotIds = orphanBots?.map(b => b.id) || []
+      userBotIds = [...ownedBotIds, ...orphanBotIds]
+      
+      console.log("[v0] Payments list - userId:", userId, "ownedBots:", ownedBotIds.length, "orphanBots:", orphanBotIds.length, "totalBotIds:", userBotIds.length, "error:", botsError)
     }
 
     // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
@@ -43,7 +55,11 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         // Tem bots: buscar por bot_id OU user_id
-        query = query.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+        // Formato correto para .or() - SEM aspas nos UUIDs
+        const botIdsString = userBotIds.join(",")
+        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
+        console.log("[v0] Payments list - OR filter:", orFilter)
+        query = query.or(orFilter)
       } else {
         // Sem bots: buscar apenas por user_id
         query = query.eq("user_id", userId)
@@ -61,6 +77,11 @@ export async function GET(request: NextRequest) {
     const { data: payments, error, count } = await query
 
     console.log("[v0] Payments query result - count:", count, "payments:", payments?.length, "error:", error)
+    
+    // Debug: mostrar os product_types encontrados
+    const productTypes = payments?.map(p => p.product_type).filter(Boolean)
+    const uniqueTypes = [...new Set(productTypes)]
+    console.log("[v0] Product types found:", uniqueTypes, "order_bump count:", payments?.filter(p => p.product_type?.includes("order_bump")).length)
 
     if (error) {
       console.error("[v0] Error fetching payments:", error)
@@ -77,7 +98,8 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       if (userBotIds.length > 0) {
-        statsQuery = statsQuery.or(`bot_id.in.(${userBotIds.join(",")}),user_id.eq.${userId}`)
+        const botIdsString = userBotIds.join(",")
+        statsQuery = statsQuery.or(`bot_id.in.(${botIdsString}),user_id.eq.${userId}`)
       } else {
         statsQuery = statsQuery.eq("user_id", userId)
       }
