@@ -2021,20 +2021,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           // USANDO MESMA LOGICA DO ORDER BUMP GLOBAL (ob_accept_ e ob_decline_)
           if (activePlanOrderBumps.length > 0) {
             const mainPriceRounded = Math.round(planPrice * 100)
+            const hasMultipleBumps = activePlanOrderBumps.length > 1
             
-            // Pegar o PRIMEIRO order bump ativo (mesma logica do global)
-            const planOrderBump = activePlanOrderBumps[0]
-            const bumpPriceRounded = Math.round(planOrderBump.price * 100)
-            
-            const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price.toFixed(2).replace(".", ",")}?`
-            const orderBumpAcceptText = planOrderBump.acceptText || "QUERO"
-            const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
-            
-            // USAR MESMOS CALLBACKS DO ORDER BUMP GLOBAL
-            const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
-            const declineCallback = `ob_decline_${mainPriceRounded}_0`
-            
-            console.log("[v0] Plan Order Bump - usando callbacks padrao:", acceptCallback, declineCallback)
+            console.log("[v0] Plan Order Bumps - total:", activePlanOrderBumps.length, "multiplos:", hasMultipleBumps)
             
             // Enviar mensagem do plano selecionado
             await sendTelegramMessage(
@@ -2044,22 +2033,65 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               undefined
             )
             
-            // Enviar midias do order bump se houver
-            if (planOrderBump.medias && planOrderBump.medias.length > 0) {
-              console.log("[v0] Enviando midias do Plan Order Bump:", planOrderBump.medias.length)
-              await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
+            // Mostrar CADA order bump
+            for (let i = 0; i < activePlanOrderBumps.length; i++) {
+              const planOrderBump = activePlanOrderBumps[i]
+              const bumpPriceRounded = Math.round(planOrderBump.price * 100)
+              
+              const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price.toFixed(2).replace(".", ",")}?`
+              const orderBumpAcceptText = planOrderBump.acceptText || "QUERO"
+              
+              // Callback para aceitar este order bump especifico
+              const acceptCallback = `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
+              
+              console.log("[v0] Plan Order Bump", i + 1, "- callback:", acceptCallback)
+              
+              // Enviar midias do order bump se houver
+              if (planOrderBump.medias && planOrderBump.medias.length > 0) {
+                console.log("[v0] Enviando midias do Plan Order Bump", i + 1, ":", planOrderBump.medias.length)
+                await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
+              }
+              
+              // Se tem APENAS 1 order bump: mostra QUERO + NAO QUERO
+              // Se tem MAIS DE 1: mostra so QUERO (o PROSSEGUIR vem no final)
+              if (hasMultipleBumps) {
+                // Multiplos bumps: so botao QUERO
+                const bumpKeyboard = {
+                  inline_keyboard: [
+                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }]
+                  ]
+                }
+                await sendTelegramMessage(botToken, chatId, orderBumpDesc, bumpKeyboard)
+              } else {
+                // Apenas 1 bump: QUERO + NAO QUERO
+                const declineCallback = `ob_decline_${mainPriceRounded}_0`
+                const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
+                const bumpKeyboard = {
+                  inline_keyboard: [
+                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
+                    [{ text: orderBumpDeclineText, callback_data: declineCallback }]
+                  ]
+                }
+                await sendTelegramMessage(botToken, chatId, orderBumpDesc, bumpKeyboard)
+              }
             }
             
-            // Montar teclado com botoes ADICIONAR e NAO QUERO
-            const orderBumpKeyboard = {
-              inline_keyboard: [
-                [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
-                [{ text: orderBumpDeclineText, callback_data: declineCallback }]
-              ]
+            // Se tem MAIS DE 1 order bump, adicionar botao PROSSEGUIR no final
+            // Esse botao usa ob_decline_ para gerar PIX sem nenhum bump
+            if (hasMultipleBumps) {
+              const declineCallback = `ob_decline_${mainPriceRounded}_0`
+              const prosseguirKeyboard = {
+                inline_keyboard: [
+                  [{ text: `PROSSEGUIR - R$ ${planPrice.toFixed(2).replace(".", ",")}`, callback_data: declineCallback }]
+                ]
+              }
+              await sendTelegramMessage(
+                botToken,
+                chatId,
+                "Escolha um dos produtos acima ou continue sem adicionar nada:",
+                prosseguirKeyboard
+              )
             }
-            
-            // Enviar oferta do Order Bump
-            await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
             
             // Salvar estado USANDO MESMO STATUS DO ORDER BUMP GLOBAL (waiting_order_bump)
             console.log("[v0] Salvando estado Plan Order Bump - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId))
@@ -2071,8 +2103,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               current_node_position: 0,
               metadata: {
                 type: "plan",
-                order_bump_name: planOrderBump.name || "Order Bump",
-                order_bump_price: planOrderBump.price,
+                order_bump_name: activePlanOrderBumps[0].name || "Order Bump",
+                order_bump_price: activePlanOrderBumps[0].price,
                 main_amount: planPrice,
                 main_description: planName,
                 order_bump_source: "plan_specific"
