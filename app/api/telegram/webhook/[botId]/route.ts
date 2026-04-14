@@ -2467,90 +2467,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           // DOWNSELLS DO TIPO "PIX" (para quem gerou pix mas nao pagou)
           // Buscar flow para pegar config de downsell
-          const { data: flowForDownsell } = await supabase
-            .from("flows")
-            .select("id, config")
-            .eq("bot_id", botUuid)
-            .eq("status", "ativo")
-            .limit(1)
-            .single()
-          
-          if (flowForDownsell) {
-            const flowConfig = (flowForDownsell.config as Record<string, unknown>) || {}
-            const downsellConfig = flowConfig.downsell as { enabled?: boolean; sequences?: Array<{ 
-              id: string; message: string; medias?: string[]; sendTiming?: string; sendDelayValue?: number; sendDelayUnit?: string; 
-              price: number; targetType?: string; deliveryType?: string 
-            }> } | undefined
-            
-            if (downsellConfig?.enabled && downsellConfig.sequences && downsellConfig.sequences.length > 0) {
-              const now = new Date()
-              
-              // Apenas sequencias do tipo "pix"
-              const pixSequences = downsellConfig.sequences.filter(s => s.targetType === "pix")
-              
-              for (const seq of pixSequences) {
-                const isImmediate = !seq.sendTiming || seq.sendTiming === "immediate"
-                
-                if (isImmediate) {
-                  // ENVIAR IMEDIATAMENTE
-                  try {
-                    if (seq.medias && seq.medias.length > 0) {
-                      const validMedias = seq.medias.filter(m => m && !m.startsWith("data:") && m.startsWith("http"))
-                      if (validMedias.length > 0) {
-                        await sendMediaGroup(botToken, chatId, validMedias, seq.message || "")
-                      } else if (seq.message) {
-                        await sendTelegramMessage(botToken, chatId, seq.message)
-                      }
-                    } else if (seq.message) {
-                      await sendTelegramMessage(botToken, chatId, seq.message)
-                    }
-                    
-                    if (seq.price > 0) {
-                      const inlineKeyboard = {
-                        inline_keyboard: [
-                          [{ text: `Quero por R$ ${seq.price.toFixed(2).replace(".", ",")}!`, callback_data: `ds_accept_${seq.id}_${seq.price}` }],
-                          [{ text: "Nao tenho interesse", callback_data: `ds_decline_${seq.id}` }]
-                        ]
-                      }
-                      await sendTelegramMessage(botToken, chatId, "Aproveite esta oferta especial:", inlineKeyboard)
-                    }
-                  } catch (err) {
-                    console.error("[DOWNSELL PIX] Erro ao enviar imediato:", err)
-                  }
-                } else {
-                  // AGENDAR PARA DEPOIS
-                  let delayMinutes = seq.sendDelayValue || 30
-                  if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
-                  else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
-                  
-                  const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
-                  
-                  await supabase.from("scheduled_messages").insert({
-                    bot_id: botUuid,
-                    flow_id: flowForDownsell.id,
-                    telegram_user_id: String(telegramUserId),
-                    telegram_chat_id: String(chatId),
-                    message_type: "downsell",
-                    sequence_id: seq.id,
-                    sequence_index: pixSequences.indexOf(seq),
-                    scheduled_for: scheduledFor.toISOString(),
-                    status: "pending",
-                    metadata: {
-                      message: seq.message,
-                      medias: seq.medias || [],
-                      price: seq.price,
-                      deliveryType: seq.deliveryType,
-                      botToken: botToken,
-                      targetType: "pix",
-                      pixPaymentId: pixResult.paymentId,
-                    }
-                  })
-                }
-              }
-              
-              console.log(`[DOWNSELL PIX] Processed ${pixSequences.length} pix downsells for user ${telegramUserId}`)
-            }
-          }
+          // Downsell agora e processado apenas no /start (nao mais no pix gerado)
           
         } catch (err) {
           const errorMsg = err instanceof Error ? err.message : String(err)
@@ -2780,10 +2697,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             .eq("telegram_user_id", String(telegramUserId))
             .eq("status", "pending")
           
-          // Sequencias do tipo "geral" (para todos que derem start)
-          const geralSequences = downsellConfig.sequences.filter(s => s.targetType === "geral" || !s.targetType)
-          
-          for (const seq of geralSequences) {
+          // Processar todas as sequencias de downsell (enviadas apos o /start se usuario nao pagou)
+          for (const seq of downsellConfig.sequences) {
             const isImmediate = !seq.sendTiming || seq.sendTiming === "immediate"
             
             if (isImmediate) {
@@ -2829,7 +2744,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 telegram_chat_id: String(chatId),
                 message_type: "downsell",
                 sequence_id: seq.id,
-                sequence_index: geralSequences.indexOf(seq),
+                sequence_index: downsellConfig.sequences.indexOf(seq),
                 scheduled_for: scheduledFor.toISOString(),
                 status: "pending",
                 metadata: {
