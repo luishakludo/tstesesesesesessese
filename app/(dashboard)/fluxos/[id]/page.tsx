@@ -3361,116 +3361,74 @@ const newPlan: UpsellPlan = {
 
                             <div className="border-t border-neutral-200 pt-4" />
 
-                            {/* Botao de Recusar */}
-                            <div className="space-y-3">
-                              <h4 className="font-medium">Botao de Recusar</h4>
+                            {/* Botoes - Aceitar e Recusar lado a lado */}
+                            <div className="space-y-4">
+                              <h4 className="font-medium">Configuracao dos Botoes</h4>
                               <p className="text-sm text-neutral-500">
-                                Os planos acima serao exibidos como botoes. Configure aqui o botao de recusar opcional.
+                                Os planos configurados acima aparecerao como botoes de aceitar. O botao de recusar é opcional.
                               </p>
-                              <div className="flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                                <div>
-                                  <p className="text-sm font-medium">Mostrar botao de recusar</p>
-                                  <p className="text-xs text-neutral-500">Adiciona um botao para o cliente pular a oferta</p>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                {/* Botao Aceitar (planos) */}
+                                <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-4 space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <Check className="h-4 w-4 text-emerald-500" />
+                                    <p className="font-medium text-sm">Botoes de Aceitar</p>
+                                  </div>
+                                  <p className="text-xs text-neutral-500">
+                                    Os planos acima serao exibidos como botoes. Cada plano gera um botao de aceitar com o texto e valor configurado.
+                                  </p>
+                                  <div className="pt-2">
+                                    <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded">
+                                      {(seq.plans?.length || 0)} plano(s) configurado(s)
+                                    </span>
+                                  </div>
                                 </div>
-                                <Switch
-                                  checked={!seq.hideRejectButton}
-                                  onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", !checked)}
-                                />
-                              </div>
-                              {!seq.hideRejectButton && (
-                                <div className="space-y-2">
-                                  <Label className="text-sm text-neutral-500">Texto do Botao</Label>
-                                  <div className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
-                                    <X className="h-4 w-4 text-destructive" />
-                                    <Input
-                                      value={seq.rejectButtonText}
-                                      onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
-                                      className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
-                                      placeholder="Nao tenho interesse"
+
+                                {/* Botao Recusar */}
+                                <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-4 space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <X className="h-4 w-4 text-red-500" />
+                                      <p className="font-medium text-sm">Botao de Recusar</p>
+                                    </div>
+                                    <Switch
+                                      checked={!seq.hideRejectButton}
+                                      onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", !checked)}
                                     />
                                   </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Entrega */}
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium">Entrega</h4>
-                                <span className="text-sm text-neutral-500">Opcional</span>
-                              </div>
-                              <p className="text-sm text-neutral-500">
-                                Por padrao, usa o entregavel principal. Selecione outro entregavel para esta sequencia.
-                              </p>
-                              <Select
-                                value={seq.deliveryType}
-                                onValueChange={(value: "global" | "custom") => {
-                                  handleUpdateUpsellSequence(seq.id, "deliveryType", value)
-                                  if (value === "global") {
-                                    handleUpdateUpsellSequence(seq.id, "deliverableId", "")
-                                  }
-                                }}
-                              >
-                                <SelectTrigger className="bg-white border-neutral-200">
-                                  <div className="flex items-center gap-2">
-                                    <RefreshCw className="h-4 w-4 text-neutral-500" />
-                                    <SelectValue />
-                                  </div>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="global">Usar entregavel principal</SelectItem>
-                                  <SelectItem value="custom">Selecionar entregavel</SelectItem>
-                                </SelectContent>
-                              </Select>
-
-                              {/* Seletor de entregavel */}
-                              {seq.deliveryType === "custom" && (
-                                <div className="space-y-2 pt-2">
-                                  {deliverables.length === 0 ? (
-                                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
-                                      <div className="flex items-start gap-2">
-                                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5" />
-                                        <div className="text-sm">
-                                          <p className="font-medium text-amber-500">Nenhum entregavel cadastrado</p>
-                                          <p className="text-neutral-500">
-                                            Va para a aba &quot;Entregaveis&quot; para criar entregaveis reutilizaveis.
-                                          </p>
-                                        </div>
-                                      </div>
+                                  <p className="text-xs text-neutral-500">
+                                    Permite o cliente pular esta oferta e ir para a proxima.
+                                  </p>
+                                  {!seq.hideRejectButton && (
+                                    <div className="pt-2">
+                                      <Input
+                                        value={seq.rejectButtonText}
+                                        onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
+                                        className="bg-white border-red-500/20 h-8 text-sm"
+                                        placeholder="Nao tenho interesse"
+                                      />
                                     </div>
-                                  ) : (
-                                    <>
-                                      <Label className="text-sm">Selecione o entregavel</Label>
-                                      <Select
-                                        value={seq.deliverableId || "none"}
-                                        onValueChange={(value) => handleUpdateUpsellSequence(seq.id, "deliverableId", value === "none" ? "" : value)}
-                                      >
-                                        <SelectTrigger className="bg-white border-neutral-200">
-                                          <SelectValue placeholder="Selecione..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="none">Nenhum selecionado</SelectItem>
-                                          {deliverables.map((d) => (
-                                            <SelectItem key={d.id} value={d.id}>
-                                              <div className="flex items-center gap-2">
-                                                {d.type === "media" && <ImageIcon className="h-3 w-3" />}
-                                                {d.type === "link" && <Link2 className="h-3 w-3" />}
-                                                {d.type === "vip_group" && <Users className="h-3 w-3" />}
-                                                {d.name}
-                                              </div>
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                      {seq.deliverableId && (
-                                        <p className="text-xs text-neutral-500">
-                                          Tipo: {deliverables.find(d => d.id === seq.deliverableId)?.type === "media" ? "Midia" : deliverables.find(d => d.id === seq.deliverableId)?.type === "link" ? "Link" : "Grupo VIP"}
-                                        </p>
-                                      )}
-                                    </>
                                   )}
                                 </div>
-                              )}
+                              </div>
+
+                              {/* Preview dos botoes */}
+                              <div className="rounded-lg bg-neutral-100 p-4 space-y-2">
+                                <p className="text-xs text-neutral-500 font-medium">Preview dos botoes:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {(seq.plans || []).map((plan) => (
+                                    <span key={plan.id} className="bg-emerald-500 text-white text-xs px-3 py-1.5 rounded">
+                                      {plan.buttonText || plan.name || "Aceitar"}
+                                    </span>
+                                  ))}
+                                  {!seq.hideRejectButton && (
+                                    <span className="bg-red-500/80 text-white text-xs px-3 py-1.5 rounded">
+                                      {seq.rejectButtonText || "Nao tenho interesse"}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         )}
