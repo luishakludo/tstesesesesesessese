@@ -50,6 +50,9 @@ export async function GET(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config = (flow.config || {}) as Record<string, any>
+    
+    // DEBUG: Ver exatamente o que esta no banco
+    console.log("[API /api/fluxo] Config RAW do banco:", JSON.stringify(config, null, 2))
 
     // ===============================================
     // BUSCAR PLANOS DO BANCO (flow_plans)
@@ -461,7 +464,9 @@ export async function GET(
       debug: {
         config_keys: Object.keys(config),
         total_planos_config: configPlans.length,
-        total_planos_db: dbPlans?.length || 0
+        total_planos_db: dbPlans?.length || 0,
+        // CONFIG COMPLETO SALVO NO BANCO (para debug)
+        CONFIG_RAW_DO_BANCO: config
       },
       
       // ===============================================
