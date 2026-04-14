@@ -3,161 +3,86 @@ import { getSupabase } from "@/lib/supabase"
 
 /**
  * =====================================================
- * API: ORDER BUMP DE PLANOS - STATUS COMPLETO
+ * API: SIMULACAO PESADA - ORDER BUMP DE PLANOS
  * =====================================================
  * 
- * Endpoint: GET /api/debug/plan-order-bump
+ * GET /api/debug/plan-order-bump
  * 
- * NENHUM PARAMETRO NECESSARIO!
- * Puxa TUDO automaticamente do Supabase.
+ * SEM PARAMETROS! Puxa TUDO do Supabase e simula o fluxo
+ * completo como se o usuario estivesse clicando nos botoes.
  * 
- * Retorna o fluxo completo:
- * Ver Planos -> Selecionar Plano -> Order Bump -> Prosseguir -> PIX
- * 
+ * Retorna JSON com cada etapa da simulacao e o que aconteceu.
  * =====================================================
  */
+
 export async function GET() {
   const supabase = getSupabase()
   const inicio = Date.now()
 
+  const resultado = {
+    ok: true,
+    timestamp: new Date().toISOString(),
+    tempo_execucao_ms: 0,
+    
+    // Resumo geral
+    resumo: {
+      total_bots: 0,
+      total_fluxos: 0,
+      total_planos: 0,
+      order_bumps_ativos: 0,
+      gateways_configurados: 0,
+      total_problemas: 0,
+      pode_processar_pagamento: false
+    },
+    
+    // Dados de cada bot
+    bots: [] as BotSimulacao[],
+    
+    // Problemas globais
+    problemas_globais: [] as string[]
+  }
+
   try {
-    // ========================================
-    // 1. BUSCAR TODOS OS BOTS
-    // ========================================
-    const { data: bots, error: botsError } = await supabase
+    // ========== 1. BUSCAR TODOS OS BOTS ==========
+    const { data: bots, error: botsErr } = await supabase
       .from("bots")
       .select("*")
       .order("created_at", { ascending: false })
 
-    if (botsError) {
-      return NextResponse.json({ erro: "Falha ao buscar bots", detalhes: botsError.message }, { status: 500 })
-    }
-
+    if (botsErr) throw new Error(`Erro ao buscar bots: ${botsErr.message}`)
+    
     if (!bots || bots.length === 0) {
-      return NextResponse.json({
-        status: "VAZIO",
-        mensagem: "Nenhum bot cadastrado no sistema",
-        solucao: "Cadastre um bot em /bots"
-      })
+      resultado.ok = false
+      resultado.problemas_globais.push("Nenhum bot cadastrado no sistema")
+      return NextResponse.json(resultado)
     }
 
-    // ========================================
-    // 2. PROCESSAR CADA BOT
-    // ========================================
-    const resultado = {
-      timestamp: new Date().toISOString(),
-      tempo_ms: 0,
-      
-      resumo: {
-        bots: bots.length,
-        fluxos: 0,
-        planos: 0,
-        order_bumps_ativos: 0,
-        gateways_ok: 0,
-        problemas: 0
-      },
+    resultado.resumo.total_bots = bots.length
 
-      dados: [] as Array<{
-        bot: {
-          id: string
-          nome: string
-          username: string | null
-          telegram_link: string | null
-          token_ok: boolean
-        }
-        gateway: {
-          ok: boolean
-          nome: string | null
-          motivo: string
-        }
-        fluxo: {
-          id: string | null
-          nome: string | null
-          vinculo: string
-        } | null
-        planos: Array<{
-          id: string
-          nome: string
-          preco: number
-          preco_formatado: string
-          callback_telegram: string
-        }>
-        order_bump: {
-          ativo: boolean
-          nome: string | null
-          preco: number | null
-          preco_formatado: string | null
-          descricao: string | null
-          botao_aceitar: string
-          botao_recusar: string
-          callbacks: {
-            aceitar: string
-            recusar: string
-          } | null
-          problema: string | null
-        }
-        simulacao_mensagens: Array<{
-          etapa: number
-          evento: string
-          mensagem: string
-          botoes?: Array<{ texto: string; acao: string }>
-        }>
-        problemas: string[]
-      }>,
-
-      erros_globais: [] as string[]
-    }
-
+    // ========== 2. PROCESSAR CADA BOT ==========
     for (const bot of bots) {
-      const botInfo = {
-        bot: {
-          id: bot.id,
-          nome: bot.name || "Sem nome",
-          username: bot.username,
-          telegram_link: bot.username ? `https://t.me/${bot.username}` : null,
-          token_ok: !!bot.token
+      const botSim: BotSimulacao = {
+        bot_id: bot.id,
+        bot_nome: bot.name || "Sem nome",
+        bot_username: bot.username,
+        bot_link: bot.username ? `https://t.me/${bot.username}` : null,
+        
+        gateway: null,
+        fluxo: null,
+        planos: [],
+        order_bump: null,
+        
+        simulacao: {
+          etapas: [],
+          resultado_final: "NAO_INICIADO",
+          mensagem_final: ""
         },
-        gateway: {
-          ok: false,
-          nome: null as string | null,
-          motivo: "Nao verificado"
-        },
-        fluxo: null as {
-          id: string | null
-          nome: string | null
-          vinculo: string
-        } | null,
-        planos: [] as Array<{
-          id: string
-          nome: string
-          preco: number
-          preco_formatado: string
-          callback_telegram: string
-        }>,
-        order_bump: {
-          ativo: false,
-          nome: null as string | null,
-          preco: null as number | null,
-          preco_formatado: null as string | null,
-          descricao: null as string | null,
-          botao_aceitar: "ADICIONAR",
-          botao_recusar: "NAO QUERO",
-          callbacks: null as { aceitar: string; recusar: string } | null,
-          problema: null as string | null
-        },
-        simulacao_mensagens: [] as Array<{
-          etapa: number
-          evento: string
-          mensagem: string
-          botoes?: Array<{ texto: string; acao: string }>
-        }>,
-        problemas: [] as string[]
+        
+        problemas: []
       }
 
-      // ========================================
-      // 3. BUSCAR GATEWAY
-      // ========================================
-      const { data: gateway } = await supabase
+      // ========== 3. VERIFICAR GATEWAY ==========
+      const { data: gw } = await supabase
         .from("user_gateways")
         .select("*")
         .eq("bot_id", bot.id)
@@ -165,53 +90,45 @@ export async function GET() {
         .limit(1)
         .single()
 
-      if (gateway && gateway.access_token) {
-        botInfo.gateway = {
-          ok: true,
-          nome: gateway.gateway_name || "Mercado Pago",
-          motivo: "Configurado e ativo"
+      if (gw && gw.access_token) {
+        botSim.gateway = {
+          id: gw.id,
+          nome: gw.gateway_name || "Mercado Pago",
+          configurado: true,
+          token_presente: true
         }
-        resultado.resumo.gateways_ok++
+        resultado.resumo.gateways_configurados++
       } else {
-        botInfo.gateway = {
-          ok: false,
+        botSim.gateway = {
+          id: null,
           nome: null,
-          motivo: gateway ? "Token nao configurado" : "Nenhum gateway vinculado"
+          configurado: false,
+          token_presente: false
         }
-        botInfo.problemas.push("Gateway de pagamento nao configurado - PIX nao vai funcionar!")
+        botSim.problemas.push("GATEWAY NAO CONFIGURADO - Pagamentos vao falhar!")
       }
 
-      // ========================================
-      // 4. BUSCAR FLUXO VINCULADO
-      // ========================================
-      let fluxo = null
+      // ========== 4. BUSCAR FLUXO ==========
+      let fluxo: FluxoData | null = null
 
-      // Primeiro: via flow_bots
-      const { data: flowBot } = await supabase
+      // Tentar flow_bots primeiro
+      const { data: fb } = await supabase
         .from("flow_bots")
         .select("flow_id")
         .eq("bot_id", bot.id)
         .limit(1)
         .single()
 
-      if (flowBot?.flow_id) {
+      if (fb?.flow_id) {
         const { data: f } = await supabase
           .from("flows")
           .select("*")
-          .eq("id", flowBot.flow_id)
+          .eq("id", fb.flow_id)
           .single()
-        
-        if (f) {
-          fluxo = f
-          botInfo.fluxo = {
-            id: f.id,
-            nome: f.name,
-            vinculo: "flow_bots"
-          }
-        }
+        if (f) fluxo = f as FluxoData
       }
 
-      // Fallback: via flow.bot_id
+      // Fallback: flow.bot_id
       if (!fluxo) {
         const { data: f } = await supabase
           .from("flows")
@@ -219,28 +136,26 @@ export async function GET() {
           .eq("bot_id", bot.id)
           .limit(1)
           .single()
-
-        if (f) {
-          fluxo = f
-          botInfo.fluxo = {
-            id: f.id,
-            nome: f.name,
-            vinculo: "flow.bot_id"
-          }
-        }
+        if (f) fluxo = f as FluxoData
       }
 
       if (!fluxo) {
-        botInfo.problemas.push("Nenhum fluxo vinculado ao bot")
-        resultado.dados.push(botInfo)
+        botSim.problemas.push("FLUXO NAO VINCULADO - Bot nao tem fluxo")
+        botSim.simulacao.resultado_final = "ERRO"
+        botSim.simulacao.mensagem_final = "Sem fluxo vinculado"
+        resultado.bots.push(botSim)
         continue
       }
 
-      resultado.resumo.fluxos++
+      resultado.resumo.total_fluxos++
+      
+      botSim.fluxo = {
+        id: fluxo.id,
+        nome: fluxo.name || "Sem nome",
+        status: fluxo.status || "N/A"
+      }
 
-      // ========================================
-      // 5. BUSCAR PLANOS
-      // ========================================
+      // ========== 5. BUSCAR PLANOS ==========
       const { data: planosDb } = await supabase
         .from("flow_plans")
         .select("*")
@@ -252,153 +167,291 @@ export async function GET() {
       const config = (fluxo.config || {}) as Record<string, any>
       const planosConfig = config.plans || []
 
-      const planosFinais = (planosDb && planosDb.length > 0)
-        ? planosDb
-        : planosConfig
+      const todosPlanos = (planosDb && planosDb.length > 0) ? planosDb : planosConfig
 
-      if (planosFinais.length === 0) {
-        botInfo.problemas.push("Fluxo nao tem planos configurados")
+      if (todosPlanos.length === 0) {
+        botSim.problemas.push("SEM PLANOS - Fluxo nao tem planos cadastrados")
+        botSim.simulacao.resultado_final = "ERRO"
+        botSim.simulacao.mensagem_final = "Sem planos"
+        resultado.bots.push(botSim)
+        continue
       }
 
-      for (const p of planosFinais) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const p of todosPlanos as any[]) {
         const preco = Number(p.price) || 0
-        const precoCents = Math.round(preco * 100)
-        
-        botInfo.planos.push({
+        botSim.planos.push({
           id: p.id,
           nome: p.name,
           preco: preco,
-          preco_formatado: `R$ ${preco.toFixed(2).replace(".", ",")}`,
-          callback_telegram: `plan_${p.id}`
+          preco_formatado: formatarPreco(preco),
+          callback: `plan_${p.id}`
         })
-        resultado.resumo.planos++
+        resultado.resumo.total_planos++
       }
 
-      // ========================================
-      // 6. BUSCAR ORDER BUMP DO PLANO
-      // ========================================
-      const orderBumpConfig = config.orderBump || {}
-      const obInicial = orderBumpConfig.inicial || orderBumpConfig
-
-      const obEnabled = obInicial.enabled === true
-      const obPrice = Number(obInicial.price) || 0
+      // ========== 6. BUSCAR ORDER BUMP ==========
+      const obConfig = config.orderBump || config.order_bump || {}
+      const obEnabled = obConfig.enabled === true
+      const obPrice = Number(obConfig.price) || 0
       const obAtivo = obEnabled && obPrice > 0
-
-      botInfo.order_bump = {
-        ativo: obAtivo,
-        nome: obInicial.name || null,
-        preco: obPrice || null,
-        preco_formatado: obPrice > 0 ? `R$ ${obPrice.toFixed(2).replace(".", ",")}` : null,
-        descricao: obInicial.description || null,
-        botao_aceitar: obInicial.acceptText || "ADICIONAR",
-        botao_recusar: obInicial.rejectText || "NAO QUERO",
-        callbacks: null,
-        problema: null
-      }
-
-      if (!obEnabled) {
-        botInfo.order_bump.problema = "Order Bump desabilitado (enabled = false)"
-      } else if (obPrice <= 0) {
-        botInfo.order_bump.problema = "Preco do Order Bump invalido (0 ou negativo)"
-      }
 
       if (obAtivo) {
         resultado.resumo.order_bumps_ativos++
-        
-        // Calcular callbacks para cada plano
-        if (botInfo.planos.length > 0) {
-          const planoExemplo = botInfo.planos[0]
-          const planoPriceCents = Math.round(planoExemplo.preco * 100)
-          const bumpPriceCents = Math.round(obPrice * 100)
-          
-          botInfo.order_bump.callbacks = {
-            aceitar: `ob_accept_${planoPriceCents}_${bumpPriceCents}`,
-            recusar: `ob_decline_${planoPriceCents}_0`
-          }
+        botSim.order_bump = {
+          ativo: true,
+          nome: obConfig.name || "Order Bump",
+          preco: obPrice,
+          preco_formatado: formatarPreco(obPrice),
+          descricao: obConfig.description || null,
+          botao_aceitar: obConfig.acceptText || obConfig.acceptButtonText || "ADICIONAR",
+          botao_recusar: obConfig.rejectText || obConfig.declineButtonText || "NAO QUERO"
+        }
+      } else {
+        botSim.order_bump = {
+          ativo: false,
+          nome: null,
+          preco: 0,
+          preco_formatado: null,
+          descricao: null,
+          botao_aceitar: "ADICIONAR",
+          botao_recusar: "NAO QUERO"
+        }
+        if (obConfig.enabled === false) {
+          botSim.problemas.push("ORDER BUMP DESABILITADO - enabled=false no config")
         }
       }
 
-      // ========================================
-      // 7. SIMULAR MENSAGENS DO FLUXO
-      // ========================================
-      if (botInfo.planos.length > 0) {
-        const plano = botInfo.planos[0]
-        const totalComBump = plano.preco + (obAtivo ? obPrice : 0)
+      // ========== 7. SIMULACAO DO FLUXO COMPLETO ==========
+      const planoEscolhido = botSim.planos[0]
+      let etapaNum = 1
 
-        // Etapa 1: Ver Planos
-        botInfo.simulacao_mensagens.push({
-          etapa: 1,
-          evento: "Usuario clica em 'Ver Planos'",
-          mensagem: "Escolha seu plano:",
-          botoes: botInfo.planos.map(p => ({
+      // --- ETAPA 1: Usuario clica "Ver Planos" ---
+      botSim.simulacao.etapas.push({
+        numero: etapaNum++,
+        acao_usuario: "Clica no botao 'Ver Planos'",
+        callback_enviado: "view_plans",
+        resposta_bot: {
+          texto: "Escolha seu plano:",
+          botoes: botSim.planos.map(p => ({
             texto: p.nome,
-            acao: p.callback_telegram
+            callback: p.callback
           }))
-        })
+        },
+        status: "OK",
+        erro: null
+      })
 
-        // Etapa 2: Seleciona Plano
-        botInfo.simulacao_mensagens.push({
-          etapa: 2,
-          evento: `Usuario seleciona "${plano.nome}"`,
-          mensagem: obAtivo 
-            ? (botInfo.order_bump.descricao || `Aproveite! Adicione ${botInfo.order_bump.nome} por apenas ${botInfo.order_bump.preco_formatado}!`)
-            : `Voce selecionou: ${plano.nome}\nValor: ${plano.preco_formatado}`,
-          botoes: obAtivo 
-            ? [
-                { texto: botInfo.order_bump.botao_aceitar, acao: botInfo.order_bump.callbacks?.aceitar || "ob_accept" },
-                { texto: botInfo.order_bump.botao_recusar, acao: botInfo.order_bump.callbacks?.recusar || "ob_decline" }
-              ]
-            : [
-                { texto: `PROSSEGUIR - ${plano.preco_formatado}`, acao: "proceed_payment" }
-              ]
-        })
+      // --- ETAPA 2: Usuario seleciona um plano ---
+      const callbackPlano = `plan_${planoEscolhido.id}`
+      
+      if (obAtivo && botSim.order_bump) {
+        // Com Order Bump
+        const obAcceptCallback = `ob_accept_${Math.round(planoEscolhido.preco * 100)}_${Math.round(obPrice * 100)}`
+        const obDeclineCallback = `ob_decline_${Math.round(planoEscolhido.preco * 100)}_0`
 
-        if (obAtivo) {
-          // Etapa 3: Aceita Order Bump
-          botInfo.simulacao_mensagens.push({
-            etapa: 3,
-            evento: `Usuario clica em "${botInfo.order_bump.botao_aceitar}"`,
-            mensagem: `Adicionado!\n\nResumo do Pedido:\n${plano.nome}: ${plano.preco_formatado}\n${botInfo.order_bump.nome}: ${botInfo.order_bump.preco_formatado}\n\nEscolha um dos produtos acima ou continue com o conteudo principal`,
+        botSim.simulacao.etapas.push({
+          numero: etapaNum++,
+          acao_usuario: `Seleciona plano "${planoEscolhido.nome}"`,
+          callback_enviado: callbackPlano,
+          resposta_bot: {
+            texto: botSim.order_bump.descricao || `Aproveite! Adicione ${botSim.order_bump.nome} por apenas ${botSim.order_bump.preco_formatado}!`,
             botoes: [
-              { texto: `PROSSEGUIR - R$ ${totalComBump.toFixed(2).replace(".", ",")}`, acao: "proceed_payment" }
+              { texto: botSim.order_bump.botao_aceitar, callback: obAcceptCallback },
+              { texto: botSim.order_bump.botao_recusar, callback: obDeclineCallback }
             ]
-          })
+          },
+          status: "OK",
+          erro: null
+        })
 
-          // Etapa 4: Prosseguir
-          botInfo.simulacao_mensagens.push({
-            etapa: 4,
-            evento: "Usuario clica em 'PROSSEGUIR'",
-            mensagem: botInfo.gateway.ok 
-              ? "Gerando PIX... (QR Code seria enviado aqui)"
-              : "Erro ao processar. Tente novamente. (Gateway nao configurado!)"
+        // --- ETAPA 3: Usuario aceita Order Bump ---
+        const totalComBump = planoEscolhido.preco + obPrice
+        
+        botSim.simulacao.etapas.push({
+          numero: etapaNum++,
+          acao_usuario: `Clica em "${botSim.order_bump.botao_aceitar}"`,
+          callback_enviado: obAcceptCallback,
+          resposta_bot: {
+            texto: `Adicionado!\n\nResumo do Pedido:\n${planoEscolhido.nome}: ${planoEscolhido.preco_formatado}\n${botSim.order_bump.nome}: ${botSim.order_bump.preco_formatado}\n\nEscolha um dos produtos acima ou continue com o conteudo principal`,
+            botoes: [
+              { texto: `PROSSEGUIR - ${formatarPreco(totalComBump)}`, callback: "proceed_payment" }
+            ]
+          },
+          status: "OK",
+          erro: null
+        })
+
+        // --- ETAPA 4: Usuario clica PROSSEGUIR ---
+        if (botSim.gateway?.configurado) {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: "proceed_payment",
+            resposta_bot: {
+              texto: `Gerando PIX no valor de ${formatarPreco(totalComBump)}...\n\n[QR CODE SERIA GERADO AQUI]\n\nPix Copia e Cola: 00020126...`,
+              botoes: []
+            },
+            status: "OK",
+            erro: null
           })
+          botSim.simulacao.resultado_final = "SUCESSO"
+          botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${formatarPreco(totalComBump)} seria gerado.`
+          resultado.resumo.pode_processar_pagamento = true
         } else {
-          // Etapa 3: Prosseguir (sem order bump)
-          botInfo.simulacao_mensagens.push({
-            etapa: 3,
-            evento: "Usuario clica em 'PROSSEGUIR'",
-            mensagem: botInfo.gateway.ok 
-              ? "Gerando PIX... (QR Code seria enviado aqui)"
-              : "Erro ao processar. Tente novamente. (Gateway nao configurado!)"
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: "proceed_payment",
+            resposta_bot: {
+              texto: "Erro ao processar. Tente novamente.",
+              botoes: []
+            },
+            status: "ERRO",
+            erro: "Gateway de pagamento nao configurado! Nao consegue gerar PIX."
           })
+          botSim.simulacao.resultado_final = "ERRO_GATEWAY"
+          botSim.simulacao.mensagem_final = "Pagamento falha porque gateway nao esta configurado"
+        }
+
+      } else {
+        // Sem Order Bump - vai direto pro pagamento
+        botSim.simulacao.etapas.push({
+          numero: etapaNum++,
+          acao_usuario: `Seleciona plano "${planoEscolhido.nome}"`,
+          callback_enviado: callbackPlano,
+          resposta_bot: {
+            texto: `Voce selecionou: ${planoEscolhido.nome}\nValor: ${planoEscolhido.preco_formatado}`,
+            botoes: [
+              { texto: `PROSSEGUIR - ${planoEscolhido.preco_formatado}`, callback: "proceed_payment" }
+            ]
+          },
+          status: "OK",
+          erro: null
+        })
+
+        // --- ETAPA 3: Usuario clica PROSSEGUIR ---
+        if (botSim.gateway?.configurado) {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: "proceed_payment",
+            resposta_bot: {
+              texto: `Gerando PIX no valor de ${planoEscolhido.preco_formatado}...\n\n[QR CODE SERIA GERADO AQUI]\n\nPix Copia e Cola: 00020126...`,
+              botoes: []
+            },
+            status: "OK",
+            erro: null
+          })
+          botSim.simulacao.resultado_final = "SUCESSO"
+          botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${planoEscolhido.preco_formatado} seria gerado.`
+          resultado.resumo.pode_processar_pagamento = true
+        } else {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: "proceed_payment",
+            resposta_bot: {
+              texto: "Erro ao processar. Tente novamente.",
+              botoes: []
+            },
+            status: "ERRO",
+            erro: "Gateway de pagamento nao configurado! Nao consegue gerar PIX."
+          })
+          botSim.simulacao.resultado_final = "ERRO_GATEWAY"
+          botSim.simulacao.mensagem_final = "Pagamento falha porque gateway nao esta configurado"
         }
       }
 
       // Contabilizar problemas
-      resultado.resumo.problemas += botInfo.problemas.length
+      resultado.resumo.total_problemas += botSim.problemas.length
 
-      resultado.dados.push(botInfo)
+      resultado.bots.push(botSim)
     }
 
-    resultado.tempo_ms = Date.now() - inicio
+    resultado.tempo_execucao_ms = Date.now() - inicio
+    resultado.ok = resultado.resumo.total_problemas === 0
 
     return NextResponse.json(resultado, { status: 200 })
 
   } catch (error) {
     return NextResponse.json({
-      erro: true,
-      mensagem: error instanceof Error ? error.message : "Erro desconhecido",
-      timestamp: new Date().toISOString()
+      ok: false,
+      erro: error instanceof Error ? error.message : "Erro desconhecido",
+      timestamp: new Date().toISOString(),
+      tempo_execucao_ms: Date.now() - inicio
     }, { status: 500 })
   }
+}
+
+// ========== TIPOS ==========
+
+interface BotSimulacao {
+  bot_id: string
+  bot_nome: string
+  bot_username: string | null
+  bot_link: string | null
+  
+  gateway: {
+    id: string | null
+    nome: string | null
+    configurado: boolean
+    token_presente: boolean
+  } | null
+  
+  fluxo: {
+    id: string
+    nome: string
+    status: string
+  } | null
+  
+  planos: Array<{
+    id: string
+    nome: string
+    preco: number
+    preco_formatado: string
+    callback: string
+  }>
+  
+  order_bump: {
+    ativo: boolean
+    nome: string | null
+    preco: number
+    preco_formatado: string | null
+    descricao: string | null
+    botao_aceitar: string
+    botao_recusar: string
+  } | null
+  
+  simulacao: {
+    etapas: Array<{
+      numero: number
+      acao_usuario: string
+      callback_enviado: string
+      resposta_bot: {
+        texto: string
+        botoes: Array<{ texto: string; callback: string }>
+      }
+      status: "OK" | "ERRO"
+      erro: string | null
+    }>
+    resultado_final: "NAO_INICIADO" | "SUCESSO" | "ERRO" | "ERRO_GATEWAY"
+    mensagem_final: string
+  }
+  
+  problemas: string[]
+}
+
+interface FluxoData {
+  id: string
+  name: string
+  status?: string
+  config?: Record<string, unknown>
+  bot_id?: string
+}
+
+// ========== HELPERS ==========
+
+function formatarPreco(valor: number): string {
+  return `R$ ${valor.toFixed(2).replace(".", ",")}`
 }
