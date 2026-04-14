@@ -2866,6 +2866,195 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
       }
     }
     
+    // ========== COMANDO /debug - Mostra status do Order Bump de Planos ==========
+    if (text.toLowerCase() === "/debug" || text.toLowerCase().startsWith("/debug ")) {
+      console.log("[v0] Comando /debug recebido - botId:", botUuid, "userId:", telegramUserId)
+      
+      try {
+        // Buscar todas as informacoes do Order Bump de Planos para este bot
+        const debugInfo: string[] = []
+        const problemas: string[] = []
+        
+        debugInfo.push("<b>DEBUG - Order Bump de Planos</b>")
+        debugInfo.push(`<code>Bot ID: ${botUuid}</code>`)
+        debugInfo.push(`<code>User ID: ${telegramUserId}</code>`)
+        debugInfo.push("")
+        
+        // 1. Info do Bot
+        debugInfo.push("<b>BOT:</b>")
+        debugInfo.push(`Nome: ${bot.name || "N/A"}`)
+        debugInfo.push(`Token OK: ${bot.token ? "Sim" : "Nao"}`)
+        debugInfo.push("")
+        
+        // 2. Buscar Gateway
+        const { data: gateway } = await supabase
+          .from("user_gateways")
+          .select("*")
+          .eq("user_id", bot.user_id)
+          .eq("is_active", true)
+          .limit(1)
+          .single()
+        
+        debugInfo.push("<b>GATEWAY:</b>")
+        if (gateway) {
+          debugInfo.push(`Nome: ${gateway.gateway || gateway.name || "MercadoPago"}`)
+          debugInfo.push(`Ativo: Sim`)
+          debugInfo.push(`Token: ${gateway.access_token ? "Configurado" : "NAO CONFIGURADO"}`)
+        } else {
+          debugInfo.push("NAO CONFIGURADO!")
+          problemas.push("Gateway de pagamento nao configurado")
+        }
+        debugInfo.push("")
+        
+        // 3. Buscar Fluxo vinculado
+        let fluxoAtivo = null
+        
+        // Tentar flow_bots primeiro
+        const { data: flowBotLink } = await supabase
+          .from("flow_bots")
+          .select("flow_id")
+          .eq("bot_id", botUuid)
+          .limit(1)
+          .single()
+        
+        if (flowBotLink) {
+          const { data: linkedFlow } = await supabase
+            .from("flows")
+            .select("*")
+            .eq("id", flowBotLink.flow_id)
+            .single()
+          if (linkedFlow) fluxoAtivo = linkedFlow
+        }
+        
+        // Fallback para flows.bot_id
+        if (!fluxoAtivo) {
+          const { data: directFlow } = await supabase
+            .from("flows")
+            .select("*")
+            .eq("bot_id", botUuid)
+            .eq("status", "ativo")
+            .limit(1)
+            .single()
+          if (directFlow) fluxoAtivo = directFlow
+        }
+        
+        debugInfo.push("<b>FLUXO:</b>")
+        if (fluxoAtivo) {
+          debugInfo.push(`Nome: ${fluxoAtivo.name || "Sem nome"}`)
+          debugInfo.push(`ID: <code>${fluxoAtivo.id}</code>`)
+          debugInfo.push(`Status: ${fluxoAtivo.status || "N/A"}`)
+        } else {
+          debugInfo.push("Nenhum fluxo vinculado!")
+          problemas.push("Nenhum fluxo vinculado ao bot")
+        }
+        debugInfo.push("")
+        
+        // 4. Buscar Planos do fluxo
+        if (fluxoAtivo) {
+          const { data: planos } = await supabase
+            .from("plans")
+            .select("*")
+            .eq("flow_id", fluxoAtivo.id)
+            .eq("is_active", true)
+            .order("display_order", { ascending: true })
+          
+          debugInfo.push("<b>PLANOS:</b>")
+          if (planos && planos.length > 0) {
+            planos.forEach((p, i) => {
+              const preco = typeof p.price === "number" ? p.price.toFixed(2).replace(".", ",") : "0,00"
+              debugInfo.push(`${i + 1}. ${p.name} - R$ ${preco}`)
+              debugInfo.push(`   Callback: <code>plan_${p.id}</code>`)
+            })
+          } else {
+            debugInfo.push("Nenhum plano cadastrado!")
+            problemas.push("Nenhum plano cadastrado no fluxo")
+          }
+          debugInfo.push("")
+          
+          // 5. Order Bump Config
+          const flowConfig = (fluxoAtivo.config as Record<string, unknown>) || {}
+          const orderBumpConfig = flowConfig.orderBump as Record<string, unknown> | undefined
+          
+          debugInfo.push("<b>ORDER BUMP (Config):</b>")
+          if (orderBumpConfig) {
+            debugInfo.push(`Ativo: ${orderBumpConfig.enabled ? "SIM" : "NAO"}`)
+            debugInfo.push(`Nome: ${orderBumpConfig.name || "N/A"}`)
+            debugInfo.push(`Preco: R$ ${typeof orderBumpConfig.price === "number" ? (orderBumpConfig.price as number).toFixed(2).replace(".", ",") : "N/A"}`)
+            debugInfo.push(`Descricao: ${orderBumpConfig.description || "N/A"}`)
+            debugInfo.push(`Botao Aceitar: ${orderBumpConfig.acceptButtonText || "ADICIONAR"}`)
+            debugInfo.push(`Botao Recusar: ${orderBumpConfig.declineButtonText || "NAO QUERO"}`)
+            
+            if (!orderBumpConfig.enabled) {
+              problemas.push("Order Bump desabilitado (enabled = false)")
+            }
+          } else {
+            debugInfo.push("Nao configurado no fluxo")
+            problemas.push("Order Bump nao configurado")
+          }
+        }
+        debugInfo.push("")
+        
+        // 6. Estado atual do usuario
+        const { data: userState } = await supabase
+          .from("user_flow_state")
+          .select("*")
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+          .order("updated_at", { ascending: false })
+          .limit(1)
+          .single()
+        
+        debugInfo.push("<b>ESTADO DO USUARIO:</b>")
+        if (userState) {
+          debugInfo.push(`Status: ${userState.status || "N/A"}`)
+          debugInfo.push(`Atualizado: ${userState.updated_at || "N/A"}`)
+          if (userState.metadata) {
+            debugInfo.push(`Metadata: <code>${JSON.stringify(userState.metadata).slice(0, 100)}...</code>`)
+          }
+        } else {
+          debugInfo.push("Nenhum estado encontrado")
+        }
+        debugInfo.push("")
+        
+        // 7. Ultimos pagamentos
+        const { data: pagamentos } = await supabase
+          .from("payments")
+          .select("id, amount, status, product_name, created_at")
+          .eq("bot_id", botUuid)
+          .eq("telegram_user_id", String(telegramUserId))
+          .order("created_at", { ascending: false })
+          .limit(3)
+        
+        debugInfo.push("<b>ULTIMOS PAGAMENTOS:</b>")
+        if (pagamentos && pagamentos.length > 0) {
+          pagamentos.forEach(p => {
+            const valor = typeof p.amount === "number" ? p.amount.toFixed(2).replace(".", ",") : "0,00"
+            debugInfo.push(`- R$ ${valor} | ${p.status} | ${p.product_name || "N/A"}`)
+          })
+        } else {
+          debugInfo.push("Nenhum pagamento encontrado")
+        }
+        debugInfo.push("")
+        
+        // 8. Problemas encontrados
+        if (problemas.length > 0) {
+          debugInfo.push("<b>PROBLEMAS ENCONTRADOS:</b>")
+          problemas.forEach(p => debugInfo.push(`- ${p}`))
+        } else {
+          debugInfo.push("<b>STATUS: OK - Nenhum problema encontrado</b>")
+        }
+        
+        // Enviar mensagem formatada
+        await sendTelegramMessage(botToken, chatId, debugInfo.join("\n"))
+        
+      } catch (debugError) {
+        console.error("[v0] Erro no comando /debug:", debugError)
+        await sendTelegramMessage(botToken, chatId, "Erro ao gerar debug. Tente novamente.")
+      }
+      
+      return
+    }
+    
     // 4. Check if /start command
     const isStart = text.toLowerCase().startsWith("/start")
 
