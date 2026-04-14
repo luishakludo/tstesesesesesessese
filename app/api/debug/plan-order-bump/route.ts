@@ -253,7 +253,41 @@ export async function GET() {
         }
       }
 
-      // ========== 7. SIMULACAO DO FLUXO COMPLETO ==========
+      // ========== 7. VERIFICAR ESTADO DO USUARIO (CRUCIAL!) ==========
+      // Codigo REAL do webhook linhas 1543-1575:
+      // Busca estado com status = "waiting_multi_order_bump"
+      // Se nao encontrar -> "Erro ao processar. Tente novamente."
+      
+      const { data: userStates } = await supabase
+        .from("user_flow_state")
+        .select("*")
+        .eq("bot_id", bot.id)
+        .order("updated_at", { ascending: false })
+        .limit(5)
+      
+      const estadoWaiting = userStates?.find(s => s.status === "waiting_multi_order_bump")
+      const estadoRecente = userStates?.[0]
+      
+      // Adicionar info de debug do estado
+      botSim.estado_usuarios = {
+        total_estados: userStates?.length || 0,
+        estados: (userStates || []).map(s => ({
+          telegram_user_id: s.telegram_user_id,
+          status: s.status,
+          updated_at: s.updated_at,
+          metadata: s.metadata
+        })),
+        tem_waiting_multi_order_bump: !!estadoWaiting,
+        estado_recente: estadoRecente ? {
+          status: estadoRecente.status,
+          updated_at: estadoRecente.updated_at,
+          metadata: estadoRecente.metadata
+        } : null,
+        codigo_webhook: `supabase.from("user_flow_state").select("metadata, flow_id").eq("bot_id", "${bot.id}").eq("telegram_user_id", "XXX").eq("status", "waiting_multi_order_bump").single()`,
+        explicacao: "Se nao encontrar estado com status='waiting_multi_order_bump', mostra 'Erro ao processar. Tente novamente.'"
+      }
+
+      // ========== 8. SIMULACAO DO FLUXO COMPLETO ==========
       const planoEscolhido = botSim.planos[0]
       let etapaNum = 1
 
@@ -314,11 +348,58 @@ export async function GET() {
         })
 
         // --- ETAPA 4: Usuario clica PROSSEGUIR ---
-        if (botSim.gateway?.configurado) {
+        // AQUI EH ONDE O ERRO ACONTECE!
+        // Codigo REAL do webhook linhas 1543-1603:
+        // 1. Busca estado com status = "waiting_multi_order_bump"
+        // 2. Se nao encontrar -> "Erro ao processar. Tente novamente."
+        // 3. Se totalAmount <= 0 -> "Erro ao processar. Tente novamente."
+        // 4. Se gateway nao configurado -> "Nenhum gateway de pagamento configurado"
+        
+        const obFinishCallback = `ob_finish_${Math.round(planoEscolhido.preco * 100)}`
+        
+        // Verificar se vai dar erro no PROSSEGUIR
+        let erroProsseguir: string | null = null
+        let textoResposta = ""
+        
+        if (!botSim.estado_usuarios?.tem_waiting_multi_order_bump) {
+          // ERRO MAIS COMUM: Estado nao existe ou status errado
+          erroProsseguir = `ESTADO NAO ENCONTRADO! O webhook busca user_flow_state com status="waiting_multi_order_bump" mas nao encontrou. Estados atuais: ${botSim.estado_usuarios?.estados.map(e => e.status).join(", ") || "nenhum"}`
+          textoResposta = "Erro ao processar. Tente novamente."
+        } else if (totalComBump <= 0) {
+          // ERRO: Valor zero
+          erroProsseguir = "VALOR TOTAL ZERADO! mainAmount + totalBumpAmount <= 0"
+          textoResposta = "Erro ao processar. Tente novamente."
+        } else if (!botSim.gateway?.configurado) {
+          // ERRO: Gateway nao configurado
+          erroProsseguir = "Gateway de pagamento nao configurado!"
+          textoResposta = "Nenhum gateway de pagamento configurado. Configure em Configuracoes > Integracoes."
+        }
+        
+        if (erroProsseguir) {
           botSim.simulacao.etapas.push({
             numero: etapaNum++,
             acao_usuario: "Clica em 'PROSSEGUIR'",
-            callback_enviado: "proceed_payment",
+            callback_enviado: obFinishCallback,
+            resposta_bot: {
+              texto: textoResposta,
+              botoes: []
+            },
+            status: "ERRO",
+            erro: erroProsseguir,
+            codigo_executado: {
+              linha_1543: `supabase.from("user_flow_state").select("metadata, flow_id").eq("bot_id", "${bot.id}").eq("telegram_user_id", "XXX").eq("status", "waiting_multi_order_bump").single()`,
+              linha_1571: "if (!userState) { await sendTelegramMessage(botToken, chatId, 'Erro ao processar. Tente novamente.'); return }",
+              linha_1597: "if (totalAmount <= 0) { await sendTelegramMessage(botToken, chatId, 'Erro ao processar. Tente novamente.'); return }",
+              linha_1652: "if (!gatewayMulti) { await sendTelegramMessage(botToken, chatId, 'Nenhum gateway de pagamento configurado...'); return }"
+            }
+          })
+          botSim.simulacao.resultado_final = "ERRO"
+          botSim.simulacao.mensagem_final = erroProsseguir
+        } else {
+          botSim.simulacao.etapas.push({
+            numero: etapaNum++,
+            acao_usuario: "Clica em 'PROSSEGUIR'",
+            callback_enviado: obFinishCallback,
             resposta_bot: {
               texto: `Gerando PIX no valor de ${formatarPreco(totalComBump)}...\n\n[QR CODE SERIA GERADO AQUI]\n\nPix Copia e Cola: 00020126...`,
               botoes: []
@@ -329,20 +410,6 @@ export async function GET() {
           botSim.simulacao.resultado_final = "SUCESSO"
           botSim.simulacao.mensagem_final = `Fluxo completo OK! PIX de ${formatarPreco(totalComBump)} seria gerado.`
           resultado.resumo.pode_processar_pagamento = true
-        } else {
-          botSim.simulacao.etapas.push({
-            numero: etapaNum++,
-            acao_usuario: "Clica em 'PROSSEGUIR'",
-            callback_enviado: "proceed_payment",
-            resposta_bot: {
-              texto: "Erro ao processar. Tente novamente.",
-              botoes: []
-            },
-            status: "ERRO",
-            erro: "Gateway de pagamento nao configurado! Nao consegue gerar PIX."
-          })
-          botSim.simulacao.resultado_final = "ERRO_GATEWAY"
-          botSim.simulacao.mensagem_final = "Pagamento falha porque gateway nao esta configurado"
         }
 
       } else {
@@ -423,6 +490,25 @@ interface BotSimulacao {
   bot_username: string | null
   bot_link: string | null
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  estado_usuarios?: {
+    total_estados: number
+    estados: Array<{
+      telegram_user_id: string
+      status: string
+      updated_at: string
+      metadata: unknown
+    }>
+    tem_waiting_multi_order_bump: boolean
+    estado_recente: {
+      status: string
+      updated_at: string
+      metadata: unknown
+    } | null
+    codigo_webhook: string
+    explicacao: string
+  }
+  
   gateway: {
     id: string | null
     nome: string | null
@@ -475,6 +561,12 @@ interface BotSimulacao {
       }
       status: "OK" | "ERRO"
       erro: string | null
+      codigo_executado?: {
+        linha_1543?: string
+        linha_1571?: string
+        linha_1597?: string
+        linha_1652?: string
+      }
     }>
     resultado_final: "NAO_INICIADO" | "SUCESSO" | "ERRO" | "ERRO_GATEWAY"
     mensagem_final: string
