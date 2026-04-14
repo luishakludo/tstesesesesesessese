@@ -2784,21 +2784,14 @@ const newPlan: UpsellPlan = {
                                             <div className="space-y-1">
                                               <Label className="text-xs text-neutral-500">Preco (R$)</Label>
                                               <Input
-                                                type="text"
-                                                inputMode="decimal"
-                                                value={bump.price === 0 ? "" : bump.price}
+                                                type="number"
+                                                step="0.01"
+                                                min="0"
+                                                value={bump.price || ""}
                                                 onChange={(e) => {
-                                                  const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                                  const val = parseFloat(e.target.value) || 0
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  // Manter como string temporariamente para permitir digitar decimais
-                                                  updatedBumps[bumpIndex] = { ...bump, price: val as unknown as number }
-                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
-                                                }}
-                                                onBlur={(e) => {
-                                                  // Converter para numero apenas ao sair do campo
-                                                  const num = parseFloat(e.target.value.replace(",", ".")) || 0
-                                                  const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: num }
+                                                  updatedBumps[bumpIndex] = { ...bump, price: val }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 placeholder="0.00"
