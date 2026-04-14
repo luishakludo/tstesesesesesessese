@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
 // API simples - so acessar o link e ver o JSON
 // GET /api/debug/order-bump-test
 export async function GET() {
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
   const flowId = "bd37e11c-705a-4bf5-81a0-ccefdd2fcad0"
   
   // Buscar flow e bot
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "bot_id e user_id sao obrigatorios" }, { status: 400 })
   }
   
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
   
   const testAmount = amount || 23.00
   const productType = with_order_bump ? "plan_order_bump" : "plan"
