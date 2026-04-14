@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+import { getSupabaseAdmin } from "@/lib/supabase"
 
 // ---------------------------------------------------------------------------
 // Telegram helpers
@@ -356,7 +353,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true })
       }
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+      const supabase = getSupabaseAdmin()
 
       // Busca o pagamento no banco pelo external_payment_id
       console.log("[v0] Buscando pagamento com external_payment_id:", String(paymentId))

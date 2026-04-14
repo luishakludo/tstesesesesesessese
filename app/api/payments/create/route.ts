@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { getSupabaseAdmin } from "@/lib/supabase"
 import { createPayment } from "@/lib/payments/createPayment"
-
-const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +14,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+    const supabase = getSupabaseAdmin()
 
     // Busca o gateway do usuario
     const { data: gatewayData, error: gatewayError } = await supabase

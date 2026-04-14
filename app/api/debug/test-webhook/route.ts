@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-const SUPABASE_URL = "https://izvulojnfvgsbmhyvqtn.supabase.co"
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+import { getSupabaseAdmin } from "@/lib/supabase"
 
 // GET: Testar busca de pagamento e consulta ao MP
 export async function GET(request: NextRequest) {
@@ -16,7 +13,7 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  const supabase = getSupabaseAdmin()
 
   // 1. Buscar pagamento no banco
   const { data: payment, error: paymentError } = await supabase
@@ -120,7 +117,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Falta paymentId no body" })
   }
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  const supabase = getSupabaseAdmin()
 
   // 1. Buscar pagamento
   const { data: payment, error: paymentError } = await supabase
