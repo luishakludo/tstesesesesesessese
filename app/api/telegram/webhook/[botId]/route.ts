@@ -1022,79 +1022,137 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const totalAmount = mainAmount + currentTotalBump
         console.log("[v0] DEBUG - TOTAL FINAL:", totalAmount)
         
-        // 1. Editar a mensagem do ORDER BUMP para marcar como ADICIONADO (remover botoes)
-        console.log("[v0] DEBUG - Editando mensagem do bump - bumpMsgId:", bumpMsgId)
-        if (bumpMsgId) {
-          const bumpEditResult = await editTelegramMessage(
-            botToken,
-            chatId,
-            bumpMsgId,
-            `${bumpDesc}\n\n<b>ADICIONADO</b> (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
-            undefined // Remove os botões
-          )
-          console.log("[v0] DEBUG - Resultado edicao bump:", bumpEditResult)
-        } else {
-          console.log("[v0] DEBUG - bumpMsgId NAO EXISTE, nao editou mensagem do bump")
-        }
+        // NOVO COMPORTAMENTO: Ao clicar em QUERO, gerar PIX diretamente com valor principal + order bump
+        console.log("[v0] Multi Order Bump - Gerando PIX direto com valor:", totalAmount)
         
-        // 2. Editar a mensagem de RESUMO com valor atualizado
-        console.log("[v0] DEBUG - Editando mensagem RESUMO - summaryMsgId:", summaryMsgId)
-        if (summaryMsgId) {
-          const finishCallback = `ob_finish_${Math.round(mainAmount * 100)}`
-          
-          // Montar texto do resumo atualizado
-          let summaryText = `<b>Resumo do Pedido:</b>\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}`
-          
-          // Adicionar cada bump selecionado
-          for (let i = 0; i < selectedBumps.length; i++) {
-            const idx = selectedBumps[i]
-            const name = orderBumpsInfo[idx]?.name || `Adicional ${i + 1}`
-            const price = orderBumpsInfo[idx]?.price || 0
-            summaryText += `\n+ ${name}: R$ ${price.toFixed(2).replace(".", ",")}`
-          }
-          
-          summaryText += `\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`
-          
-          console.log("[v0] DEBUG - NOVO TEXTO RESUMO:", summaryText)
-          console.log("[v0] DEBUG - NOVO VALOR BOTAO:", `PROSSEGUIR - R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
-          
-          const summaryEditResult = await editTelegramMessage(
-            botToken,
-            chatId,
-            summaryMsgId,
-            summaryText,
-            {
-              inline_keyboard: [
-                [{ text: `PROSSEGUIR - R$ ${totalAmount.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }]
-              ]
-            }
-          )
-          console.log("[v0] DEBUG - Resultado edicao RESUMO:", summaryEditResult)
-        } else {
-          console.log("[v0] DEBUG - summaryMsgId NAO EXISTE, nao editou mensagem de resumo")
-        }
+        // Construir descricao com o bump selecionado
+        const description = `${mainDescription} + ${bumpName}`
         
-        // Atualizar estado com o bump selecionado
-        console.log("[v0] Atualizando estado apos adicionar bump - selected_bumps:", selectedBumps, "total_bump_amount:", currentTotalBump)
-        const { error: updateError } = await supabase
+        // Atualizar estado para payment_pending
+        await supabase
           .from("user_flow_state")
-          .update({
+          .update({ 
+            status: "payment_pending", 
             metadata: {
               ...metadata,
               selected_bumps: selectedBumps,
               selected_bump_names: selectedBumpNames,
               total_bump_amount: currentTotalBump
             },
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString() 
           })
           .eq("bot_id", botUuid)
           .eq("telegram_user_id", String(telegramUserId))
         
-        if (updateError) {
-          console.log("[v0] Erro ao atualizar estado:", updateError)
-        } else {
-          console.log("[v0] Estado atualizado com sucesso")
+        // Editar a mensagem do bump para mostrar que foi selecionado
+        if (bumpMsgId) {
+          await editTelegramMessage(
+            botToken,
+            chatId,
+            bumpMsgId,
+            `${bumpDesc}\n\n<b>SELECIONADO</b> (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
+            undefined
+          )
         }
+        
+        // Editar a mensagem de resumo para mostrar processamento
+        if (summaryMsgId) {
+          await editTelegramMessage(
+            botToken,
+            chatId,
+            summaryMsgId,
+            `<b>Gerando pagamento PIX...</b>\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}\n+ ${bumpName}: R$ ${bumpAmount.toFixed(2).replace(".", ",")}\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`,
+            undefined
+          )
+        } else {
+          await sendTelegramMessage(
+            botToken,
+            chatId,
+            `<b>Gerando pagamento PIX...</b>\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`,
+            undefined
+          )
+        }
+        
+        // Buscar dados do bot para pegar o gateway
+        const { data: botDataMultiOb } = await supabase
+          .from("bots")
+          .select("user_id")
+          .eq("id", botUuid)
+          .single()
+        
+        if (!botDataMultiOb?.user_id) {
+          await sendTelegramMessage(botToken, chatId, "Erro: Bot nao encontrado.", undefined)
+          return
+        }
+        
+        // Buscar gateway ativo
+        const { data: gatewayMultiOb } = await supabase
+          .from("user_gateways")
+          .select("*")
+          .eq("user_id", botDataMultiOb.user_id)
+          .eq("is_active", true)
+          .limit(1)
+          .single()
+        
+        if (!gatewayMultiOb) {
+          await sendTelegramMessage(botToken, chatId, "Nenhum gateway de pagamento configurado. Configure em Configuracoes > Integracoes.", undefined)
+          return
+        }
+        
+        // Gerar PIX
+        const pixResultMultiOb = await generatePixPayment({
+          gateway: gatewayMultiOb,
+          amount: totalAmount,
+          description: description,
+          externalReference: `multi_ob_${Date.now()}_${telegramUserId}`,
+          customerEmail: `telegram_${telegramUserId}@bot.temp`
+        })
+        
+        if (!pixResultMultiOb.success || !pixResultMultiOb.qrCode) {
+          console.error("[v0] Erro ao gerar PIX Multi Order Bump:", pixResultMultiOb)
+          await sendTelegramMessage(botToken, chatId, "Erro ao gerar pagamento PIX. Tente novamente.")
+          return
+        }
+        
+        // Salvar pagamento no banco
+        const { error: paymentErrorMultiOb } = await supabase.from("payments").insert({
+          user_id: botDataMultiOb.user_id,
+          bot_id: botUuid,
+          flow_id: userState.flow_id,
+          telegram_user_id: String(telegramUserId),
+          amount: totalAmount,
+          status: "pending",
+          gateway: gatewayMultiOb.gateway,
+          external_id: pixResultMultiOb.paymentId || null,
+          pix_code: pixResultMultiOb.qrCodeBase64 || pixResultMultiOb.qrCode,
+          description: description,
+          created_at: new Date().toISOString()
+        })
+        
+        if (paymentErrorMultiOb) {
+          console.error("[v0] Erro ao salvar pagamento Multi Order Bump:", paymentErrorMultiOb)
+        }
+        
+        // Enviar QR Code
+        const qrImageUrl = pixResultMultiOb.qrCodeBase64
+          ? `data:image/png;base64,${pixResultMultiOb.qrCodeBase64}`
+          : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixResultMultiOb.qrCode)}`
+        
+        if (pixResultMultiOb.qrCodeBase64) {
+          await sendTelegramPhoto(botToken, chatId, Buffer.from(pixResultMultiOb.qrCodeBase64, "base64"), `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
+        } else {
+          await sendTelegramPhoto(botToken, chatId, qrImageUrl, `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
+        }
+        
+        // Enviar codigo Pix Copia e Cola
+        await sendTelegramMessage(
+          botToken,
+          chatId,
+          `<b>Pix Copia e Cola:</b>\n\n<code>${pixResultMultiOb.qrCode}</code>\n\nClique no codigo acima para copiar`,
+          undefined
+        )
+        
+        console.log("[v0] PIX Multi Order Bump gerado com sucesso - Valor:", totalAmount)
         
         return
       }
@@ -2055,7 +2113,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               const planOrderBump = activePlanOrderBumps[i]
               const bumpId = planOrderBump.id || `bump_${i}`
               const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
-              const orderBumpAcceptText = planOrderBump.acceptText || "ADICIONAR"
+              const orderBumpAcceptText = planOrderBump.acceptText || "QUERO"
               
               const bumpPriceRounded = Math.round(planOrderBump.price * 100)
               const acceptCallback = `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
