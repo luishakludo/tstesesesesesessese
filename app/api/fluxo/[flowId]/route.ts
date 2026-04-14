@@ -68,6 +68,7 @@ export async function GET(
     const configPlans = config.plans || []
 
     // Usar planos do banco se existirem, senao do config
+    // IMPORTANTE: Incluir order_bumps de cada plano!
     const planosFinais = (dbPlans && dbPlans.length > 0)
       ? dbPlans.map(p => ({
           id: p.id,
@@ -77,16 +78,20 @@ export async function GET(
           is_active: p.is_active,
           position: p.position,
           fonte: "database (flow_plans)",
-          created_at: p.created_at
+          created_at: p.created_at,
+          // ORDER BUMPS ESPECIFICOS DO PLANO (do banco)
+          order_bumps: p.order_bumps || []
         }))
-      : configPlans.map((p: { id: string; name: string; price: number; description?: string }, index: number) => ({
+      : configPlans.map((p: { id: string; name: string; price: number; description?: string; order_bumps?: Array<{ id: string; name: string; price: number; enabled?: boolean; description?: string; acceptText?: string; rejectText?: string }> }, index: number) => ({
           id: p.id || `config_plan_${index}`,
           name: p.name,
           price: p.price,
           description: p.description || null,
           is_active: true,
           position: index,
-          fonte: "config JSON"
+          fonte: "config JSON",
+          // ORDER BUMPS ESPECIFICOS DO PLANO (do config)
+          order_bumps: p.order_bumps || []
         }))
 
     // ===============================================
@@ -165,20 +170,85 @@ export async function GET(
     const planosComCallbacks = planosFinais.map(plano => {
       const planoPriceCents = Math.round(plano.price * 100)
       const bumpPriceCents = orderBumpInicial?.price ? Math.round(orderBumpInicial.price * 100) : 0
+      
+      // ORDER BUMPS DO PLANO (prioridade sobre global!)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const planOrderBumps = (plano.order_bumps || []) as Array<any>
+      const activePlanOrderBumps = planOrderBumps.filter((ob: { enabled?: boolean; price?: number }) => 
+        ob.enabled && ob.price && ob.price > 0
+      )
+      
+      // LOGICA DE PRIORIDADE:
+      // 1. Se plano tem order_bumps proprios -> usar eles
+      // 2. Se nao tem -> usar order bump global (se ativo)
+      const usarOrderBumpsDoPlano = activePlanOrderBumps.length > 0
+      const usarOrderBumpGlobal = !usarOrderBumpsDoPlano && orderBumpInicial?.enabled && orderBumpInicial?.price > 0
 
       return {
         ...plano,
+        
+        // MOSTRAR ORDER BUMPS DO PLANO
+        order_bumps_do_plano: {
+          total_configurados: planOrderBumps.length,
+          total_ativos: activePlanOrderBumps.length,
+          lista: activePlanOrderBumps.map((ob: { id: string; name: string; price: number; description?: string; acceptText?: string; rejectText?: string }, idx: number) => {
+            const bumpPriceCentsLocal = Math.round(ob.price * 100)
+            return {
+              id: ob.id || `bump_${idx}`,
+              name: ob.name,
+              price: ob.price,
+              description: ob.description,
+              acceptText: ob.acceptText || "ADICIONAR",
+              rejectText: ob.rejectText || "NAO QUERO",
+              telegram_callbacks: {
+                aceitar: `mob_accept_${planoPriceCents}_${bumpPriceCentsLocal}_${idx}`,
+                recusar: `mob_decline_${planoPriceCents}_${idx}`
+              }
+            }
+          }),
+          vai_usar: usarOrderBumpsDoPlano,
+          motivo: usarOrderBumpsDoPlano 
+            ? `PLANO TEM ${activePlanOrderBumps.length} ORDER BUMP(S) PROPRIO(S) - VAI MOSTRAR!` 
+            : "Plano nao tem order bumps proprios"
+        },
+        
         telegram: {
           botao_selecionar: {
             text: plano.name,
             callback_data: `plan_${plano.id}`
           },
-          // Se tiver order bump, esses sao os callbacks que serao gerados
-          order_bump_callbacks: orderBumpInicial?.enabled && orderBumpInicial?.price > 0 ? {
+          
+          // Order Bump que SERA MOSTRADO (prioridade: plano > global)
+          order_bump_que_sera_mostrado: usarOrderBumpsDoPlano 
+            ? {
+                fonte: "PLAN_SPECIFIC",
+                total: activePlanOrderBumps.length,
+                bumps: activePlanOrderBumps.map((ob: { name: string; price: number }, idx: number) => ({
+                  name: ob.name,
+                  price: ob.price,
+                  callback_aceitar: `mob_accept_${planoPriceCents}_${Math.round(ob.price * 100)}_${idx}`,
+                  callback_recusar: `mob_decline_${planoPriceCents}_${idx}`
+                }))
+              }
+            : usarOrderBumpGlobal 
+              ? {
+                  fonte: "GLOBAL_CONFIG",
+                  total: 1,
+                  bumps: [{
+                    name: orderBumpInicial?.name,
+                    price: orderBumpInicial?.price,
+                    callback_aceitar: `ob_accept_${planoPriceCents}_${bumpPriceCents}`,
+                    callback_recusar: `ob_decline_${planoPriceCents}_0`
+                  }]
+                }
+              : null,
+          
+          // Se tiver order bump GLOBAL (fallback quando plano nao tem)
+          order_bump_global_callbacks: usarOrderBumpGlobal ? {
             aceitar: {
               callback_data: `ob_accept_${planoPriceCents}_${bumpPriceCents}`,
-              valor_total: plano.price + orderBumpInicial.price,
-              descricao: `${plano.name} + ${orderBumpInicial.name}`
+              valor_total: plano.price + (orderBumpInicial?.price || 0),
+              descricao: `${plano.name} + ${orderBumpInicial?.name}`
             },
             recusar: {
               callback_data: `ob_decline_${planoPriceCents}_0`,
