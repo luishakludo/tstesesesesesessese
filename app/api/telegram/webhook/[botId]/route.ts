@@ -1912,11 +1912,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           })
         })
         
-        if (isAccept) {
-          // ds_accept_sequenceId_price
-          const parts = callbackData.replace("ds_accept_", "").split("_")
-          const sequenceId = parts[0]
-          const price = parseFloat(parts[1]) || 0
+if (isAccept) {
+    // ds_accept_sequenceId_planId_price
+    const parts = callbackData.replace("ds_accept_", "").split("_")
+    const sequenceId = parts[0]
+    const planId = parts[1]
+    const price = parseFloat(parts[2]) || 0
+    
+    console.log("[v0] DS Accept - sequenceId:", sequenceId, "planId:", planId, "price:", price)
           
           if (price > 0) {
             // Buscar gateway de pagamento
@@ -2683,11 +2686,15 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         // STEP 4: Send/Schedule downsell sequences (enviadas para quem NAO pagou)
         const downsellConfig = flowConfig.downsell as { enabled?: boolean; sequences?: Array<{ 
           id: string; message: string; medias?: string[]; sendTiming?: string; sendDelayValue?: number; sendDelayUnit?: string; 
-          price: number; targetType?: string; deliveryType?: string 
+          plans?: Array<{ id: string; buttonText: string; price: number }>; deliveryType?: string; deliverableId?: string; customDelivery?: string
         }> } | undefined
+        
+        console.log("[v0] DOWNSELL CONFIG:", JSON.stringify(downsellConfig, null, 2))
         
         if (downsellConfig?.enabled && downsellConfig.sequences && downsellConfig.sequences.length > 0) {
           const now = new Date()
+          
+          console.log("[v0] DOWNSELL: Found", downsellConfig.sequences.length, "sequences to process")
           
           // Cancelar agendamentos anteriores deste usuario
           await supabase
@@ -2700,6 +2707,8 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           // Processar todas as sequencias de downsell (enviadas apos o /start se usuario nao pagou)
           for (const seq of downsellConfig.sequences) {
             const isImmediate = !seq.sendTiming || seq.sendTiming === "immediate"
+            
+            console.log("[v0] DOWNSELL SEQ:", seq.id, "isImmediate:", isImmediate, "sendTiming:", seq.sendTiming)
             
             if (isImmediate) {
               // ENVIAR IMEDIATAMENTE - nao depende de cron
@@ -2716,15 +2725,18 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                   await sendTelegramMessage(botToken, chatId, seq.message)
                 }
                 
-                // Enviar botoes de Aceitar/Recusar
-                if (seq.price > 0) {
+                // Enviar botoes para cada plano
+                if (seq.plans && seq.plans.length > 0) {
                   const inlineKeyboard = {
                     inline_keyboard: [
-                      [{ text: `Quero por R$ ${seq.price.toFixed(2).replace(".", ",")}!`, callback_data: `ds_accept_${seq.id}_${seq.price}` }],
+                      ...seq.plans.map(plan => [{ 
+                        text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
+                        callback_data: `ds_accept_${seq.id}_${plan.id}_${plan.price}` 
+                      }]),
                       [{ text: "Nao tenho interesse", callback_data: `ds_decline_${seq.id}` }]
                     ]
                   }
-                  await sendTelegramMessage(botToken, chatId, "Aproveite esta oferta especial:", inlineKeyboard)
+                  await sendTelegramMessage(botToken, chatId, "Escolha uma opcao:", inlineKeyboard)
                 }
               } catch (err) {
                 console.error("[DOWNSELL] Erro ao enviar downsell imediato:", err)
@@ -2737,7 +2749,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               
               const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
               
-              await supabase.from("scheduled_messages").insert({
+              console.log("[v0] DOWNSELL: Scheduling seq", seq.id, "for", scheduledFor.toISOString(), "(delay:", delayMinutes, "min)")
+              
+              const insertResult = await supabase.from("scheduled_messages").insert({
                 bot_id: botUuid,
                 flow_id: startFlow.id,
                 telegram_user_id: String(telegramUserId),
@@ -2750,13 +2764,19 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 metadata: {
                   message: seq.message,
                   medias: seq.medias || [],
-                  price: seq.price,
+                  plans: seq.plans || [],
                   deliveryType: seq.deliveryType,
+                  deliverableId: seq.deliverableId,
+                  customDelivery: seq.customDelivery,
                   botToken: botToken,
                 }
               })
+              
+              console.log("[v0] DOWNSELL INSERT RESULT:", insertResult.error ? insertResult.error.message : "SUCCESS")
             }
           }
+        } else {
+          console.log("[v0] DOWNSELL: Not enabled or no sequences. enabled:", downsellConfig?.enabled, "sequences:", downsellConfig?.sequences?.length)
         }
         
         return

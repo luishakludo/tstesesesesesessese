@@ -117,9 +117,11 @@ export async function GET(request: NextRequest) {
         const metadata = msg.metadata as {
           message?: string
           medias?: string[]
-          price?: number
+          plans?: Array<{ id: string; buttonText: string; price: number }>
           botToken?: string
           deliveryType?: string
+          deliverableId?: string
+          customDelivery?: string
         } | null
         
         if (!metadata?.botToken) {
@@ -140,7 +142,7 @@ export async function GET(request: NextRequest) {
         const chatId = msg.telegram_chat_id
         const message = metadata?.message || ""
         const medias = metadata?.medias || []
-        const price = metadata?.price || 0
+        const plans = metadata?.plans || []
         
         // Verificar se o usuario ja pagou (cancelar se ja pagou)
         // 1. Verificar status no user_flow_state
@@ -218,15 +220,18 @@ export async function GET(request: NextRequest) {
           await sendTelegramMessage(botToken, chatId, message)
         }
         
-        // Enviar botoes de Aceitar e Recusar (igual ao upsell)
-        if (price > 0) {
+        // Enviar botoes para cada plano
+        if (plans && plans.length > 0) {
           const inlineKeyboard = {
             inline_keyboard: [
-              [{ text: `Quero por R$ ${price.toFixed(2).replace(".", ",")}!`, callback_data: `ds_accept_${msg.sequence_id}_${price}` }],
+              ...plans.map(plan => [{ 
+                text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
+                callback_data: `ds_accept_${msg.sequence_id}_${plan.id}_${plan.price}` 
+              }]),
               [{ text: "Nao tenho interesse", callback_data: `ds_decline_${msg.sequence_id}` }]
             ]
           }
-          await sendTelegramMessage(botToken, chatId, "Aproveite esta oferta especial:", inlineKeyboard)
+          await sendTelegramMessage(botToken, chatId, "Escolha uma opcao:", inlineKeyboard)
         }
         
         // Marcar como enviado
