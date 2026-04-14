@@ -1535,30 +1535,17 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           }
           
           // Save payment - IMPORTANTE: usar ownerUserId que foi encontrado corretamente
-          console.log("[v0] Saving OB payment - user_id:", ownerUserId, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment, "productType:", productType)
+          // Schema: user_id, amount, status, payment_method, gateway, external_payment_id, product_type, bot_id
+          console.log("[v0] Saving OB payment - user_id:", ownerUserId, "bot_id:", botUuid, "amount:", totalAmount, "productType:", productType)
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
             user_id: ownerUserId,
-            flow_id: flowIdForPayment,
             amount: totalAmount,
             status: "pending",
             payment_method: "pix",
             gateway: "mercadopago",
             external_payment_id: String(pixResultOB.paymentId),
-            copy_paste: pixResultOB.copyPaste,
-            pix_code: pixResultOB.copyPaste || pixResultOB.qrCode,
-            qr_code: pixResultOB.qrCode,
-            qr_code_url: pixResultOB.qrCodeUrl,
-            telegram_user_id: String(telegramUserId),
-            telegram_chat_id: String(chatId),
-            telegram_username: userUsername || null,
-            telegram_first_name: userFirstName || null,
-            telegram_last_name: userLastName || null,
-            description: `Pagamento - ${description}`,
-            product_name: description,
-            product_type: productType,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            product_type: productType
           })
           if (obPaymentError) {
             console.error("[v0] Error saving OB payment:", obPaymentError)
