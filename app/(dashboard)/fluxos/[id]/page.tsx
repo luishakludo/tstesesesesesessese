@@ -430,7 +430,7 @@ export default function FlowEditorPage() {
 4. Cole a chave que esta abaixo e finalize o pagamento com seguranca.`)
   const [qrCodeDisplay, setQrCodeDisplay] = useState("image")
   const [pixCodeFormat, setPixCodeFormat] = useState("monospace")
-  const [showCopyButton, setShowCopyButton] = useState(true)
+  const [showCopyButton, setShowCopyButton] = useState(false)
   const [messageBeforeCode, setMessageBeforeCode] = useState("Copie o codigo abaixo:")
   const [verifyStatusButtonText, setVerifyStatusButtonText] = useState("Verificar Status")
   const [approvedMedias, setApprovedMedias] = useState<string[]>([])
@@ -648,7 +648,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
     setShowPlanBeforePix(config.paymentMessages.showPlanBeforePix || false)
     setQrCodeDisplay(config.paymentMessages.qrCodeDisplay || "image")
     setPixCodeFormat(config.paymentMessages.pixCodeFormat || "monospace")
-    setShowCopyButton(config.paymentMessages.showCopyButton !== false)
+    setShowCopyButton(config.paymentMessages.showCopyButton === true)
     setVerifyStatusButtonText(config.paymentMessages.verifyStatusButtonText || "Verificar Status")
     setApprovedMessage(config.paymentMessages.approvedMessage || approvedMessage)
     setApprovedMedias(config.paymentMessages.approvedMedias || [])
@@ -4924,7 +4924,32 @@ const newPlan: UpsellPlan = {
 
               </div>
 
-              {/* 3. Mensagem antes do Código PIX */}
+              {/* 3. Botao Copiar PIX */}
+              <Card className="border border-neutral-200 bg-white">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                        <Copy className="h-5 w-5 text-blue-500" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Botao Copiar PIX</p>
+                        <p className="text-sm text-neutral-500">Adiciona um botao para copiar o codigo facilmente</p>
+                      </div>
+                    </div>
+                    <Switch 
+                      checked={showCopyButton} 
+                      onCheckedChange={(c) => { setShowCopyButton(c); setHasChanges(true) }} 
+                    />
+                  </div>
+                  <p className="text-xs text-neutral-500 bg-neutral-50 p-3 rounded-lg">
+                    Quando ativado, envia um botao clicavel que copia automaticamente o codigo PIX para a area de transferencia do cliente, 
+                    junto com uma mensagem de reforco explicando como usar o codigo copiado no app do banco.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* 4. Mensagem antes do Código PIX */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4950,7 +4975,7 @@ const newPlan: UpsellPlan = {
                 </CardContent>
               </Card>
 
-              {/* 4. Botão Verificar Status */}
+              {/* 5. Botão Verificar Status */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
@@ -4976,7 +5001,7 @@ const newPlan: UpsellPlan = {
                 </CardContent>
               </Card>
 
-              {/* 5. Mensagem de Pagamento Aprovado */}
+              {/* 6. Mensagem de Pagamento Aprovado */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
