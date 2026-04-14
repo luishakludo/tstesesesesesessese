@@ -114,7 +114,7 @@ interface PlanOrderBump {
   id: string
   enabled: boolean
   name: string
-  price: number
+  price: number | string
   description: string
   acceptText: string
   rejectText: string
@@ -126,7 +126,7 @@ interface PlanOrderBump {
 interface FlowPlan {
   id: string
   name: string
-  price: number
+  price: number | string
   duration_days: number
   duration_type: "daily" | "weekly" | "monthly" | "yearly" | "lifetime"
   description?: string
@@ -137,7 +137,7 @@ interface FlowPlan {
   // Legado (manter para compatibilidade)
   order_bump_custom: boolean
   order_bump_name?: string
-  order_bump_price?: number
+  order_bump_price?: number | string
   order_bump_description?: string
   order_bump_accept_text?: string
   order_bump_reject_text?: string
@@ -1198,7 +1198,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   }
 
   // Update plan
-  const handleUpdatePlan = (id: string, field: keyof FlowPlan, value: string | number | boolean) => {
+  const handleUpdatePlan = (id: string, field: keyof FlowPlan, value: FlowPlan[keyof FlowPlan]) => {
     setPlans(plans.map(p => p.id === id ? { ...p, [field]: value } : p))
     setHasChanges(true)
   }
@@ -2749,8 +2749,8 @@ const newPlan: UpsellPlan = {
                                                 }}
                                               />
                                               <span className="font-medium text-sm">{bump.name || `Order Bump ${bumpIndex + 1}`}</span>
-                                              {bump.price > 0 && (
-                                                <Badge variant="outline" className="text-xs">R$ {bump.price.toFixed(2)}</Badge>
+                                              {Number(bump.price) > 0 && (
+                                                <Badge variant="outline" className="text-xs">R$ {Number(bump.price).toFixed(2)}</Badge>
                                               )}
                                             </div>
                                             <Button
@@ -2790,7 +2790,14 @@ const newPlan: UpsellPlan = {
                                                 onChange={(e) => {
                                                   const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: parseFloat(val) || 0 }
+                                                  const newPrice = val === "" ? 0 : val as unknown as number
+                                                  updatedBumps[bumpIndex] = { ...bump, price: newPrice }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                onBlur={() => {
+                                                  const num = parseFloat(String(bump.price).replace(",", ".")) || 0
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, price: num }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 placeholder="0.00"
