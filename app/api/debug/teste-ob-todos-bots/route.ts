@@ -268,11 +268,10 @@ export async function POST() {
       telegram_user_id: "teste_automatico_" + Date.now(),
       telegram_username: "teste_ob",
       telegram_first_name: "Teste",
-      amount: 19.90, // Valor de teste
-      status: "approved", // Ja aprovado para aparecer no painel
+      amount: 19.90,
+      status: "approved",
       product_type: "order_bump",
       product_name: "Order Bump Teste Automatico",
-      external_reference: "teste_ob_" + bot.id + "_" + Date.now(),
       payment_method: "pix",
       metadata: {
         teste_automatico: true,
