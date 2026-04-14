@@ -1,102 +1,74 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
-// API de teste para debugar order bump e pagamentos
-// GET /api/debug/order-bump-test?bot_id=xxx
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const botId = searchParams.get("bot_id")
-  
+// API simples - so acessar o link e ver o JSON
+// GET /api/debug/order-bump-test
+export async function GET() {
   const supabase = await createClient()
+  const flowId = "bd37e11c-705a-4bf5-81a0-ccefdd2fcad0"
   
-  const results: Record<string, unknown> = {
-    timestamp: new Date().toISOString(),
-    test: "order_bump_debug",
-  }
+  // Buscar flow e bot
+  const { data: flow } = await supabase
+    .from("flows")
+    .select("id, name, bot_id, config, bots(id, name, user_id)")
+    .eq("id", flowId)
+    .single()
   
-  // 1. Buscar bot
-  if (botId) {
-    const { data: bot, error: botError } = await supabase
-      .from("bots")
-      .select("id, name, user_id, token")
-      .eq("id", botId)
-      .single()
-    
-    results.bot = bot ? { id: bot.id, name: bot.name, user_id: bot.user_id, has_token: !!bot.token } : null
-    results.bot_error = botError?.message || null
-    
-    if (bot?.user_id) {
-      // 2. Buscar gateway
-      const { data: gateway, error: gwError } = await supabase
-        .from("user_gateways")
-        .select("id, gateway, is_active")
-        .eq("user_id", bot.user_id)
-        .eq("is_active", true)
-        .limit(1)
-        .single()
-      
-      results.gateway = gateway
-      results.gateway_error = gwError?.message || null
-      
-      // 3. Buscar ultimos pagamentos desse bot
-      const { data: payments, error: payError } = await supabase
-        .from("payments")
-        .select("id, amount, status, product_type, description, telegram_user_id, created_at, flow_id")
-        .eq("bot_id", botId)
-        .order("created_at", { ascending: false })
-        .limit(10)
-      
-      results.recent_payments = payments
-      results.payments_error = payError?.message || null
-      results.payments_count = payments?.length || 0
-      
-      // 4. Buscar pagamentos com order bump especificamente
-      const { data: obPayments, error: obError } = await supabase
-        .from("payments")
-        .select("id, amount, status, product_type, description, created_at")
-        .eq("bot_id", botId)
-        .like("product_type", "%order_bump%")
-        .order("created_at", { ascending: false })
-        .limit(10)
-      
-      results.order_bump_payments = obPayments
-      results.order_bump_error = obError?.message || null
-      
-      // 5. Buscar estados do user_flow_state
-      const { data: states, error: stateError } = await supabase
-        .from("user_flow_state")
-        .select("telegram_user_id, status, metadata, updated_at")
-        .eq("bot_id", botId)
-        .order("updated_at", { ascending: false })
-        .limit(5)
-      
-      results.user_states = states
-      results.states_error = stateError?.message || null
-    }
-  } else {
-    // Sem bot_id - listar todos os pagamentos recentes com order bump
-    const { data: allObPayments, error } = await supabase
-      .from("payments")
-      .select("id, bot_id, amount, status, product_type, description, telegram_user_id, created_at")
-      .like("product_type", "%order_bump%")
-      .order("created_at", { ascending: false })
-      .limit(20)
-    
-    results.all_order_bump_payments = allObPayments
-    results.error = error?.message || null
-    
-    // Buscar todos os pagamentos recentes
-    const { data: allPayments, error: allError } = await supabase
-      .from("payments")
-      .select("id, bot_id, amount, status, product_type, description, created_at")
-      .order("created_at", { ascending: false })
-      .limit(20)
-    
-    results.all_recent_payments = allPayments
-    results.all_payments_error = allError?.message || null
-  }
+  const botId = flow?.bot_id
   
-  return NextResponse.json(results, { status: 200 })
+  // Pagamentos desse bot
+  const { data: botPayments } = await supabase
+    .from("payments")
+    .select("*")
+    .eq("bot_id", botId)
+    .order("created_at", { ascending: false })
+    .limit(15)
+  
+  // TODOS os pagamentos recentes (para comparar)
+  const { data: allPayments } = await supabase
+    .from("payments")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(30)
+  
+  // Filtrar order bumps
+  const obFromBot = botPayments?.filter(p => p.product_type?.includes("order_bump")) || []
+  const obFromAll = allPayments?.filter(p => p.product_type?.includes("order_bump")) || []
+  
+  return NextResponse.json({
+    flow: { id: flow?.id, name: flow?.name },
+    bot: { id: botId, name: (flow?.bots as { name?: string })?.name },
+    order_bump_config: flow?.config?.orderBump?.inicial,
+    
+    pagamentos_deste_bot: {
+      total: botPayments?.length || 0,
+      com_order_bump: obFromBot.length,
+      ultimos_10: botPayments?.slice(0, 10).map(p => ({
+        id: p.id,
+        valor: p.amount,
+        status: p.status,
+        tipo: p.product_type,
+        produto: p.product_name,
+        data: p.created_at
+      }))
+    },
+    
+    todos_order_bumps_sistema: {
+      total: obFromAll.length,
+      lista: obFromAll.map(p => ({
+        id: p.id,
+        bot_id: p.bot_id,
+        valor: p.amount,
+        status: p.status,
+        tipo: p.product_type,
+        data: p.created_at
+      }))
+    },
+    
+    diagnostico: obFromBot.length === 0 
+      ? "PROBLEMA: Nenhum pagamento com order_bump encontrado para este bot"
+      : "OK: Pagamentos com order bump encontrados"
+  })
 }
 
 // POST /api/debug/order-bump-test - Simula criacao de pagamento com order bump
