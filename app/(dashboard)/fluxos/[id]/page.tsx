@@ -1199,8 +1199,13 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
 
   // Update plan
   const handleUpdatePlan = (id: string, field: keyof FlowPlan, value: FlowPlan[keyof FlowPlan]) => {
-    setPlans(plans.map(p => p.id === id ? { ...p, [field]: value } : p))
-    setHasChanges(true)
+    console.log("[v0] handleUpdatePlan called - field:", field, "value:", value, "type:", typeof value)
+    try {
+      setPlans(plans.map(p => p.id === id ? { ...p, [field]: value } : p))
+      setHasChanges(true)
+    } catch (err) {
+      console.error("[v0] handleUpdatePlan ERROR:", err)
+    }
   }
 
   // Add upsell sequence
@@ -2788,9 +2793,14 @@ const newPlan: UpsellPlan = {
                                                 inputMode="decimal"
                                                 value={bump.price || ""}
                                                 onChange={(e) => {
+                                                  console.log("[v0] OB price onChange - raw value:", e.target.value)
                                                   const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                                  console.log("[v0] OB price onChange - cleaned val:", val, "type:", typeof val)
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: val === "" ? 0 : val as unknown as number }
+                                                  const newPrice = val === "" ? 0 : val as unknown as number
+                                                  console.log("[v0] OB price onChange - newPrice:", newPrice, "type:", typeof newPrice)
+                                                  updatedBumps[bumpIndex] = { ...bump, price: newPrice }
+                                                  console.log("[v0] OB price onChange - updatedBumps:", JSON.stringify(updatedBumps))
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 onBlur={() => {
