@@ -43,8 +43,8 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         // Tem bots: buscar por bot_id OU user_id
-        // Formato correto para .or() com in
-        const botIdsString = userBotIds.map(id => `"${id}"`).join(",")
+        // Formato correto para .or() - SEM aspas nos UUIDs
+        const botIdsString = userBotIds.join(",")
         const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
         console.log("[v0] Payments list - OR filter:", orFilter)
         query = query.or(orFilter)
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     if (userId) {
       if (userBotIds.length > 0) {
-        const botIdsString = userBotIds.map(id => `"${id}"`).join(",")
+        const botIdsString = userBotIds.join(",")
         statsQuery = statsQuery.or(`bot_id.in.(${botIdsString}),user_id.eq.${userId}`)
       } else {
         statsQuery = statsQuery.eq("user_id", userId)
