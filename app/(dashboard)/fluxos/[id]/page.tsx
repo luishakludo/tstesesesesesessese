@@ -398,7 +398,7 @@ export default function FlowEditorPage() {
     name: "",
     price: 0,
     description: "",
-    acceptText: "ADICIONAR",
+    acceptText: "QUERO",
     rejectText: "NAO QUERO",
     ctaMessage: "",
     deliveryType: "same",
@@ -1179,7 +1179,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   order_bump_price: 0,
   order_bump_description: "",
   order_bumps: [], // Array de order bumps (ate 5)
-        order_bump_accept_text: "ADICIONAR",
+        order_bump_accept_text: "QUERO",
         order_bump_reject_text: "NAO QUERO",
         order_bump_cta_message: "",
         order_bump_delivery: "same",
@@ -2707,7 +2707,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                             name: "",
                                             price: 0,
                                             description: "",
-                                            acceptText: "ADICIONAR",
+                                            acceptText: "QUERO",
                                             rejectText: "NAO QUERO",
                                             ctaMessage: "",
                                             deliveryType: "same",
@@ -2822,7 +2822,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                   updatedBumps[bumpIndex] = { ...bump, acceptText: e.target.value }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
-                                                placeholder="ADICIONAR"
+                                                placeholder="QUERO"
                                                 className="h-8 text-sm bg-secondary/30"
                                               />
                                             </div>
@@ -4406,7 +4406,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-neutral-500">Botao Aceitar</Label>
-                          <Input value={orderBumpPacks.acceptText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, acceptText: e.target.value}); setHasChanges(true) }} placeholder="ADICIONAR" className="bg-secondary/50 uppercase font-medium" />
+                          <Input value={orderBumpPacks.acceptText} onChange={(e) => { setOrderBumpPacks({...orderBumpPacks, acceptText: e.target.value}); setHasChanges(true) }} placeholder="QUERO" className="bg-secondary/50 uppercase font-medium" />
                         </div>
                         <div className="space-y-2">
                           <Label className="text-neutral-500">Botao Recusar</Label>
