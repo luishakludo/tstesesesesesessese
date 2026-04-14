@@ -4911,46 +4911,61 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                   </Select>
                 </div>
 
-                <Card className="border border-neutral-200 bg-white">
-                  <CardContent className="pt-6 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Mostrar Botao "Copiar Codigo"</p>
-                        <p className="text-sm text-neutral-500">Exibe um botao para copiar o codigo PIX facilmente</p>
-                      </div>
-                      <Switch checked={showCopyButton} onCheckedChange={(c) => { setShowCopyButton(c); setHasChanges(true) }} />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-neutral-500">Mensagem Antes do Codigo</Label>
-                      <Input
-                        value={messageBeforeCode}
-                        onChange={(e) => { setMessageBeforeCode(e.target.value); setHasChanges(true) }}
-                        className="bg-white border border-neutral-200"
-                      />
-                      <p className="text-xs text-neutral-500">Aparece logo antes do codigo PIX copiavel</p>
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
-              {/* 3. Botao Verificar Status */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">3. Botao Verificar Status</h3>
-                <div className="space-y-2">
-                  <Label className="text-neutral-500">Texto do Botao</Label>
-                  <div className="flex items-center gap-2 rounded-lg bg-white p-3 border border-neutral-200">
-                    <Check className="h-4 w-4 text-emerald-500" />
+              {/* 3. Botao Copiar Pix */}
+              <Card className="border border-neutral-200 bg-white">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                      <Copy className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Botao Copiar Pix</p>
+                      <p className="text-sm text-neutral-500">Personalize o texto exibido antes do codigo PIX copiavel</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-500">Texto exibido acima do codigo PIX copiavel</p>
+                    <Label className="text-neutral-700 font-medium">Texto do Botao</Label>
+                    <Input
+                      value={messageBeforeCode}
+                      onChange={(e) => { setMessageBeforeCode(e.target.value); setHasChanges(true) }}
+                      placeholder="Ex: Copie o codigo abaixo:"
+                      className="bg-white border border-neutral-200"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 4. Botao Verificar Status */}
+              <Card className="border border-neutral-200 bg-white">
+                <CardContent className="pt-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                      <Check className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Botao Verificar Status</p>
+                      <p className="text-sm text-neutral-500">Personalize o texto do botao de verificacao de pagamento</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs text-neutral-500">Texto exibido no botao para verificar o status do pagamento</p>
+                    <Label className="text-neutral-700 font-medium">Texto do Botao</Label>
                     <Input
                       value={verifyStatusButtonText}
                       onChange={(e) => { setVerifyStatusButtonText(e.target.value); setHasChanges(true) }}
-                      className="bg-transparent border-0 p-0 h-auto focus-visible:ring-0"
+                      placeholder="Ex: Verificar Status"
+                      className="bg-white border border-neutral-200"
                     />
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* 4. Mensagem de Pagamento Aprovado */}
+              {/* 5. Mensagem de Pagamento Aprovado */}
               <Card className="border border-neutral-200 bg-white">
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-2">
