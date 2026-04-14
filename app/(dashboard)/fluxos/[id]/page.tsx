@@ -150,9 +150,10 @@ interface FlowPlan {
 
 interface UpsellPlan {
   id: string
+  name: string
   buttonText: string
   price: number
-}
+  }
 
 interface UpsellSequence {
   id: string
@@ -1231,11 +1232,12 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   const handleAddUpsellPlan = (seqId: string) => {
     const seq = upsellSequences.find(s => s.id === seqId)
     if (!seq || (seq.plans?.length || 0) >= 5) return
-    const newPlan: UpsellPlan = {
-      id: `plan-${Date.now()}`,
-      buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
-      price: 0
-    }
+const newPlan: UpsellPlan = {
+  id: `plan-${Date.now()}`,
+  name: `Plano ${(seq.plans?.length || 0) + 1}`,
+  buttonText: `Plano ${(seq.plans?.length || 0) + 1}`,
+  price: 0
+  }
     handleUpdateUpsellSequence(seqId, "plans", [...(seq.plans || []), newPlan])
   }
 
@@ -3279,7 +3281,16 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                               <div className="space-y-2">
                                 {(seq.plans || []).map((plan, planIndex) => (
                                   <div key={plan.id} className="flex items-center gap-2 rounded-lg bg-secondary/30 p-3">
-                                    <div className="flex-1 grid grid-cols-2 gap-3">
+                                    <div className="flex-1 grid grid-cols-3 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-xs text-neutral-500">Nome (interno)</Label>
+                                        <Input
+                                          value={plan.name || ""}
+                                          onChange={(e) => handleUpdateUpsellPlan(seq.id, plan.id, "name", e.target.value)}
+                                          placeholder="Ex: Plano Mensal"
+                                          className="bg-secondary/50 border-neutral-200 h-8 text-sm"
+                                        />
+                                      </div>
                                       <div className="space-y-1">
                                         <Label className="text-xs text-neutral-500">Texto do Botao</Label>
                                         <Input
@@ -3290,22 +3301,22 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                         />
                                       </div>
                                       <div className="space-y-1">
-<Label className="text-xs text-neutral-500">Valor (R$)</Label>
-<Input
-                                                  type="text"
-                                                  inputMode="decimal"
-                                                  value={plan.price || ""}
-                                                  onChange={(e) => {
-                                                    const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
-                                                  }}
-                                                  onBlur={() => {
-                                                    const num = parseFloat(String(plan.price).replace(",", ".")) || 0
-                                                    handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
-                                                  }}
-                                                  placeholder="0.00"
-                                  className="bg-secondary/50 border-neutral-200 h-8 text-sm"
-                                />
+                                        <Label className="text-xs text-neutral-500">Valor (R$)</Label>
+                                        <Input
+                                          type="text"
+                                          inputMode="decimal"
+                                          value={plan.price || ""}
+                                          onChange={(e) => {
+                                            const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
+                                            handleUpdateUpsellPlan(seq.id, plan.id, "price", val === "" ? 0 : val)
+                                          }}
+                                          onBlur={() => {
+                                            const num = parseFloat(String(plan.price).replace(",", ".")) || 0
+                                            handleUpdateUpsellPlan(seq.id, plan.id, "price", num)
+                                          }}
+                                          placeholder="0.00"
+                                          className="bg-secondary/50 border-neutral-200 h-8 text-sm"
+                                        />
                                       </div>
                                     </div>
                                     {(seq.plans?.length || 0) > 1 && (
