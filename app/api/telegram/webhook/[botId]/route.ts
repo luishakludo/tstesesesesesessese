@@ -2095,7 +2095,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             
             // Enviar mensagem de RESUMO separada (esta sera editada quando clicar em ADICIONAR)
             const finishCallback = `ob_finish_${mainPriceRounded}`
-            const summaryText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>Clique nos adicionais acima para incluir no pedido</i>`
+            // Usar ctaMessage do primeiro order bump se existir, senao usar mensagem padrao
+            const ctaMessage = activePlanOrderBumps[0]?.ctaMessage || "Escolha um dos produtos acima ou continue com o conteudo principal"
+            const summaryText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>${ctaMessage}</i>`
             
             const summaryMsgId = await sendTelegramMessage(
               botToken,
