@@ -43,20 +43,16 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1)
 
     // Filtrar por bot_id dos bots do usuario OU user_id direto (checkout)
-    // IMPORTANTE: Tambem incluir pagamentos onde user_id e null (order bumps de bots orfaos)
     if (userId) {
       if (userBotIds.length > 0) {
-        // Tem bots: buscar por bot_id OU user_id OU user_id null (pagamentos de bots orfaos)
+        // Tem bots: buscar por bot_id OU user_id
         const botIdsString = userBotIds.join(",")
-        // Buscar: 1) pagamentos dos bots do usuario, 2) pagamentos com user_id do usuario, 3) pagamentos com user_id null
-        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId},user_id.is.null`
+        const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
         console.log("[v0] Payments list - OR filter:", orFilter)
         query = query.or(orFilter)
       } else {
-        // Sem bots: buscar por user_id OU user_id null (pode ter pagamentos orfaos)
-        const orFilter = `user_id.eq.${userId},user_id.is.null`
-        console.log("[v0] Payments list - OR filter (no bots):", orFilter)
-        query = query.or(orFilter)
+        // Sem bots: buscar apenas por user_id
+        query = query.eq("user_id", userId)
       }
     }
 
@@ -93,13 +89,10 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         const botIdsString = userBotIds.join(",")
-        // Mesmo filtro: pagamentos dos bots do usuario, com user_id, ou user_id null
-        const statsOrFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId},user_id.is.null`
+        const statsOrFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
         statsQuery = statsQuery.or(statsOrFilter)
       } else {
-        // Sem bots: buscar por user_id OU user_id null
-        const statsOrFilter = `user_id.eq.${userId},user_id.is.null`
-        statsQuery = statsQuery.or(statsOrFilter)
+        statsQuery = statsQuery.eq("user_id", userId)
       }
     }
 
