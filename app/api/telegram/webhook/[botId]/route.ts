@@ -968,12 +968,12 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const metadata = (userState.metadata || {}) as Record<string, any>
-        const selectedBumps: number[] = metadata?.selected_bumps || []
-        const selectedBumpNames: string[] = metadata?.selected_bump_names || []
+        const selectedBumps: number[] = [...(metadata?.selected_bumps || [])]
+        const selectedBumpNames: string[] = [...(metadata?.selected_bump_names || [])]
         const orderBumpsInfo = metadata?.order_bumps || []
         const mainAmount = metadata?.main_amount || (mainAmountCents / 100)
         const mainDescription = metadata?.main_description || "Plano"
-        const progressMsgId = metadata?.progress_message_id
+        const summaryMsgId = metadata?.summary_message_id || metadata?.progress_message_id
         
         // Verificar se este bump já foi selecionado
         if (selectedBumps.includes(bumpIndex)) {
@@ -986,50 +986,60 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const bumpName = orderBumpsInfo[bumpIndex]?.name || `Order Bump ${bumpIndex + 1}`
         selectedBumpNames.push(bumpName)
         const currentTotalBump = (metadata?.total_bump_amount || 0) + bumpAmount
-        const bumpMsgId = orderBumpsInfo[bumpIndex]?.messageId
-        const bumpDesc = orderBumpsInfo[bumpIndex]?.description || ""
         
         console.log("[v0] Multi Order Bump - Adicionado bump", bumpIndex, "total selecionados:", selectedBumps.length, "valor total bumps:", currentTotalBump)
-        
-        // Editar mensagem do order bump para remover o botão (marcar como adicionado)
-        if (bumpMsgId) {
-          await editTelegramMessage(
-            botToken,
-            chatId,
-            bumpMsgId,
-            `${bumpDesc}\n\n<b>ADICIONADO</b> (+R$ ${bumpAmount.toFixed(2).replace(".", ",")})`,
-            undefined // Remove os botões
-          )
-        }
         
         // Calcular valor total
         const totalAmount = mainAmount + currentTotalBump
         
-        // Editar mensagem do PROSSEGUIR com valor atualizado e itens selecionados
-        if (progressMsgId) {
+        // Editar a MESMA mensagem unica com resumo atualizado
+        if (summaryMsgId) {
           const finishCallback = `ob_finish_${Math.round(mainAmount * 100)}`
-          let progressText = `<b>Resumo do Pedido:</b>\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}`
+          const mainPriceRounded = Math.round(mainAmount * 100)
+          
+          // Montar texto do resumo atualizado
+          let summaryText = `<b>Resumo do Pedido:</b>\n\n${mainDescription}: R$ ${mainAmount.toFixed(2).replace(".", ",")}`
           
           // Adicionar cada bump selecionado
           for (let i = 0; i < selectedBumps.length; i++) {
             const idx = selectedBumps[i]
             const name = orderBumpsInfo[idx]?.name || `Adicional ${i + 1}`
             const price = orderBumpsInfo[idx]?.price || 0
-            progressText += `\n+ ${name}: R$ ${price.toFixed(2).replace(".", ",")}`
+            summaryText += `\n+ ${name}: R$ ${price.toFixed(2).replace(".", ",")}`
           }
           
-          progressText += `\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`
+          summaryText += `\n\n<b>TOTAL: R$ ${totalAmount.toFixed(2).replace(".", ",")}</b>`
+          
+          // Listar bumps ainda disponiveis
+          const availableBumps = orderBumpsInfo.filter((_: unknown, idx: number) => !selectedBumps.includes(idx))
+          if (availableBumps.length > 0) {
+            summaryText += `\n\n<i>Adicionais disponiveis:</i>`
+            for (const bump of availableBumps) {
+              summaryText += `\n• ${bump.name}: +R$ ${bump.price.toFixed(2).replace(".", ",")}`
+            }
+          }
+          
+          // Montar botões - apenas order bumps NAO selecionados
+          const inlineKeyboard: Array<Array<{ text: string; callback_data: string }>> = []
+          
+          for (let i = 0; i < orderBumpsInfo.length; i++) {
+            if (!selectedBumps.includes(i)) {
+              const bump = orderBumpsInfo[i]
+              const bumpPriceRounded = Math.round(bump.price * 100)
+              const acceptCallback = `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
+              inlineKeyboard.push([{ text: `${bump.acceptText || "ADICIONAR"} ${bump.name}`, callback_data: acceptCallback }])
+            }
+          }
+          
+          // Botão de prosseguir sempre no final
+          inlineKeyboard.push([{ text: `PROSSEGUIR - R$ ${totalAmount.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }])
           
           await editTelegramMessage(
             botToken,
             chatId,
-            progressMsgId,
-            progressText,
-            {
-              inline_keyboard: [
-                [{ text: `PROSSEGUIR - R$ ${totalAmount.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }]
-              ]
-            }
+            summaryMsgId,
+            summaryText,
+            { inline_keyboard: inlineKeyboard }
           )
         }
         
@@ -1117,6 +1127,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         const mainDescription = metadata?.main_description || "Produto Principal"
         const selectedBumps: number[] = metadata?.selected_bumps || []
         const orderBumpsInfo = metadata?.order_bumps || []
+        const summaryMsgId = metadata?.summary_message_id || metadata?.progress_message_id
         
         // Calcular valor total
         const totalAmount = mainAmount + totalBumpAmount
@@ -1131,7 +1142,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         console.log("[v0] Finish Multi Order Bump - main:", mainAmount, "bumps:", totalBumpAmount, "TOTAL:", totalAmount, "selected:", selectedBumps.length)
         
         if (totalAmount <= 0) {
-          await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
+          if (summaryMsgId) {
+            await editTelegramMessage(botToken, chatId, summaryMsgId, "Erro ao processar. Tente novamente.", undefined)
+          } else {
+            await sendTelegramMessage(botToken, chatId, "Erro ao processar. Tente novamente.")
+          }
           return
         }
         
@@ -1142,13 +1157,23 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           .eq("bot_id", botUuid)
           .eq("telegram_user_id", String(telegramUserId))
         
-        // Enviar mensagem de processamento
-        await sendTelegramMessage(
-          botToken,
-          chatId,
-          `Gerando pagamento PIX...\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`,
-          undefined
-        )
+        // Editar a MESMA mensagem para mostrar processamento
+        if (summaryMsgId) {
+          await editTelegramMessage(
+            botToken,
+            chatId,
+            summaryMsgId,
+            `<b>Gerando pagamento PIX...</b>\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`,
+            undefined // Remove os botões
+          )
+        } else {
+          await sendTelegramMessage(
+            botToken,
+            chatId,
+            `Gerando pagamento PIX...\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`,
+            undefined
+          )
+        }
         
         // Get user_id from bot to find gateway
         const { data: botDataMulti } = await supabase
@@ -1969,117 +1994,98 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           // Se o plano tem order bumps especificos, usar eles
           if (activePlanOrderBumps.length > 0) {
             const mainPriceRounded = Math.round(planPrice * 100)
-            
-            // Enviar mensagem do plano selecionado primeiro
-            await sendTelegramMessage(
-              botToken,
-              chatId,
-              `Voce selecionou: *${planName}*\n\nValor: R$ ${planPrice.toFixed(2).replace(".", ",")}`,
-              undefined
-            )
-            
-            // Se tem múltiplos order bumps, enviar todos com apenas botão de adicionar
-            // Se tem apenas 1, enviar com botões de adicionar e recusar
             const hasMultipleOrderBumps = activePlanOrderBumps.length > 1
             console.log("[v0] Multiplos Order Bumps:", hasMultipleOrderBumps, "Total:", activePlanOrderBumps.length)
             
-
-            
-            // Array para armazenar info de todos os order bumps para o estado
-            const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; messageId?: number; description?: string }> = []
-            
-            // Enviar cada order bump e guardar message_id
+            // Enviar midias dos order bumps primeiro (se houver)
             for (let i = 0; i < activePlanOrderBumps.length; i++) {
               const planOrderBump = activePlanOrderBumps[i]
-              const bumpId = planOrderBump.id || `bump_${i}`
-              console.log("[v0] Enviando Order Bump", i + 1, "de", activePlanOrderBumps.length, ":", planOrderBump.name)
-              
-              const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
-              const orderBumpAcceptText = planOrderBump.acceptText || "ADICIONAR"
-              
-              const bumpPriceRounded = Math.round(planOrderBump.price * 100)
-              // Formato: ob_multi_{mainAmount}_{bumpAmount}_{bumpIndex} para múltiplos
-              // ou ob_accept_{mainAmount}_{bumpAmount} para único
-              const acceptCallback = hasMultipleOrderBumps 
-                ? `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
-                : `ob_accept_${mainPriceRounded}_${bumpPriceRounded}`
-              
-              // Enviar midias do order bump se houver
               if (planOrderBump.medias && planOrderBump.medias.length > 0) {
                 console.log("[v0] Enviando midias do Plan Order Bump", i + 1, ":", planOrderBump.medias.length)
                 await sendMediaGroup(botToken, chatId, planOrderBump.medias, "")
               }
-              
-              let bumpMsgId: number | null = null
-              
-              if (hasMultipleOrderBumps) {
-                // Múltiplos order bumps: apenas botão de adicionar
-                const orderBumpKeyboard = {
-                  inline_keyboard: [
-                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }]
-                  ]
-                }
-                bumpMsgId = await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
-              } else {
-                // Único order bump: botões de adicionar e recusar
-                const orderBumpDeclineText = planOrderBump.rejectText || "NAO QUERO"
-                const declineCallback = `ob_decline_${mainPriceRounded}_0`
-                const orderBumpKeyboard = {
-                  inline_keyboard: [
-                    [{ text: orderBumpAcceptText, callback_data: acceptCallback }],
-                    [{ text: orderBumpDeclineText, callback_data: declineCallback }]
-                  ]
-                }
-                bumpMsgId = await sendTelegramMessage(botToken, chatId, orderBumpDesc, orderBumpKeyboard)
-              }
+            }
+            
+            // Array para armazenar info de todos os order bumps para o estado
+            const orderBumpsInfo: Array<{ id: string; name: string; price: number; index: number; description?: string; acceptText?: string; rejectText?: string }> = []
+            
+            // Preparar info de cada order bump
+            for (let i = 0; i < activePlanOrderBumps.length; i++) {
+              const planOrderBump = activePlanOrderBumps[i]
+              const bumpId = planOrderBump.id || `bump_${i}`
+              const orderBumpDesc = planOrderBump.description || `Deseja adicionar ${planOrderBump.name || "este bonus"} por apenas R$ ${planOrderBump.price}?`
               
               orderBumpsInfo.push({
                 id: bumpId,
                 name: planOrderBump.name || `Order Bump ${i + 1}`,
                 price: planOrderBump.price,
                 index: i,
-                messageId: bumpMsgId || undefined,
-                description: orderBumpDesc
+                description: orderBumpDesc,
+                acceptText: planOrderBump.acceptText || "ADICIONAR",
+                rejectText: planOrderBump.rejectText || "NAO QUERO"
               })
             }
             
-            // Se múltiplos order bumps, enviar botão de finalizar/prosseguir no final
-            let progressMsgId: number | null = null
-            if (hasMultipleOrderBumps) {
-              const finishCallback = `ob_finish_${mainPriceRounded}`
-              // Mensagem inicial do prosseguir mostrando valor base
-              const progressText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}\n\n<i>Clique nos adicionais acima para incluir no pedido</i>`
-              progressMsgId = await sendTelegramMessage(
-                botToken,
-                chatId,
-                progressText,
-                {
-                  inline_keyboard: [
-                    [{ text: `PROSSEGUIR - R$ ${planPrice.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }]
-                  ]
-                }
-              )
+            // Criar UMA ÚNICA mensagem com resumo + botões de todos os order bumps
+            const finishCallback = `ob_finish_${mainPriceRounded}`
+            
+            // Montar texto do resumo
+            let summaryText = `<b>Resumo do Pedido:</b>\n\n${planName}: R$ ${planPrice.toFixed(2).replace(".", ",")}`
+            summaryText += `\n\n<b>TOTAL: R$ ${planPrice.toFixed(2).replace(".", ",")}</b>`
+            summaryText += `\n\n<i>Adicionais disponiveis:</i>`
+            
+            // Listar cada order bump com preço
+            for (let i = 0; i < orderBumpsInfo.length; i++) {
+              const bump = orderBumpsInfo[i]
+              summaryText += `\n• ${bump.name}: +R$ ${bump.price.toFixed(2).replace(".", ",")}`
             }
             
-            // Salvar estado com info de todos os order bumps e message_ids
-            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId), "total bumps:", orderBumpsInfo.length, "progressMsgId:", progressMsgId)
+            // Montar botões - cada order bump tem seu botão ADICIONAR
+            const inlineKeyboard: Array<Array<{ text: string; callback_data: string }>> = []
+            
+            for (let i = 0; i < orderBumpsInfo.length; i++) {
+              const bump = orderBumpsInfo[i]
+              const bumpPriceRounded = Math.round(bump.price * 100)
+              const acceptCallback = `ob_multi_${mainPriceRounded}_${bumpPriceRounded}_${i}`
+              inlineKeyboard.push([{ text: `${bump.acceptText || "ADICIONAR"} ${bump.name}`, callback_data: acceptCallback }])
+            }
+            
+            // Se apenas 1 order bump, adicionar botão de recusar
+            if (!hasMultipleOrderBumps && orderBumpsInfo.length === 1) {
+              const declineCallback = `ob_decline_${mainPriceRounded}_0`
+              inlineKeyboard.push([{ text: orderBumpsInfo[0].rejectText || "NAO QUERO", callback_data: declineCallback }])
+            }
+            
+            // Botão de prosseguir sempre no final
+            inlineKeyboard.push([{ text: `PROSSEGUIR - R$ ${planPrice.toFixed(2).replace(".", ",")}`, callback_data: finishCallback }])
+            
+            // Enviar a única mensagem
+            const summaryMsgId = await sendTelegramMessage(
+              botToken,
+              chatId,
+              summaryText,
+              { inline_keyboard: inlineKeyboard }
+            )
+            
+            // Salvar estado com info de todos os order bumps e message_id da mensagem única
+            console.log("[v0] Salvando estado Plan Order Bumps - bot_id:", botUuid, "telegram_user_id:", String(telegramUserId), "total bumps:", orderBumpsInfo.length, "summaryMsgId:", summaryMsgId)
             const { error: stateUpsertError } = await supabase.from("user_flow_state").upsert({
               bot_id: botUuid,
               telegram_user_id: String(telegramUserId),
               flow_id: flowForOrderBump.id,
-              status: hasMultipleOrderBumps ? "waiting_multi_order_bump" : "waiting_order_bump",
+              status: "waiting_multi_order_bump",
               current_node_position: 0,
               metadata: {
                 type: "plan",
                 main_amount: planPrice,
                 main_description: planName,
                 order_bump_source: "plan_specific",
-                // Para múltiplos order bumps
+                // Info de todos os order bumps
                 order_bumps: orderBumpsInfo,
                 selected_bumps: [], // Array de índices selecionados
                 selected_bump_names: [], // Array de nomes selecionados
                 total_bump_amount: 0, // Soma dos valores selecionados
-                progress_message_id: progressMsgId, // ID da mensagem do prosseguir para editar
+                summary_message_id: summaryMsgId, // ID da mensagem única para editar
                 // Para único order bump (compatibilidade)
                 order_bump_name: orderBumpsInfo[0]?.name || "Order Bump",
                 order_bump_price: orderBumpsInfo[0]?.price || 0

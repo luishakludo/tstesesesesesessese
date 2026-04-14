@@ -2826,19 +2826,25 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
                                                 className="h-8 text-sm bg-secondary/30"
                                               />
                                             </div>
-                                            <div className="space-y-1">
-                                              <Label className="text-xs text-neutral-500">Texto Recusar</Label>
-                                              <Input
-                                                value={bump.rejectText}
-                                                onChange={(e) => {
-                                                  const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, rejectText: e.target.value }
-                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
-                                                }}
-                                                placeholder="NAO QUERO"
-                                                className="h-8 text-sm bg-secondary/30"
-                                              />
-                                            </div>
+<div className="space-y-1">
+  <Label className="text-xs text-neutral-500">
+    Texto Recusar
+    {(plan.order_bumps || []).length > 1 && (
+      <span className="text-amber-500 ml-1">(desabilitado com +1 bump)</span>
+    )}
+  </Label>
+  <Input
+  value={bump.rejectText}
+  onChange={(e) => {
+  const updatedBumps = [...(plan.order_bumps || [])]
+  updatedBumps[bumpIndex] = { ...bump, rejectText: e.target.value }
+  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+  }}
+  placeholder="NAO QUERO"
+  className="h-8 text-sm bg-secondary/30"
+  disabled={(plan.order_bumps || []).length > 1}
+  />
+  </div>
                                           </div>
                                           
                                           {/* Midias do Order Bump (ate 3) */}
