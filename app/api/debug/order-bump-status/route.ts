@@ -1,677 +1,460 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { getSupabase } from "@/lib/supabase"
 
 /**
- * API Unificada de Status do Order Bump de Planos
+ * API Simples de Status do Order Bump de Planos
  * 
  * Endpoint: GET /api/debug/order-bump-status
  * 
- * Retorna uma resposta JSON consolidada com todo o fluxo de dados e status
- * do processo de "Order Bump de Planos", simulando a interacao do usuario.
+ * SEM PARAMETROS NECESSARIOS - puxa TUDO automaticamente do Supabase
  * 
- * Query params opcionais:
- * - bot_id: UUID do bot especifico
- * - flow_id: UUID do fluxo especifico
- * - telegram_user_id: ID do usuario do Telegram
- * - plan_id: UUID do plano selecionado
- * - simulate_action: "ver_planos" | "selecionar_plano" | "adicionar_bump" | "prosseguir"
- * 
- * Resposta: JSON completo com status de cada etapa, configuracoes, erros e dados
+ * Retorna JSON completo com todos os dados do processo de Order Bump
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   const supabase = getSupabase()
-  const { searchParams } = new URL(request.url)
-  
-  const botId = searchParams.get("bot_id")
-  const flowId = searchParams.get("flow_id")
-  const telegramUserId = searchParams.get("telegram_user_id")
-  const planId = searchParams.get("plan_id")
-  const simulateAction = searchParams.get("simulate_action") || "completo"
+  const startTime = Date.now()
 
-  // Estrutura de resposta unificada
+  // Estrutura de resposta
   const response: {
     meta: {
       titulo: string
-      descricao: string
       timestamp: string
-      versao: string
-      parametros_recebidos: Record<string, string | null>
+      tempo_processamento_ms?: number
     }
     resumo: {
-      status_geral: "ok" | "erro" | "aviso"
-      mensagem: string
-      total_etapas: number
-      etapas_com_sucesso: number
-      etapas_com_erro: number
-      pode_processar_pagamento: boolean
+      total_bots: number
+      total_fluxos: number
+      total_planos: number
+      total_order_bumps_ativos: number
+      total_gateways_configurados: number
+      total_pagamentos: number
+      status_geral: "ok" | "problemas_encontrados"
     }
-    etapas: Array<{
-      numero: number
+    bots: Array<{
+      id: string
       nome: string
-      descricao: string
-      status: "sucesso" | "erro" | "aviso" | "pendente"
-      dados: Record<string, unknown>
-      erro?: string
-      sugestao_correcao?: string
-    }>
-    fluxo_dados: {
-      bots_disponiveis: Array<{
+      username: string | null
+      status: string
+      token_configurado: boolean
+      telegram_bot_id: string | null
+      criado_em: string
+      fluxos_vinculados: Array<{
         id: string
         nome: string
-        username: string | null
         status: string
-        url_simulacao: string
+        config: Record<string, unknown>
+        planos: Array<{
+          id: string
+          nome: string
+          preco: number
+          descricao: string | null
+          ativo: boolean
+          posicao: number
+        }>
+        order_bump: {
+          configurado: boolean
+          ativo: boolean
+          nome: string | null
+          preco: number | null
+          descricao: string | null
+          texto_aceitar: string | null
+          texto_recusar: string | null
+          config_completa: Record<string, unknown> | null
+        }
       }>
-      bot_selecionado: Record<string, unknown> | null
-      fluxo_ativo: Record<string, unknown> | null
-      planos_configurados: Array<{
-        id: string
-        nome: string
-        preco: number
-        descricao: string | null
+      gateway: {
+        configurado: boolean
+        nome: string | null
         ativo: boolean
+        token_presente: boolean
+      }
+      usuarios_no_fluxo: Array<{
+        telegram_user_id: string
+        telegram_username: string | null
+        status: string
+        flow_id: string | null
+        plano_selecionado: string | null
+        ultima_atualizacao: string
       }>
-      order_bump_config: Record<string, unknown> | null
-      gateway_pagamento: Record<string, unknown> | null
-      estado_usuario: Record<string, unknown> | null
-      pagamentos_recentes: Array<Record<string, unknown>>
-    }
-    simulacao_interacao: {
-      acao_atual: string
-      mensagens_bot: Array<{
-        ordem: number
-        tipo: string
-        conteudo: string
-        botoes?: Array<{ texto: string; callback: string }>
-        imagem?: string | null
+      pagamentos_recentes: Array<{
+        id: string
+        telegram_user_id: string
+        valor: number
+        status: string
+        tipo_produto: string | null
+        descricao: string | null
+        criado_em: string
       }>
-      proxima_acao: string | null
-      dados_pagamento?: Record<string, unknown>
-    }
-    diagnostico: {
-      problemas_encontrados: Array<{
-        severidade: "critico" | "importante" | "menor"
-        local: string
-        descricao: string
-        como_resolver: string
+    }>
+    problemas: Array<{
+      bot_id: string
+      bot_nome: string
+      tipo: string
+      descricao: string
+      como_resolver: string
+    }>
+    simulacao_fluxo_completo: {
+      descricao: string
+      etapas: Array<{
+        numero: number
+        acao_usuario: string
+        resposta_bot: {
+          tipo: string
+          conteudo: string
+          botoes?: Array<{ texto: string; callback: string }>
+        }
       }>
-      verificacoes_ok: string[]
-      tempo_processamento_ms: number
-    }
-    links_uteis: {
-      documentacao: string
-      api_logs: string
-      api_simulate: string
-      api_config: string
     }
   } = {
     meta: {
       titulo: "Status Completo do Order Bump de Planos",
-      descricao: "API unificada que retorna todo o fluxo de dados e status do processo de Order Bump, simulando interacao do usuario",
-      timestamp: new Date().toISOString(),
-      versao: "1.0.0",
-      parametros_recebidos: {
-        bot_id: botId,
-        flow_id: flowId,
-        telegram_user_id: telegramUserId,
-        plan_id: planId,
-        simulate_action: simulateAction
-      }
+      timestamp: new Date().toISOString()
     },
     resumo: {
-      status_geral: "ok",
-      mensagem: "",
-      total_etapas: 0,
-      etapas_com_sucesso: 0,
-      etapas_com_erro: 0,
-      pode_processar_pagamento: false
+      total_bots: 0,
+      total_fluxos: 0,
+      total_planos: 0,
+      total_order_bumps_ativos: 0,
+      total_gateways_configurados: 0,
+      total_pagamentos: 0,
+      status_geral: "ok"
     },
-    etapas: [],
-    fluxo_dados: {
-      bots_disponiveis: [],
-      bot_selecionado: null,
-      fluxo_ativo: null,
-      planos_configurados: [],
-      order_bump_config: null,
-      gateway_pagamento: null,
-      estado_usuario: null,
-      pagamentos_recentes: []
-    },
-    simulacao_interacao: {
-      acao_atual: simulateAction,
-      mensagens_bot: [],
-      proxima_acao: null
-    },
-    diagnostico: {
-      problemas_encontrados: [],
-      verificacoes_ok: [],
-      tempo_processamento_ms: 0
-    },
-    links_uteis: {
-      documentacao: "/api/debug/order-bump-status?help=true",
-      api_logs: "/api/debug/order-bump-logs",
-      api_simulate: "/api/debug/simulate-order-bump",
-      api_config: "/api/fluxo/{flowId}/order-bump"
+    bots: [],
+    problemas: [],
+    simulacao_fluxo_completo: {
+      descricao: "Simulacao do fluxo completo de selecao de plano com order bump",
+      etapas: []
     }
   }
 
-  const startTime = Date.now()
-
   try {
-    // ========== ETAPA 1: Buscar Bots Disponiveis ==========
-    const etapa1: typeof response.etapas[0] = {
-      numero: 1,
-      nome: "Buscar Bots",
-      descricao: "Listar todos os bots cadastrados no sistema",
-      status: "pendente",
-      dados: {}
-    }
-
+    // ========== 1. BUSCAR TODOS OS BOTS ==========
     const { data: bots, error: botsError } = await supabase
       .from("bots")
-      .select("id, name, username, status, token, telegram_bot_id")
+      .select("*")
       .order("created_at", { ascending: false })
 
-    if (botsError) {
-      etapa1.status = "erro"
-      etapa1.erro = botsError.message
-      etapa1.sugestao_correcao = "Verifique a conexao com o banco de dados"
-      response.diagnostico.problemas_encontrados.push({
-        severidade: "critico",
-        local: "Tabela bots",
-        descricao: `Erro ao buscar bots: ${botsError.message}`,
-        como_resolver: "Verifique se a tabela bots existe e as permissoes RLS"
-      })
-    } else {
-      etapa1.status = "sucesso"
-      etapa1.dados = { total_bots: bots?.length || 0 }
-      response.fluxo_dados.bots_disponiveis = (bots || []).map(bot => ({
+    if (botsError) throw new Error(`Erro ao buscar bots: ${botsError.message}`)
+
+    response.resumo.total_bots = bots?.length || 0
+
+    // ========== 2. PARA CADA BOT, BUSCAR TODOS OS DADOS ==========
+    for (const bot of (bots || [])) {
+      const botData: typeof response.bots[0] = {
         id: bot.id,
         nome: bot.name || "Sem nome",
         username: bot.username,
         status: bot.status || "desconhecido",
-        url_simulacao: `/api/debug/order-bump-status?bot_id=${bot.id}`
-      }))
-      response.diagnostico.verificacoes_ok.push(`${bots?.length || 0} bot(s) encontrado(s)`)
-    }
-
-    response.etapas.push(etapa1)
-
-    // ========== ETAPA 2: Identificar Bot Ativo ==========
-    let botAtivo: typeof bots[0] | null = null
-    const etapa2: typeof response.etapas[0] = {
-      numero: 2,
-      nome: "Identificar Bot Ativo",
-      descricao: "Determinar qual bot sera usado para a operacao",
-      status: "pendente",
-      dados: {}
-    }
-
-    if (botId) {
-      botAtivo = bots?.find(b => b.id === botId) || null
-      if (botAtivo) {
-        etapa2.status = "sucesso"
-        etapa2.dados = { bot_id: botAtivo.id, bot_nome: botAtivo.name }
-      } else {
-        etapa2.status = "erro"
-        etapa2.erro = `Bot com ID ${botId} nao encontrado`
-        etapa2.sugestao_correcao = "Verifique se o bot_id esta correto"
+        token_configurado: !!bot.token,
+        telegram_bot_id: bot.telegram_bot_id,
+        criado_em: bot.created_at,
+        fluxos_vinculados: [],
+        gateway: {
+          configurado: false,
+          nome: null,
+          ativo: false,
+          token_presente: false
+        },
+        usuarios_no_fluxo: [],
+        pagamentos_recentes: []
       }
-    } else if (bots && bots.length > 0) {
-      botAtivo = bots[0]
-      etapa2.status = "aviso"
-      etapa2.dados = { bot_id: botAtivo.id, bot_nome: botAtivo.name, motivo: "Usando primeiro bot disponivel" }
-      response.diagnostico.problemas_encontrados.push({
-        severidade: "menor",
-        local: "Parametros",
-        descricao: "Nenhum bot_id especificado, usando primeiro disponivel",
-        como_resolver: "Passe ?bot_id=UUID para especificar um bot"
-      })
-    } else {
-      etapa2.status = "erro"
-      etapa2.erro = "Nenhum bot disponivel no sistema"
-      etapa2.sugestao_correcao = "Cadastre um bot em /bots"
-    }
 
-    if (botAtivo) {
-      response.fluxo_dados.bot_selecionado = {
-        id: botAtivo.id,
-        nome: botAtivo.name,
-        username: botAtivo.username,
-        status: botAtivo.status,
-        telegram_bot_id: botAtivo.telegram_bot_id,
-        token_configurado: !!botAtivo.token
-      }
-    }
-
-    response.etapas.push(etapa2)
-
-    // ========== ETAPA 3: Buscar Fluxo Vinculado ==========
-    let fluxoAtivo: { id: string; name: string; config: Record<string, unknown>; bot_id: string | null; status: string } | null = null
-    const etapa3: typeof response.etapas[0] = {
-      numero: 3,
-      nome: "Buscar Fluxo Vinculado",
-      descricao: "Encontrar o fluxo associado ao bot",
-      status: "pendente",
-      dados: {}
-    }
-
-    if (flowId) {
-      // Buscar fluxo especifico
-      const { data: flow, error: flowError } = await supabase
+      // 2.1 Buscar fluxos vinculados diretamente
+      const { data: fluxosDiretos } = await supabase
         .from("flows")
-        .select("id, name, config, bot_id, status")
-        .eq("id", flowId)
-        .single()
+        .select("*")
+        .eq("bot_id", bot.id)
 
-      if (flow) {
-        fluxoAtivo = flow as typeof fluxoAtivo
-        etapa3.status = "sucesso"
-        etapa3.dados = { flow_id: flow.id, flow_nome: flow.name, fonte: "parametro flow_id" }
-      } else {
-        etapa3.status = "erro"
-        etapa3.erro = flowError?.message || "Fluxo nao encontrado"
+      // 2.2 Buscar fluxos via flow_bots
+      const { data: flowBots } = await supabase
+        .from("flow_bots")
+        .select("flow_id")
+        .eq("bot_id", bot.id)
+
+      const flowIdsIndiretos = flowBots?.map(fb => fb.flow_id) || []
+      
+      let fluxosIndiretos: typeof fluxosDiretos = []
+      if (flowIdsIndiretos.length > 0) {
+        const { data } = await supabase
+          .from("flows")
+          .select("*")
+          .in("id", flowIdsIndiretos)
+        fluxosIndiretos = data || []
       }
-    } else if (botAtivo) {
-      // Buscar fluxo direto
-      const { data: flowDireto } = await supabase
-        .from("flows")
-        .select("id, name, config, bot_id, status")
-        .eq("bot_id", botAtivo.id)
-        .limit(1)
-        .single()
 
-      if (flowDireto) {
-        fluxoAtivo = flowDireto as typeof fluxoAtivo
-        etapa3.status = "sucesso"
-        etapa3.dados = { flow_id: flowDireto.id, flow_nome: flowDireto.name, fonte: "vinculo direto (flows.bot_id)" }
-      } else {
-        // Tentar via flow_bots
-        const { data: flowBot } = await supabase
-          .from("flow_bots")
-          .select("flow_id, flow:flows(id, name, config, bot_id, status)")
-          .eq("bot_id", botAtivo.id)
-          .limit(1)
-          .single()
+      // Combinar fluxos (sem duplicatas)
+      const todosFluxos = [...(fluxosDiretos || [])]
+      for (const f of fluxosIndiretos) {
+        if (!todosFluxos.find(tf => tf.id === f.id)) {
+          todosFluxos.push(f)
+        }
+      }
 
-        if (flowBot?.flow) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fluxoAtivo = flowBot.flow as any
-          etapa3.status = "sucesso"
-          etapa3.dados = { 
-            flow_id: fluxoAtivo?.id, 
-            flow_nome: fluxoAtivo?.name, 
-            fonte: "vinculo indireto (flow_bots)" 
+      response.resumo.total_fluxos += todosFluxos.length
+
+      // 2.3 Para cada fluxo, buscar planos e order bump
+      for (const fluxo of todosFluxos) {
+        // Buscar planos do banco
+        const { data: planosDb } = await supabase
+          .from("flow_plans")
+          .select("*")
+          .eq("flow_id", fluxo.id)
+          .order("position", { ascending: true })
+
+        // Planos do config JSON
+        const planosConfig = (fluxo.config?.plans as Array<{
+          id: string
+          name: string
+          price: number
+          description?: string
+        }>) || []
+
+        const planosFinal = (planosDb && planosDb.length > 0) 
+          ? planosDb.map(p => ({
+              id: p.id,
+              nome: p.name,
+              preco: p.price,
+              descricao: p.description,
+              ativo: p.is_active,
+              posicao: p.position || 0
+            }))
+          : planosConfig.map((p, idx) => ({
+              id: p.id || `config_${idx}`,
+              nome: p.name,
+              preco: p.price,
+              descricao: p.description || null,
+              ativo: true,
+              posicao: idx
+            }))
+
+        response.resumo.total_planos += planosFinal.length
+
+        // Order Bump
+        const obConfig = fluxo.config?.orderBump as Record<string, unknown> | undefined
+        const obInicial = (obConfig?.inicial as Record<string, unknown>) || obConfig
+
+        const orderBumpAtivo = obInicial?.enabled === true && Number(obInicial?.price || 0) > 0
+        if (orderBumpAtivo) {
+          response.resumo.total_order_bumps_ativos++
+        }
+
+        const fluxoData: typeof botData.fluxos_vinculados[0] = {
+          id: fluxo.id,
+          nome: fluxo.name || "Sem nome",
+          status: fluxo.status || "desconhecido",
+          config: fluxo.config || {},
+          planos: planosFinal,
+          order_bump: {
+            configurado: !!obConfig,
+            ativo: orderBumpAtivo,
+            nome: (obInicial?.name as string) || null,
+            preco: Number(obInicial?.price || 0) || null,
+            descricao: (obInicial?.description as string) || null,
+            texto_aceitar: (obInicial?.acceptText as string) || "ADICIONAR",
+            texto_recusar: (obInicial?.rejectText as string) || "NAO QUERO",
+            config_completa: obInicial as Record<string, unknown> || null
           }
-        } else {
-          etapa3.status = "erro"
-          etapa3.erro = "Nenhum fluxo vinculado ao bot"
-          etapa3.sugestao_correcao = "Vincule um fluxo ao bot em /fluxos"
-          response.diagnostico.problemas_encontrados.push({
-            severidade: "critico",
-            local: "Vinculo Bot-Fluxo",
-            descricao: "Bot nao tem nenhum fluxo vinculado",
-            como_resolver: "Va em Fluxos > Editar > Vincular Bot"
+        }
+
+        botData.fluxos_vinculados.push(fluxoData)
+
+        // Verificar problemas
+        if (planosFinal.length === 0) {
+          response.problemas.push({
+            bot_id: bot.id,
+            bot_nome: bot.name || "Sem nome",
+            tipo: "SEM_PLANOS",
+            descricao: `Fluxo "${fluxo.name}" nao tem planos configurados`,
+            como_resolver: "Va em Fluxos > Editar > Adicionar Planos"
+          })
+        }
+
+        if (obConfig && !orderBumpAtivo) {
+          response.problemas.push({
+            bot_id: bot.id,
+            bot_nome: bot.name || "Sem nome",
+            tipo: "ORDER_BUMP_INATIVO",
+            descricao: `Order Bump do fluxo "${fluxo.name}" esta configurado mas inativo`,
+            como_resolver: "Ative o Order Bump e defina um preco maior que zero"
           })
         }
       }
-    }
 
-    if (fluxoAtivo) {
-      response.fluxo_dados.fluxo_ativo = {
-        id: fluxoAtivo.id,
-        nome: fluxoAtivo.name,
-        status: fluxoAtivo.status,
-        bot_id_direto: fluxoAtivo.bot_id,
-        config_keys: Object.keys(fluxoAtivo.config || {})
-      }
-    }
-
-    response.etapas.push(etapa3)
-
-    // ========== ETAPA 4: Verificar Planos Configurados ==========
-    const etapa4: typeof response.etapas[0] = {
-      numero: 4,
-      nome: "Verificar Planos",
-      descricao: "Listar planos disponiveis para selecao",
-      status: "pendente",
-      dados: {}
-    }
-
-    if (fluxoAtivo) {
-      // Buscar planos da tabela flow_plans
-      const { data: dbPlans } = await supabase
-        .from("flow_plans")
-        .select("id, name, price, description, is_active, position")
-        .eq("flow_id", fluxoAtivo.id)
-        .eq("is_active", true)
-        .order("position", { ascending: true })
-
-      // Tambem buscar do config
-      const configPlans = (fluxoAtivo.config?.plans as Array<{
-        id: string
-        name: string
-        price: number
-        description?: string
-      }>) || []
-
-      const planosAtivos = dbPlans && dbPlans.length > 0 ? dbPlans : configPlans
-
-      if (planosAtivos.length > 0) {
-        etapa4.status = "sucesso"
-        etapa4.dados = { 
-          total_planos: planosAtivos.length,
-          fonte: dbPlans && dbPlans.length > 0 ? "banco de dados (flow_plans)" : "config JSON"
-        }
-        response.fluxo_dados.planos_configurados = planosAtivos.map(p => ({
-          id: p.id,
-          nome: p.name,
-          preco: p.price,
-          descricao: p.description || null,
-          ativo: true
-        }))
-        response.diagnostico.verificacoes_ok.push(`${planosAtivos.length} plano(s) ativo(s)`)
-      } else {
-        etapa4.status = "erro"
-        etapa4.erro = "Nenhum plano configurado"
-        etapa4.sugestao_correcao = "Configure planos no fluxo"
-        response.diagnostico.problemas_encontrados.push({
-          severidade: "critico",
-          local: "Configuracao de Planos",
-          descricao: "O fluxo nao tem nenhum plano configurado",
-          como_resolver: "Va em Fluxos > Editar > Adicionar Planos"
+      if (todosFluxos.length === 0) {
+        response.problemas.push({
+          bot_id: bot.id,
+          bot_nome: bot.name || "Sem nome",
+          tipo: "SEM_FLUXO",
+          descricao: "Bot nao tem nenhum fluxo vinculado",
+          como_resolver: "Va em Fluxos e vincule um fluxo a este bot"
         })
       }
-    } else {
-      etapa4.status = "erro"
-      etapa4.erro = "Nao foi possivel verificar planos sem fluxo ativo"
-    }
 
-    response.etapas.push(etapa4)
-
-    // ========== ETAPA 5: Verificar Order Bump ==========
-    const etapa5: typeof response.etapas[0] = {
-      numero: 5,
-      nome: "Verificar Order Bump",
-      descricao: "Analisar configuracao do Order Bump",
-      status: "pendente",
-      dados: {}
-    }
-
-    if (fluxoAtivo?.config) {
-      const orderBumpConfig = fluxoAtivo.config.orderBump as Record<string, unknown> | undefined
-      const orderBumpInicial = (orderBumpConfig?.inicial as Record<string, unknown>) || orderBumpConfig
-
-      if (orderBumpConfig) {
-        const enabled = orderBumpInicial?.enabled === true
-        const price = Number(orderBumpInicial?.price || 0)
-        const name = orderBumpInicial?.name as string | undefined
-
-        response.fluxo_dados.order_bump_config = {
-          enabled,
-          nome: name || "Nao definido",
-          preco: price,
-          descricao: orderBumpInicial?.description || "Nao definida",
-          texto_aceitar: orderBumpInicial?.acceptText || "ADICIONAR",
-          texto_recusar: orderBumpInicial?.rejectText || "NAO QUERO",
-          tipo_entrega: orderBumpInicial?.deliveryType || "same",
-          config_completa: orderBumpInicial
-        }
-
-        if (enabled && price > 0) {
-          etapa5.status = "sucesso"
-          etapa5.dados = { 
-            order_bump_ativo: true, 
-            nome: name, 
-            preco: price,
-            sera_exibido: true
-          }
-          response.diagnostico.verificacoes_ok.push("Order Bump configurado e ativo")
-        } else {
-          etapa5.status = "aviso"
-          etapa5.dados = { 
-            order_bump_ativo: false,
-            motivo: !enabled ? "enabled = false" : "preco = 0"
-          }
-          response.diagnostico.problemas_encontrados.push({
-            severidade: "importante",
-            local: "Order Bump Config",
-            descricao: !enabled ? "Order Bump esta desativado" : "Order Bump com preco zero",
-            como_resolver: "Ative o Order Bump e defina um preco > 0"
-          })
-        }
-      } else {
-        etapa5.status = "aviso"
-        etapa5.erro = "Order Bump nao configurado"
-        etapa5.sugestao_correcao = "Configure o Order Bump no fluxo"
-      }
-    } else {
-      etapa5.status = "erro"
-      etapa5.erro = "Sem fluxo para verificar Order Bump"
-    }
-
-    response.etapas.push(etapa5)
-
-    // ========== ETAPA 6: Verificar Gateway de Pagamento ==========
-    const etapa6: typeof response.etapas[0] = {
-      numero: 6,
-      nome: "Verificar Gateway",
-      descricao: "Confirmar gateway de pagamento configurado",
-      status: "pendente",
-      dados: {}
-    }
-
-    if (botAtivo) {
+      // 2.4 Buscar gateway de pagamento
       const { data: gateway } = await supabase
         .from("user_gateways")
-        .select("id, gateway_name, access_token, is_active, created_at")
-        .eq("bot_id", botAtivo.id)
+        .select("*")
+        .eq("bot_id", bot.id)
         .eq("is_active", true)
         .limit(1)
         .single()
 
-      if (gateway?.access_token) {
-        etapa6.status = "sucesso"
-        etapa6.dados = {
-          gateway: gateway.gateway_name,
-          ativo: gateway.is_active,
-          token_configurado: true
-        }
-        response.fluxo_dados.gateway_pagamento = {
-          id: gateway.id,
+      if (gateway) {
+        botData.gateway = {
+          configurado: true,
           nome: gateway.gateway_name,
           ativo: gateway.is_active,
-          token_presente: true,
-          configurado_em: gateway.created_at
+          token_presente: !!gateway.access_token
         }
-        response.diagnostico.verificacoes_ok.push(`Gateway ${gateway.gateway_name} configurado`)
+        response.resumo.total_gateways_configurados++
       } else {
-        etapa6.status = "erro"
-        etapa6.erro = "Gateway de pagamento nao configurado"
-        etapa6.sugestao_correcao = "Configure um gateway (Mercado Pago) em /gateways"
-        response.diagnostico.problemas_encontrados.push({
-          severidade: "critico",
-          local: "Gateway de Pagamento",
-          descricao: "Nenhum gateway de pagamento ativo para este bot",
+        response.problemas.push({
+          bot_id: bot.id,
+          bot_nome: bot.name || "Sem nome",
+          tipo: "SEM_GATEWAY",
+          descricao: "Bot nao tem gateway de pagamento configurado",
           como_resolver: "Va em Gateways e conecte seu Mercado Pago"
         })
       }
-    } else {
-      etapa6.status = "erro"
-      etapa6.erro = "Bot nao identificado para buscar gateway"
-    }
 
-    response.etapas.push(etapa6)
-
-    // ========== ETAPA 7: Estado do Usuario (se especificado) ==========
-    if (telegramUserId && botAtivo) {
-      const etapa7: typeof response.etapas[0] = {
-        numero: 7,
-        nome: "Estado do Usuario",
-        descricao: "Verificar estado atual do usuario no fluxo",
-        status: "pendente",
-        dados: {}
-      }
-
-      const { data: userState } = await supabase
+      // 2.5 Buscar usuarios no fluxo
+      const { data: usuarios } = await supabase
         .from("user_flow_state")
         .select("*")
-        .eq("telegram_user_id", telegramUserId)
-        .eq("bot_id", botAtivo.id)
-        .single()
+        .eq("bot_id", bot.id)
+        .order("updated_at", { ascending: false })
+        .limit(20)
 
-      if (userState) {
-        etapa7.status = "sucesso"
-        etapa7.dados = {
-          status: userState.status,
-          flow_id: userState.flow_id,
-          ultima_atualizacao: userState.updated_at
-        }
-        response.fluxo_dados.estado_usuario = userState
-      } else {
-        etapa7.status = "aviso"
-        etapa7.dados = { mensagem: "Usuario sem estado no fluxo" }
-      }
+      botData.usuarios_no_fluxo = (usuarios || []).map(u => ({
+        telegram_user_id: u.telegram_user_id,
+        telegram_username: u.telegram_username,
+        status: u.status,
+        flow_id: u.flow_id,
+        plano_selecionado: u.selected_plan_id,
+        ultima_atualizacao: u.updated_at
+      }))
 
-      response.etapas.push(etapa7)
-
-      // Buscar pagamentos recentes
-      const { data: payments } = await supabase
+      // 2.6 Buscar pagamentos recentes
+      const { data: pagamentos } = await supabase
         .from("payments")
-        .select("id, amount, status, product_type, description, created_at")
-        .eq("telegram_user_id", telegramUserId)
+        .select("*")
+        .eq("bot_id", bot.id)
         .order("created_at", { ascending: false })
-        .limit(5)
+        .limit(10)
 
-      if (payments && payments.length > 0) {
-        response.fluxo_dados.pagamentos_recentes = payments
-      }
+      botData.pagamentos_recentes = (pagamentos || []).map(p => ({
+        id: p.id,
+        telegram_user_id: p.telegram_user_id,
+        valor: p.amount,
+        status: p.status,
+        tipo_produto: p.product_type,
+        descricao: p.description,
+        criado_em: p.created_at
+      }))
+
+      response.resumo.total_pagamentos += pagamentos?.length || 0
+
+      response.bots.push(botData)
     }
 
-    // ========== SIMULACAO DE INTERACAO ==========
-    const planoSelecionado = response.fluxo_dados.planos_configurados.find(p => p.id === planId) ||
-                            response.fluxo_dados.planos_configurados[0]
-    const orderBump = response.fluxo_dados.order_bump_config
+    // ========== 3. CRIAR SIMULACAO DO FLUXO ==========
+    // Usar dados do primeiro bot/fluxo como exemplo
+    const primeiroBot = response.bots[0]
+    const primeiroFluxo = primeiroBot?.fluxos_vinculados[0]
 
-    if (simulateAction === "ver_planos" || simulateAction === "completo") {
-      response.simulacao_interacao.mensagens_bot.push({
-        ordem: 1,
-        tipo: "MENSAGEM_COM_BOTOES",
-        conteudo: "Escolha seu plano:",
-        botoes: response.fluxo_dados.planos_configurados.map(p => ({
-          texto: p.nome,
-          callback: `plan_${p.id}`
-        }))
-      })
-    }
+    if (primeiroFluxo && primeiroFluxo.planos.length > 0) {
+      const planoExemplo = primeiroFluxo.planos[0]
+      const obAtivo = primeiroFluxo.order_bump.ativo
 
-    if ((simulateAction === "selecionar_plano" || simulateAction === "completo") && planoSelecionado) {
-      response.simulacao_interacao.mensagens_bot.push({
-        ordem: 2,
-        tipo: "CONFIRMACAO_PLANO",
-        conteudo: `Voce selecionou: ${planoSelecionado.nome}\nValor: R$ ${planoSelecionado.preco.toFixed(2).replace(".", ",")}`
-      })
-
-      // Order Bump aparece aqui
-      if (orderBump && (orderBump.enabled as boolean)) {
-        response.simulacao_interacao.mensagens_bot.push({
-          ordem: 3,
-          tipo: "ORDER_BUMP",
-          conteudo: (orderBump.descricao as string) || `Deseja adicionar ${orderBump.nome} por apenas R$ ${(orderBump.preco as number)?.toFixed(2).replace(".", ",")}?`,
-          botoes: [
-            { texto: (orderBump.texto_aceitar as string) || "ADICIONAR", callback: "ob_accept" },
-            { texto: (orderBump.texto_recusar as string) || "NAO QUERO", callback: "ob_decline" }
-          ]
-        })
-      }
-    }
-
-    if (simulateAction === "adicionar_bump" || simulateAction === "completo") {
-      if (orderBump && (orderBump.enabled as boolean)) {
-        response.simulacao_interacao.mensagens_bot.push({
-          ordem: 4,
-          tipo: "CONFIRMACAO_BUMP",
-          conteudo: "Adicionado!"
-        })
-      }
-    }
-
-    if (simulateAction === "prosseguir" || simulateAction === "completo") {
-      const valorPlano = planoSelecionado?.preco || 0
-      const valorBump = (orderBump?.enabled as boolean) ? (orderBump?.preco as number) || 0 : 0
-      const valorTotal = valorPlano + valorBump
-
-      response.simulacao_interacao.mensagens_bot.push({
-        ordem: 5,
-        tipo: "RESUMO_PEDIDO",
-        conteudo: `Resumo do Pedido:\n${planoSelecionado?.nome || "Plano"}: R$ ${valorPlano.toFixed(2).replace(".", ",")}${valorBump > 0 ? `\n${orderBump?.nome || "Bump"}: R$ ${valorBump.toFixed(2).replace(".", ",")}` : ""}`,
-        botoes: [
-          { texto: `PROSSEGUIR - R$ ${valorTotal.toFixed(2).replace(".", ",")}`, callback: "proceed_payment" }
-        ]
-      })
-
-      // Verificar se pode processar pagamento
-      const gatewayOk = etapa6.status === "sucesso"
-
-      if (gatewayOk) {
-        response.simulacao_interacao.mensagens_bot.push({
-          ordem: 6,
-          tipo: "GERANDO_PIX",
-          conteudo: `Gerando pagamento PIX no valor de R$ ${valorTotal.toFixed(2).replace(".", ",")}...`
-        })
-        response.simulacao_interacao.dados_pagamento = {
-          valor_plano: valorPlano,
-          valor_order_bump: valorBump,
-          valor_total: valorTotal,
-          gateway: response.fluxo_dados.gateway_pagamento?.nome || "nao configurado",
-          status: "simulado"
+      response.simulacao_fluxo_completo.etapas = [
+        {
+          numero: 1,
+          acao_usuario: "Clica em 'Ver Planos'",
+          resposta_bot: {
+            tipo: "MENSAGEM_COM_BOTOES",
+            conteudo: "Escolha seu plano:",
+            botoes: primeiroFluxo.planos.map(p => ({
+              texto: p.nome,
+              callback: `plan_${p.id}`
+            }))
+          }
+        },
+        {
+          numero: 2,
+          acao_usuario: `Seleciona o plano "${planoExemplo.nome}"`,
+          resposta_bot: {
+            tipo: "CONFIRMACAO",
+            conteudo: `Voce selecionou: ${planoExemplo.nome}\nValor: R$ ${planoExemplo.preco.toFixed(2).replace(".", ",")}`
+          }
         }
+      ]
+
+      if (obAtivo) {
+        response.simulacao_fluxo_completo.etapas.push({
+          numero: 3,
+          acao_usuario: "Visualiza oferta de Order Bump",
+          resposta_bot: {
+            tipo: "ORDER_BUMP",
+            conteudo: primeiroFluxo.order_bump.descricao || 
+              `Adicione ${primeiroFluxo.order_bump.nome} por apenas R$ ${primeiroFluxo.order_bump.preco?.toFixed(2).replace(".", ",")}`,
+            botoes: [
+              { texto: primeiroFluxo.order_bump.texto_aceitar || "ADICIONAR", callback: "ob_accept" },
+              { texto: primeiroFluxo.order_bump.texto_recusar || "NAO QUERO", callback: "ob_decline" }
+            ]
+          }
+        })
+
+        response.simulacao_fluxo_completo.etapas.push({
+          numero: 4,
+          acao_usuario: "Clica em 'ADICIONAR' (aceita Order Bump)",
+          resposta_bot: {
+            tipo: "CONFIRMACAO_BUMP",
+            conteudo: `Adicionado!\n\nResumo do Pedido:\n${planoExemplo.nome}: R$ ${planoExemplo.preco.toFixed(2).replace(".", ",")}\n${primeiroFluxo.order_bump.nome}: R$ ${primeiroFluxo.order_bump.preco?.toFixed(2).replace(".", ",")}\n\nTotal: R$ ${((planoExemplo.preco || 0) + (primeiroFluxo.order_bump.preco || 0)).toFixed(2).replace(".", ",")}`,
+            botoes: [
+              { texto: `PROSSEGUIR - R$ ${((planoExemplo.preco || 0) + (primeiroFluxo.order_bump.preco || 0)).toFixed(2).replace(".", ",")}`, callback: "proceed_payment" }
+            ]
+          }
+        })
       } else {
-        response.simulacao_interacao.mensagens_bot.push({
-          ordem: 6,
-          tipo: "ERRO",
-          conteudo: "Erro ao processar. Tente novamente."
+        response.simulacao_fluxo_completo.etapas.push({
+          numero: 3,
+          acao_usuario: "Confirma plano selecionado",
+          resposta_bot: {
+            tipo: "RESUMO_PEDIDO",
+            conteudo: `Resumo do Pedido:\n${planoExemplo.nome}: R$ ${planoExemplo.preco.toFixed(2).replace(".", ",")}`,
+            botoes: [
+              { texto: `PROSSEGUIR - R$ ${planoExemplo.preco.toFixed(2).replace(".", ",")}`, callback: "proceed_payment" }
+            ]
+          }
         })
       }
+
+      response.simulacao_fluxo_completo.etapas.push({
+        numero: obAtivo ? 5 : 4,
+        acao_usuario: "Clica em 'PROSSEGUIR'",
+        resposta_bot: {
+          tipo: "LINK_PAGAMENTO",
+          conteudo: primeiroBot.gateway.configurado 
+            ? "Gerando link de pagamento... (gateway configurado)"
+            : "ERRO: Gateway de pagamento nao configurado!"
+        }
+      })
     }
 
-    response.simulacao_interacao.proxima_acao = 
-      simulateAction === "ver_planos" ? "selecionar_plano" :
-      simulateAction === "selecionar_plano" ? "adicionar_bump" :
-      simulateAction === "adicionar_bump" ? "prosseguir" :
-      simulateAction === "prosseguir" ? "aguardando_pagamento" : null
-
-    // ========== CALCULAR RESUMO FINAL ==========
-    response.resumo.total_etapas = response.etapas.length
-    response.resumo.etapas_com_sucesso = response.etapas.filter(e => e.status === "sucesso").length
-    response.resumo.etapas_com_erro = response.etapas.filter(e => e.status === "erro").length
-    
-    const errosCriticos = response.diagnostico.problemas_encontrados.filter(p => p.severidade === "critico")
-    response.resumo.pode_processar_pagamento = errosCriticos.length === 0 && 
-      response.fluxo_dados.gateway_pagamento !== null &&
-      response.fluxo_dados.planos_configurados.length > 0
-
-    if (response.resumo.etapas_com_erro > 0) {
-      response.resumo.status_geral = "erro"
-      response.resumo.mensagem = `${response.resumo.etapas_com_erro} etapa(s) com erro. Verifique os diagnosticos.`
-    } else if (response.diagnostico.problemas_encontrados.length > 0) {
-      response.resumo.status_geral = "aviso"
-      response.resumo.mensagem = `Sistema funcionando com ${response.diagnostico.problemas_encontrados.length} aviso(s).`
-    } else {
-      response.resumo.status_geral = "ok"
-      response.resumo.mensagem = "Sistema configurado corretamente. Pronto para processar pagamentos."
+    // Definir status geral
+    if (response.problemas.length > 0) {
+      response.resumo.status_geral = "problemas_encontrados"
     }
 
-    // Tempo de processamento
-    response.diagnostico.tempo_processamento_ms = Date.now() - startTime
+    response.meta.tempo_processamento_ms = Date.now() - startTime
 
-    return NextResponse.json(response)
+    return NextResponse.json(response, { status: 200 })
 
   } catch (error) {
-    response.resumo.status_geral = "erro"
-    response.resumo.mensagem = `Erro interno: ${error instanceof Error ? error.message : "Desconhecido"}`
-    response.diagnostico.tempo_processamento_ms = Date.now() - startTime
-    
-    return NextResponse.json(response, { status: 500 })
+    return NextResponse.json({
+      erro: true,
+      mensagem: error instanceof Error ? error.message : "Erro desconhecido",
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
   }
 }
