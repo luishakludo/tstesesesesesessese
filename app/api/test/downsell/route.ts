@@ -2,16 +2,61 @@ import { getSupabaseAdmin } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
 // GET - Testa downsell automaticamente
-// /api/test/downsell - Lista todos os fluxos com downsell
+// /api/test/downsell - Lista todos os fluxos e bots
 // /api/test/downsell?flow_id=xxx - Simula downsell de um fluxo especifico
 // /api/test/downsell?flow_id=xxx&minutos=3 - Simula como se 3 minutos tivessem passado
+// /api/test/downsell?flow_id=xxx&vincular_bot=yyy - Vincula o fluxo a um bot
 export async function GET(request: Request) {
   const supabase = getSupabaseAdmin()
   const { searchParams } = new URL(request.url)
   const flowId = searchParams.get("flow_id")
   const minutos = parseInt(searchParams.get("minutos") || "0")
+  const vincularBot = searchParams.get("vincular_bot")
 
   try {
+    // Se passou vincular_bot, faz a vinculacao primeiro
+    if (flowId && vincularBot) {
+      // Buscar o bot pelo nome ou ID
+      const { data: bot, error: botError } = await supabase
+        .from("bots")
+        .select("id, name, token")
+        .or(`id.eq.${vincularBot},name.ilike.%${vincularBot}%`)
+        .limit(1)
+        .single()
+
+      if (botError || !bot) {
+        return NextResponse.json({
+          status: "ERRO",
+          erro: "Bot nao encontrado",
+          busca: vincularBot,
+          dica: "Use o ID ou nome do bot"
+        }, { status: 404 })
+      }
+
+      // Vincular o fluxo ao bot
+      const { error: updateError } = await supabase
+        .from("flows")
+        .update({ bot_id: bot.id })
+        .eq("id", flowId)
+
+      if (updateError) {
+        return NextResponse.json({
+          status: "ERRO",
+          erro: "Erro ao vincular bot",
+          detalhes: updateError.message
+        }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        status: "VINCULADO",
+        flow_id: flowId,
+        bot_id: bot.id,
+        bot_name: bot.name,
+        mensagem: `Fluxo vinculado ao bot "${bot.name}" com sucesso!`,
+        proximo_passo: `/api/test/downsell?flow_id=${flowId}`
+      })
+    }
+
     // Se passou flow_id, faz simulacao completa automatica
     if (flowId) {
       const { data: flow, error: flowError } = await supabase
