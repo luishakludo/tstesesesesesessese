@@ -3,6 +3,78 @@ import { getSupabase } from "@/lib/supabase"
 import { createPixPayment } from "@/lib/payments/gateways/mercadopago"
 
 // ---------------------------------------------------------------------------
+// Helper: Gerar PIX com gateway da tabela user_gateways
+// ---------------------------------------------------------------------------
+interface GatewayData {
+  id: string
+  gateway: string
+  access_token: string
+  credentials?: Record<string, unknown>
+}
+
+interface GeneratePixResult {
+  success: boolean
+  qrCode: string
+  qrCodeBase64?: string
+  paymentId?: string
+  pixCode?: string
+  transactionId?: string
+  error?: string
+}
+
+async function generatePixPayment(params: {
+  gateway: GatewayData
+  amount: number
+  description: string
+  externalReference?: string
+  customerEmail?: string
+}): Promise<GeneratePixResult> {
+  const { gateway, amount, description, customerEmail } = params
+  
+  console.log("[v0] generatePixPayment - gateway:", gateway.gateway, "amount:", amount)
+  
+  if (!gateway.access_token) {
+    console.error("[v0] generatePixPayment - No access_token in gateway")
+    return { success: false, qrCode: "", error: "Gateway sem access_token configurado" }
+  }
+  
+  try {
+    const result = await createPixPayment({
+      accessToken: gateway.access_token,
+      amount,
+      description,
+      payerEmail: customerEmail || "cliente@email.com"
+    })
+    
+    console.log("[v0] generatePixPayment - result:", result.success, "paymentId:", result.paymentId)
+    
+    if (!result.success || !result.qrCode) {
+      return { 
+        success: false, 
+        qrCode: "", 
+        error: result.error || "Falha ao gerar PIX" 
+      }
+    }
+    
+    return {
+      success: true,
+      qrCode: result.qrCode,
+      qrCodeBase64: undefined, // MP não retorna base64, usamos URL externa
+      paymentId: result.paymentId,
+      pixCode: result.copyPaste || result.qrCode,
+      transactionId: result.paymentId
+    }
+  } catch (err) {
+    console.error("[v0] generatePixPayment - Exception:", err)
+    return { 
+      success: false, 
+      qrCode: "", 
+      error: err instanceof Error ? err.message : "Erro ao gerar PIX" 
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helper: Busca flow ativo para um bot via flow_bots (relacao many-to-many)
 // ---------------------------------------------------------------------------
 async function getActiveFlowForBot(supabase: ReturnType<typeof getSupabase>, botUuid: string) {
@@ -777,7 +849,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           
           await sendTelegramMessage(botToken, chatId, obMessage, {
             inline_keyboard: [
-[{ text: orderBumpPacks.acceptText || "ADICIONAR", callback_data: `ob_accept_${Math.round(packPrice * 100)}_${Math.round(orderBumpPacks.price * 100)}` }],
+[{ text: orderBumpPacks.acceptText || "QUERO", callback_data: `ob_accept_${Math.round(packPrice * 100)}_${Math.round(orderBumpPacks.price * 100)}` }],
                 [{ text: orderBumpPacks.rejectText || "NAO QUERO", callback_data: `ob_decline_${Math.round(packPrice * 100)}_0` }]
             ]
           })
@@ -1133,16 +1205,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           console.error("[v0] Erro ao salvar pagamento Multi Order Bump:", paymentErrorMultiOb)
         }
         
-        // Enviar QR Code
-        const qrImageUrl = pixResultMultiOb.qrCodeBase64
-          ? `data:image/png;base64,${pixResultMultiOb.qrCodeBase64}`
-          : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixResultMultiOb.qrCode)}`
-        
-        if (pixResultMultiOb.qrCodeBase64) {
-          await sendTelegramPhoto(botToken, chatId, Buffer.from(pixResultMultiOb.qrCodeBase64, "base64"), `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
-        } else {
-          await sendTelegramPhoto(botToken, chatId, qrImageUrl, `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`)
-        }
+        // Enviar QR Code usando URL externa
+        const qrCaption = `Escaneie o QR Code para pagar\n\nValor: R$ ${totalAmount.toFixed(2).replace(".", ",")}`
+        const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixResultMultiOb.qrCode)}`
+        await sendTelegramPhoto(botToken, chatId, qrImageUrl, qrCaption)
         
         // Enviar codigo Pix Copia e Cola
         await sendTelegramMessage(
@@ -2212,7 +2278,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             console.log("[v0] Order Bump GLOBAL ATIVADO! Enviando oferta ao usuario...")
             
             const orderBumpDesc = orderBumpInicial.description || `Deseja adicionar ${orderBumpInicial.name || "este bonus"} por apenas R$ ${orderBumpInicial.price}?`
-            const orderBumpAcceptText = orderBumpInicial.acceptText || "ADICIONAR"
+            const orderBumpAcceptText = orderBumpInicial.acceptText || "QUERO"
             const orderBumpDeclineText = orderBumpInicial.rejectText || "NAO QUERO"
             
             // Formato: ob_accept_{mainAmount}_{bumpAmount} ou ob_decline_{mainAmount}
