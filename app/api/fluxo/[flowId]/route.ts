@@ -99,22 +99,34 @@ export async function GET(
     // ===============================================
     let botInfo = null
     let tipoVinculo = "NENHUM"
-    
-    // DEBUG: Log do bot_id no fluxo
-    console.log("[API /api/fluxo] flow.bot_id =", flow.bot_id)
+    let debugBotSearch = {
+      flow_bot_id_raw: flow.bot_id,
+      flow_bot_id_type: typeof flow.bot_id,
+      flow_bot_id_truthy: !!flow.bot_id,
+      busca_direta: null as string | null,
+      busca_flow_bots: null as string | null,
+      bot_encontrado: false
+    }
 
     // Verificar vinculo direto (flow.bot_id)
-    if (flow.bot_id) {
-      console.log("[API /api/fluxo] Buscando bot pelo bot_id direto:", flow.bot_id)
+    // IMPORTANTE: Verificar se bot_id existe e nao e string vazia
+    const temBotIdValido = flow.bot_id && flow.bot_id.trim && flow.bot_id.trim() !== ""
+    
+    if (temBotIdValido) {
+      debugBotSearch.busca_direta = `Buscando bot com id: ${flow.bot_id}`
+      
       const { data: bot, error: botError } = await supabase
         .from("bots")
         .select("id, name, username, telegram_bot_id, status, token")
         .eq("id", flow.bot_id)
         .single()
       
-      console.log("[API /api/fluxo] Resultado busca bot:", bot ? "ENCONTRADO" : "NAO ENCONTRADO", botError?.message || "")
-      
-      if (bot) {
+      if (botError) {
+        debugBotSearch.busca_direta = `ERRO: ${botError.message}`
+      } else if (bot) {
+        debugBotSearch.busca_direta = `ENCONTRADO: ${bot.name}`
+        debugBotSearch.bot_encontrado = true
+        
         // Validar bot no Telegram para pegar username atualizado
         let telegramUsername = bot.username
         if (bot.token) {
@@ -137,12 +149,15 @@ export async function GET(
           status: bot.status
         }
         tipoVinculo = "direto (flow.bot_id)"
+      } else {
+        debugBotSearch.busca_direta = `Bot com id ${flow.bot_id} NAO existe na tabela bots`
       }
+    } else {
+      debugBotSearch.busca_direta = `flow.bot_id esta vazio ou nulo: "${flow.bot_id}"`
     }
 
     // Se nao tem vinculo direto, verificar flow_bots
     if (!botInfo) {
-      console.log("[API /api/fluxo] Sem bot_id direto, verificando flow_bots...")
       const { data: flowBot, error: flowBotError } = await supabase
         .from("flow_bots")
         .select("bot_id")
@@ -150,9 +165,11 @@ export async function GET(
         .limit(1)
         .single()
 
-      console.log("[API /api/fluxo] flow_bots resultado:", flowBot?.bot_id || "NENHUM", flowBotError?.message || "")
-
-      if (flowBot?.bot_id) {
+      if (flowBotError) {
+        debugBotSearch.busca_flow_bots = `Nenhum registro em flow_bots: ${flowBotError.message}`
+      } else if (flowBot?.bot_id) {
+        debugBotSearch.busca_flow_bots = `Encontrado em flow_bots: ${flowBot.bot_id}`
+        
         const { data: bot } = await supabase
           .from("bots")
           .select("id, name, username, telegram_bot_id, status, token")
@@ -160,6 +177,8 @@ export async function GET(
           .single()
 
         if (bot) {
+          debugBotSearch.bot_encontrado = true
+          
           // Validar bot no Telegram
           let telegramUsername = bot.username
           if (bot.token) {
@@ -185,8 +204,6 @@ export async function GET(
         }
       }
     }
-    
-    console.log("[API /api/fluxo] Bot final:", botInfo ? `${botInfo.name} (@${botInfo.username})` : "NENHUM BOT VINCULADO!")
 
     // ===============================================
     // PROCESSAR ORDER BUMPS
@@ -495,6 +512,10 @@ export async function GET(
       bot: {
         vinculado: !!botInfo,
         tipo_vinculo: tipoVinculo,
+        
+        // DEBUG: Mostra exatamente o que foi buscado
+        debug: debugBotSearch,
+        
         dados: botInfo ? {
           id: botInfo.id,
           name: botInfo.name,
@@ -512,7 +533,10 @@ export async function GET(
             "Order Bump nao vai aparecer para usuarios",
             "Callbacks como ob_accept, ob_decline nao serao processados",
             "Fluxo de venda esta incompleto"
-          ]
+          ],
+          causa_provavel: debugBotSearch.flow_bot_id_raw 
+            ? `O fluxo tem bot_id="${debugBotSearch.flow_bot_id_raw}" mas o bot NAO foi encontrado na tabela bots. Verifique se o UUID esta correto.`
+            : "O campo bot_id esta NULO ou VAZIO na tabela flows. Voce precisa vincular um bot a este fluxo."
         } : null,
         
         // COMO RESOLVER
