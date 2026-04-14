@@ -1198,7 +1198,7 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   }
 
   // Update plan
-  const handleUpdatePlan = (id: string, field: keyof FlowPlan, value: string | number | boolean) => {
+  const handleUpdatePlan = (id: string, field: keyof FlowPlan, value: FlowPlan[keyof FlowPlan]) => {
     setPlans(plans.map(p => p.id === id ? { ...p, [field]: value } : p))
     setHasChanges(true)
   }
