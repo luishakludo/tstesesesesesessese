@@ -114,7 +114,7 @@ interface PlanOrderBump {
   id: string
   enabled: boolean
   name: string
-  price: number
+  price: number | string
   description: string
   acceptText: string
   rejectText: string
