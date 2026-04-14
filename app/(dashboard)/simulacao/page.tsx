@@ -107,7 +107,7 @@ const MOCK_PLANS = [
         name: "Bonus Extra",
         price: 19.90,
         description: "Adicione o Bonus Extra por apenas R$ 19,90 e tenha acesso a conteudos exclusivos!",
-        acceptText: "ADICIONAR",
+        acceptText: "QUERO",
         rejectText: "NAO QUERO"
       }
     ]
@@ -131,7 +131,7 @@ const MOCK_PLANS = [
         name: "Grupo VIP",
         price: 49.90,
         description: "Acesso ao grupo VIP no Telegram por apenas R$ 49,90!",
-        acceptText: "ADICIONAR",
+        acceptText: "QUERO",
         rejectText: "NAO QUERO"
       }
     ]
@@ -147,7 +147,7 @@ const MOCK_PLANS = [
         name: "Consultoria 1:1",
         price: 199.90,
         description: "Sessao de consultoria personalizada por apenas R$ 199,90!",
-        acceptText: "ADICIONAR",
+        acceptText: "QUERO",
         rejectText: "NAO QUERO"
       },
       {
@@ -163,7 +163,7 @@ const MOCK_PLANS = [
         name: "Certificado Premium",
         price: 29.90,
         description: "Certificado premium personalizado por apenas R$ 29,90!",
-        acceptText: "ADICIONAR",
+        acceptText: "QUERO",
         rejectText: "NAO QUERO"
       }
     ]
