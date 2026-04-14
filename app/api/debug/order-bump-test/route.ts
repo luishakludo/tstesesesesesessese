@@ -25,6 +25,14 @@ export async function GET() {
     bot = botData
   }
   
+  // Buscar o bot que TEM os order bumps (65f4a521-b310-4638-bfb3-522895406e30)
+  const obBotId = "65f4a521-b310-4638-bfb3-522895406e30"
+  const { data: obBot } = await supabase
+    .from("bots")
+    .select("id, name, user_id")
+    .eq("id", obBotId)
+    .single()
+  
   // TODOS os pagamentos recentes
   const { data: allPayments } = await supabase
     .from("payments")
@@ -98,6 +106,13 @@ export async function GET() {
     },
     
     bots_no_sistema: allBots,
+    
+    bot_com_order_bumps: obBot ? {
+      id: obBot.id,
+      name: obBot.name,
+      user_id: obBot.user_id,
+      IMPORTANTE: "Este bot tem os order bumps salvos. O user_id dele precisa ser o mesmo do usuario logado no painel."
+    } : "NAO ENCONTRADO",
     
     diagnostico: {
       flow_tem_bot: !!flow?.bot_id,
