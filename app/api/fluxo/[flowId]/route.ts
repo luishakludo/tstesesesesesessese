@@ -99,43 +99,94 @@ export async function GET(
     // ===============================================
     let botInfo = null
     let tipoVinculo = "NENHUM"
+    
+    // DEBUG: Log do bot_id no fluxo
+    console.log("[API /api/fluxo] flow.bot_id =", flow.bot_id)
 
     // Verificar vinculo direto (flow.bot_id)
     if (flow.bot_id) {
-      const { data: bot } = await supabase
+      console.log("[API /api/fluxo] Buscando bot pelo bot_id direto:", flow.bot_id)
+      const { data: bot, error: botError } = await supabase
         .from("bots")
-        .select("id, name, username, telegram_bot_id, status")
+        .select("id, name, username, telegram_bot_id, status, token")
         .eq("id", flow.bot_id)
         .single()
       
+      console.log("[API /api/fluxo] Resultado busca bot:", bot ? "ENCONTRADO" : "NAO ENCONTRADO", botError?.message || "")
+      
       if (bot) {
-        botInfo = bot
+        // Validar bot no Telegram para pegar username atualizado
+        let telegramUsername = bot.username
+        if (bot.token) {
+          try {
+            const telegramRes = await fetch(`https://api.telegram.org/bot${bot.token}/getMe`)
+            const telegramData = await telegramRes.json()
+            if (telegramData.ok) {
+              telegramUsername = telegramData.result.username
+            }
+          } catch {
+            // Manter username do banco
+          }
+        }
+        
+        botInfo = {
+          id: bot.id,
+          name: bot.name,
+          username: telegramUsername,
+          telegram_bot_id: bot.telegram_bot_id,
+          status: bot.status
+        }
         tipoVinculo = "direto (flow.bot_id)"
       }
     }
 
     // Se nao tem vinculo direto, verificar flow_bots
     if (!botInfo) {
-      const { data: flowBot } = await supabase
+      console.log("[API /api/fluxo] Sem bot_id direto, verificando flow_bots...")
+      const { data: flowBot, error: flowBotError } = await supabase
         .from("flow_bots")
         .select("bot_id")
         .eq("flow_id", flowId)
         .limit(1)
         .single()
 
+      console.log("[API /api/fluxo] flow_bots resultado:", flowBot?.bot_id || "NENHUM", flowBotError?.message || "")
+
       if (flowBot?.bot_id) {
         const { data: bot } = await supabase
           .from("bots")
-          .select("id, name, username, telegram_bot_id, status")
+          .select("id, name, username, telegram_bot_id, status, token")
           .eq("id", flowBot.bot_id)
           .single()
 
         if (bot) {
-          botInfo = bot
+          // Validar bot no Telegram
+          let telegramUsername = bot.username
+          if (bot.token) {
+            try {
+              const telegramRes = await fetch(`https://api.telegram.org/bot${bot.token}/getMe`)
+              const telegramData = await telegramRes.json()
+              if (telegramData.ok) {
+                telegramUsername = telegramData.result.username
+              }
+            } catch {
+              // Manter username do banco
+            }
+          }
+          
+          botInfo = {
+            id: bot.id,
+            name: bot.name,
+            username: telegramUsername,
+            telegram_bot_id: bot.telegram_bot_id,
+            status: bot.status
+          }
           tipoVinculo = "indireto (flow_bots)"
         }
       }
     }
+    
+    console.log("[API /api/fluxo] Bot final:", botInfo ? `${botInfo.name} (@${botInfo.username})` : "NENHUM BOT VINCULADO!")
 
     // ===============================================
     // PROCESSAR ORDER BUMPS
@@ -449,15 +500,46 @@ export async function GET(
           name: botInfo.name,
           username: botInfo.username,
           telegram_bot_id: botInfo.telegram_bot_id,
-          status: botInfo.status
+          status: botInfo.status,
+          telegram_link: botInfo.username ? `https://t.me/${botInfo.username}` : null
         } : null,
-        problema: !botInfo ? "ATENCAO: Este fluxo NAO esta vinculado a nenhum bot! O Order Bump NAO funcionara no Telegram." : null,
+        
+        // PROBLEMA CRITICO SE NAO TIVER BOT
+        problema: !botInfo ? {
+          titulo: "FLUXO SEM BOT VINCULADO!",
+          descricao: "Este fluxo NAO esta vinculado a nenhum bot do Telegram. Os callbacks do Order Bump NAO vao funcionar porque nao ha bot para processar as mensagens.",
+          impacto: [
+            "Order Bump nao vai aparecer para usuarios",
+            "Callbacks como ob_accept, ob_decline nao serao processados",
+            "Fluxo de venda esta incompleto"
+          ]
+        } : null,
+        
+        // COMO RESOLVER
         como_vincular: !botInfo ? {
-          passo_1: "Acesse /bots",
-          passo_2: "Crie ou selecione um bot",
-          passo_3: "No bot, vincule este fluxo (flow_id: " + flowId + ")",
-          alternativa: "Ou acesse /fluxos/" + flowId + " e selecione um bot na configuracao"
-        } : null
+          opcao_1_api: {
+            titulo: "Via API (Recomendado)",
+            passo_1: `GET /api/fluxo/${flowId}/vincular-bot para ver bots disponiveis`,
+            passo_2: `POST /api/fluxo/${flowId}/vincular-bot com body: { "bot_id": "UUID_DO_BOT" }`,
+            passo_3: `GET /api/fluxo/${flowId} para verificar se vinculou`
+          },
+          opcao_2_interface: {
+            titulo: "Via Interface",
+            passo_1: "Acesse /fluxos/" + flowId,
+            passo_2: "Na aba 'Configuracoes' ou 'Bot', selecione um bot",
+            passo_3: "Clique em Salvar"
+          },
+          opcao_3_criar_bot: {
+            titulo: "Se nao tem bot ainda",
+            passo_1: "Acesse /bots e crie um novo bot",
+            passo_2: "Fale com @BotFather no Telegram para criar o token",
+            passo_3: "Cadastre o bot na plataforma",
+            passo_4: "Volte e vincule ao fluxo"
+          }
+        } : null,
+        
+        // Endpoint direto para vincular
+        endpoint_vincular: `/api/fluxo/${flowId}/vincular-bot`
       },
 
       // Planos
