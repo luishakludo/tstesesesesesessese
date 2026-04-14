@@ -201,7 +201,6 @@ interface DownsellSequence {
   deliveryType: "global" | "custom"
   deliverableId?: string // ID do entregavel selecionado (se custom)
   customDelivery?: string
-  targetType: "geral" | "pix" // geral = todos, pix = apenas quem gerou pix mas nao pagou
 }
 
 interface DownsellConfig {
@@ -364,7 +363,6 @@ export default function FlowEditorPage() {
   const [downsellMessage, setDownsellMessage] = useState("")
   const [downsellSequences, setDownsellSequences] = useState<DownsellSequence[]>([])
   const [downsellDeliveryType, setDownsellDeliveryType] = useState<"same" | "custom">("same")
-  const [downsellSubTab, setDownsellSubTab] = useState<"geral" | "pix">("geral")
   const [expandedDownsellSequence, setExpandedDownsellSequence] = useState<string | null>(null)
   const [uploadingDownsellMedia, setUploadingDownsellMedia] = useState<string | null>(null)
 
@@ -1356,7 +1354,6 @@ const newPlan: UpsellPlan = {
   sendDelayUnit: "minutes",
   plans: [{ id: `plan-${Date.now()}`, buttonText: "Plano 1", price: 0 }],
   deliveryType: "global",
-  targetType: downsellSubTab === "pix" ? "pix" : "geral", // Usa a aba atual como targetType
   }
   setDownsellSequences([...downsellSequences, newSequence])
   setExpandedDownsellSequence(newSequence.id)
@@ -3426,9 +3423,9 @@ const newPlan: UpsellPlan = {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
-                        {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length}/20
-                      </span>
+<span className="text-sm font-bold text-neutral-900 bg-[#bfff00] px-3 py-1 rounded-full">
+  {downsellSequences.length}/20
+  </span>
                       <Switch
                         checked={downsellEnabled}
                         onCheckedChange={(checked) => {
@@ -3440,25 +3437,11 @@ const newPlan: UpsellPlan = {
                   </div>
                 </div>
 
-                {/* Sub-tabs */}
+                {/* Info sobre downsell */}
                 <div className="px-6 py-3 bg-neutral-50 border-b border-neutral-100 flex items-center gap-2">
-                  <button
-                    onClick={() => setDownsellSubTab("geral")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${downsellSubTab === "geral" ? "bg-pink-500 text-white shadow-sm" : "bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900"}`}
-                  >
-                    Geral
-                  </button>
-                  <button
-                    onClick={() => setDownsellSubTab("pix")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${downsellSubTab === "pix" ? "bg-orange-500 text-white shadow-sm" : "bg-white border border-neutral-200 text-neutral-600 hover:text-neutral-900"}`}
-                  >
-                    PIX Gerado
-                  </button>
-                  <span className="ml-auto text-xs text-neutral-500">
-                    {downsellSubTab === "geral" 
-                      ? "Sequencias para todos os leads que nao compraram"
-                      : "Sequencias para quem gerou PIX mas nao pagou"
-                    }
+                  <Clock className="h-4 w-4 text-pink-500" />
+                  <span className="text-xs text-neutral-500">
+                    Sequencias enviadas automaticamente apos o /start para quem nao pagou
                   </span>
                 </div>
 
@@ -3504,16 +3487,14 @@ const newPlan: UpsellPlan = {
                         <p className="text-neutral-500">Ative o Downsell para configurar sequencias</p>
                       </CardContent>
                     </Card>
-                  ) : downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).length === 0 ? (
+                  ) : downsellSequences.length === 0 ? (
                     <Card className="bg-white border-neutral-100 shadow-sm rounded-2xl">
                       <CardContent className="flex flex-col items-center justify-center py-16">
                         <Plus className="h-10 w-10 text-neutral-500/30 mb-4" />
                         <p className="text-neutral-500 mb-4">
-                          {downsellSubTab === "geral" 
-                            ? "Nenhuma sequencia geral configurada" 
-                            : "Nenhuma sequencia para Pix Gerado configurada"}
+                          Nenhuma sequencia de downsell configurada
                         </p>
-                        <Button onClick={handleAddDownsellSequence} className={downsellSubTab === "pix" ? "bg-orange-500 hover:bg-orange-600" : "bg-pink-500 hover:bg-pink-600"}>
+                        <Button onClick={handleAddDownsellSequence} className="bg-pink-500 hover:bg-pink-600">
                           <Plus className="h-4 w-4 mr-2" />
                           Adicionar Sequencia
                         </Button>
@@ -3521,7 +3502,7 @@ const newPlan: UpsellPlan = {
                     </Card>
                   ) : (
                     <div className="space-y-4">
-                      {downsellSequences.filter(s => s.targetType === downsellSubTab || (!s.targetType && downsellSubTab === "geral")).map((seq, index) => (
+                      {downsellSequences.map((seq, index) => (
                         <Card key={seq.id} className="border-neutral-200">
                           {/* Sequence Header */}
                           <div

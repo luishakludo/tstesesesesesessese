@@ -143,6 +143,7 @@ export async function GET(request: NextRequest) {
         const price = metadata?.price || 0
         
         // Verificar se o usuario ja pagou (cancelar se ja pagou)
+        // 1. Verificar status no user_flow_state
         const { data: userState } = await supabaseAdmin
           .from("user_flow_state")
           .select("status")
@@ -152,10 +153,44 @@ export async function GET(request: NextRequest) {
         
         if (userState?.status === "paid" || userState?.status === "completed") {
           // Usuario ja pagou, cancelar downsell
+          console.log(`[CRON] User ${msg.telegram_user_id} already paid (user_flow_state), cancelling downsell`)
           await supabaseAdmin
             .from("scheduled_messages")
             .update({ status: "cancelled" })
             .eq("id", msg.id)
+          continue
+        }
+        
+        // 2. Verificar se existe pagamento aprovado na tabela payments
+        // Isso cobre casos onde o webhook do MP foi processado mas user_flow_state nao foi atualizado
+        const { data: approvedPayment } = await supabaseAdmin
+          .from("payments")
+          .select("id, status")
+          .eq("bot_id", msg.bot_id)
+          .eq("telegram_user_id", msg.telegram_user_id)
+          .eq("status", "approved")
+          .eq("product_type", "main_product")
+          .limit(1)
+          .single()
+        
+        if (approvedPayment) {
+          // Usuario ja tem pagamento aprovado, cancelar downsell
+          console.log(`[CRON] User ${msg.telegram_user_id} has approved payment, cancelling downsell`)
+          await supabaseAdmin
+            .from("scheduled_messages")
+            .update({ status: "cancelled" })
+            .eq("id", msg.id)
+          
+          // Tambem atualizar user_flow_state para "paid" para futuras verificacoes
+          await supabaseAdmin
+            .from("user_flow_state")
+            .upsert({
+              bot_id: msg.bot_id,
+              telegram_user_id: msg.telegram_user_id,
+              status: "paid",
+              updated_at: new Date().toISOString()
+            }, { onConflict: "bot_id,telegram_user_id" })
+          
           continue
         }
         
