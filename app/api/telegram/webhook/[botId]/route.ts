@@ -642,36 +642,72 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
   
   // ========== COPY PIX CODE CALLBACK ==========
   if (callbackData.startsWith("copy_pix_")) {
-    console.log("[v0] Copy PIX Callback recebido:", callbackData)
-    
-    // Buscar pagamento para pegar o código PIX
     const paymentIdOrCode = callbackData.replace("copy_pix_", "")
     
-    // Buscar pagamento no banco
-    const { data: paymentData } = await supabase
+    // Buscar pagamento - tentar varias estrategias
+    let pixCode: string | null = null
+    
+    // Estrategia 1: Buscar pelo ID exato (se for UUID) ou external_payment_id
+    const { data: paymentData1 } = await supabase
       .from("payments")
-      .select("pix_code, external_payment_id")
-      .or(`id.eq.${paymentIdOrCode},external_payment_id.eq.${paymentIdOrCode}`)
+      .select("pix_code, copy_paste")
+      .or(`id.eq.${paymentIdOrCode},external_payment_id.eq.${paymentIdOrCode},external_id.eq.${paymentIdOrCode}`)
       .limit(1)
       .single()
     
-    if (paymentData?.pix_code) {
-      // Enviar código PIX como mensagem separada para facilitar cópia
+    if (paymentData1) {
+      pixCode = paymentData1.pix_code || paymentData1.copy_paste
+    }
+    
+    // Estrategia 2: Se nao encontrou, buscar pagamento mais recente do usuario neste bot
+    if (!pixCode) {
+      const { data: paymentData2 } = await supabase
+        .from("payments")
+        .select("pix_code, copy_paste")
+        .eq("bot_id", botUuid)
+        .eq("telegram_user_id", String(telegramUserId))
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+      
+      if (paymentData2) {
+        pixCode = paymentData2.pix_code || paymentData2.copy_paste
+      }
+    }
+    
+    // Estrategia 3: Buscar qualquer pagamento recente do usuario
+    if (!pixCode) {
+      const { data: paymentData3 } = await supabase
+        .from("payments")
+        .select("pix_code, copy_paste")
+        .eq("telegram_user_id", String(telegramUserId))
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+      
+      if (paymentData3) {
+        pixCode = paymentData3.pix_code || paymentData3.copy_paste
+      }
+    }
+    
+    if (pixCode) {
+      // Responder callback
       await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           callback_query_id: callbackQueryId,
-          text: "Código PIX copiado! Cole no seu app de banco.",
+          text: "Codigo PIX enviado! Toque nele para copiar.",
           show_alert: false
         })
       })
       
-      // Enviar novamente o código para facilitar cópia
+      // Enviar novamente o codigo para facilitar copia
       await sendTelegramMessage(
         botToken, 
         chatId, 
-        `📋 <b>Código PIX Copia e Cola:</b>\n\n<code>${paymentData.pix_code}</code>\n\n<i>Toque no código acima para copiar</i>`
+        `<b>Codigo PIX Copia e Cola:</b>\n\n<code>${pixCode}</code>\n\n<i>Toque no codigo acima para copiar</i>`
       )
     } else {
       await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
@@ -679,7 +715,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           callback_query_id: callbackQueryId,
-          text: "Código PIX não encontrado",
+          text: "Codigo PIX nao encontrado. Tente selecionar o plano novamente.",
           show_alert: true
         })
       })
@@ -2015,11 +2051,14 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             ob.enabled && ob.price && ob.price > 0
           )
           
-          console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial:", !!orderBumpInicial?.enabled)
+          // PRIORIDADE: Se o order bump GLOBAL (fluxo inicial) estiver ativado, ele ANULA os order bumps do plano
+          const globalOrderBumpEnabled = orderBumpInicial?.enabled && orderBumpInicial?.price > 0
           
-          // Se o plano tem order bumps especificos, usar eles
-          // USANDO MESMA LOGICA DO ORDER BUMP GLOBAL (ob_accept_ e ob_decline_)
-          if (activePlanOrderBumps.length > 0) {
+          console.log("[v0] Order Bump Check - Plan specific bumps:", activePlanOrderBumps.length, "Global inicial ativo:", globalOrderBumpEnabled)
+          
+          // Se o plano tem order bumps especificos E o global NAO esta ativado, usar os do plano
+          // Se o global esta ativado, ignora os do plano e usa o global (tratado mais abaixo)
+          if (activePlanOrderBumps.length > 0 && !globalOrderBumpEnabled) {
             const mainPriceRounded = Math.round(planPrice * 100)
             const hasMultipleBumps = activePlanOrderBumps.length > 1
             
