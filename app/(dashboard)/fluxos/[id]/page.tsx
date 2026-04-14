@@ -3359,75 +3359,25 @@ const newPlan: UpsellPlan = {
                               <p className="text-xs text-neutral-500 text-right">{seq.message.length}/4000 caracteres</p>
                             </div>
 
-                            <div className="border-t border-neutral-200 pt-4" />
-
-                            {/* Botoes - Aceitar e Recusar lado a lado */}
-                            <div className="space-y-4">
-                              <h4 className="font-medium">Configuracao dos Botoes</h4>
-                              <p className="text-sm text-neutral-500">
-                                Os planos configurados acima aparecerao como botoes de aceitar. O botao de recusar é opcional.
-                              </p>
-                              
-                              <div className="grid grid-cols-2 gap-4">
-                                {/* Botao Aceitar (planos) */}
-                                <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-4 space-y-2">
-                                  <div className="flex items-center gap-2">
-                                    <Check className="h-4 w-4 text-emerald-500" />
-                                    <p className="font-medium text-sm">Botoes de Aceitar</p>
-                                  </div>
-                                  <p className="text-xs text-neutral-500">
-                                    Os planos acima serao exibidos como botoes. Cada plano gera um botao de aceitar com o texto e valor configurado.
-                                  </p>
-                                  <div className="pt-2">
-                                    <span className="text-xs bg-emerald-500/10 text-emerald-600 px-2 py-1 rounded">
-                                      {(seq.plans?.length || 0)} plano(s) configurado(s)
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Botao Recusar */}
-                                <div className="rounded-lg bg-red-500/5 border border-red-500/20 p-4 space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                      <X className="h-4 w-4 text-red-500" />
-                                      <p className="font-medium text-sm">Botao de Recusar</p>
-                                    </div>
-                                    <Switch
-                                      checked={!seq.hideRejectButton}
-                                      onCheckedChange={(checked) => handleUpdateUpsellSequence(seq.id, "hideRejectButton", !checked)}
-                                    />
-                                  </div>
-                                  <p className="text-xs text-neutral-500">
-                                    Permite o cliente pular esta oferta e ir para a proxima.
-                                  </p>
-                                  {!seq.hideRejectButton && (
-                                    <div className="pt-2">
-                                      <Input
-                                        value={seq.rejectButtonText}
-                                        onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
-                                        className="bg-white border-red-500/20 h-8 text-sm"
-                                        placeholder="Nao tenho interesse"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
+                            {/* Texto dos Botoes - Aceitar e Recusar lado a lado */}
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="space-y-1">
+                                <Label className="text-xs text-neutral-500">Texto Aceitar</Label>
+                                <Input
+                                  value={seq.acceptButtonText}
+                                  onChange={(e) => handleUpdateUpsellSequence(seq.id, "acceptButtonText", e.target.value)}
+                                  placeholder="Quero essa oferta!"
+                                  className="bg-neutral-50 border-neutral-200"
+                                />
                               </div>
-
-                              {/* Preview dos botoes */}
-                              <div className="rounded-lg bg-neutral-100 p-4 space-y-2">
-                                <p className="text-xs text-neutral-500 font-medium">Preview dos botoes:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {(seq.plans || []).map((plan) => (
-                                    <span key={plan.id} className="bg-emerald-500 text-white text-xs px-3 py-1.5 rounded">
-                                      {plan.buttonText || plan.name || "Aceitar"}
-                                    </span>
-                                  ))}
-                                  {!seq.hideRejectButton && (
-                                    <span className="bg-red-500/80 text-white text-xs px-3 py-1.5 rounded">
-                                      {seq.rejectButtonText || "Nao tenho interesse"}
-                                    </span>
-                                  )}
-                                </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs text-neutral-500">Texto Recusar</Label>
+                                <Input
+                                  value={seq.rejectButtonText}
+                                  onChange={(e) => handleUpdateUpsellSequence(seq.id, "rejectButtonText", e.target.value)}
+                                  placeholder="Nao tenho interesse"
+                                  className="bg-neutral-50 border-neutral-200"
+                                />
                               </div>
                             </div>
                           </div>
