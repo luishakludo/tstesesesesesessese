@@ -2847,6 +2847,24 @@ setRedirectButtonEnabled(config.redirectButton?.enabled || false)
   </div>
                                           </div>
                                           
+                                          {/* Mensagem do Resumo (apenas no primeiro order bump quando tem mais de 1) */}
+                                          {bumpIndex === 0 && (plan.order_bumps || []).length > 1 && (
+                                            <div className="mt-3 space-y-1">
+                                              <Label className="text-xs text-neutral-500">Mensagem do Resumo</Label>
+                                              <Input
+                                                value={bump.ctaMessage || ""}
+                                                onChange={(e) => {
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, ctaMessage: e.target.value }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                placeholder="Escolha um dos produtos acima ou continue com o conteudo principal"
+                                                className="h-8 text-sm bg-secondary/30"
+                                              />
+                                              <p className="text-[10px] text-neutral-500">Mensagem exibida no resumo do pedido abaixo dos order bumps</p>
+                                            </div>
+                                          )}
+                                          
                                           {/* Midias do Order Bump (ate 3) */}
                                           <div className="mt-3 space-y-2">
                                             <div className="flex items-center justify-between">
