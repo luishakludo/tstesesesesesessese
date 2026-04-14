@@ -261,24 +261,16 @@ export async function POST() {
     }
     
     // CRIAR PAGAMENTO REAL DE ORDER BUMP
+    // Schema correto: user_id, amount, status, payment_method, gateway, external_payment_id, product_type, bot_id
     const paymentData = {
       bot_id: bot.id,
       user_id: userId,
-      flow_id: flow?.id || null,
-      telegram_user_id: "teste_automatico_" + Date.now(),
-      telegram_username: "teste_ob",
-      telegram_first_name: "Teste",
       amount: 19.90,
       status: "approved",
       product_type: "order_bump",
-      product_name: "Order Bump Teste Automatico",
       payment_method: "pix",
-      metadata: {
-        teste_automatico: true,
-        criado_em: new Date().toISOString(),
-        bot_nome: bot.name,
-        flow_nome: flow?.name
-      }
+      gateway: "mercadopago",
+      external_payment_id: "teste_ob_" + bot.id.slice(0,8) + "_" + Date.now()
     }
     
     const { data: payment, error: paymentError } = await supabase
