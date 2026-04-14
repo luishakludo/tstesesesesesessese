@@ -2786,11 +2786,19 @@ const newPlan: UpsellPlan = {
                                               <Input
                                                 type="text"
                                                 inputMode="decimal"
-                                                value={bump.price || ""}
+                                                value={bump.price === 0 ? "" : bump.price}
                                                 onChange={(e) => {
                                                   const val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".")
                                                   const updatedBumps = [...(plan.order_bumps || [])]
-                                                  updatedBumps[bumpIndex] = { ...bump, price: parseFloat(val) || 0 }
+                                                  // Manter como string temporariamente para permitir digitar decimais
+                                                  updatedBumps[bumpIndex] = { ...bump, price: val as unknown as number }
+                                                  handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
+                                                }}
+                                                onBlur={(e) => {
+                                                  // Converter para numero apenas ao sair do campo
+                                                  const num = parseFloat(e.target.value.replace(",", ".")) || 0
+                                                  const updatedBumps = [...(plan.order_bumps || [])]
+                                                  updatedBumps[bumpIndex] = { ...bump, price: num }
                                                   handleUpdatePlan(plan.id, "order_bumps", updatedBumps)
                                                 }}
                                                 placeholder="0.00"
