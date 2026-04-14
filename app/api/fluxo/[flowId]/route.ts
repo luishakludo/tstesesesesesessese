@@ -201,8 +201,8 @@ export async function GET(
               acceptText: ob.acceptText || "ADICIONAR",
               rejectText: ob.rejectText || "NAO QUERO",
               telegram_callbacks: {
-                aceitar: `mob_accept_${planoPriceCents}_${bumpPriceCentsLocal}_${idx}`,
-                recusar: `mob_decline_${planoPriceCents}_${idx}`
+                aceitar: `ob_multi_${planoPriceCents}_${bumpPriceCentsLocal}_${idx}`,
+                recusar: `ob_decline_${planoPriceCents}_0`
               }
             }
           }),
@@ -226,8 +226,8 @@ export async function GET(
                 bumps: activePlanOrderBumps.map((ob: { name: string; price: number }, idx: number) => ({
                   name: ob.name,
                   price: ob.price,
-                  callback_aceitar: `mob_accept_${planoPriceCents}_${Math.round(ob.price * 100)}_${idx}`,
-                  callback_recusar: `mob_decline_${planoPriceCents}_${idx}`
+                  callback_aceitar: `ob_multi_${planoPriceCents}_${Math.round(ob.price * 100)}_${idx}`,
+                  callback_recusar: `ob_decline_${planoPriceCents}_0`
                 }))
               }
             : usarOrderBumpGlobal 
