@@ -1916,12 +1916,10 @@ if (isAccept) {
     // ds_accept_sequenceId_planId_price
     const parts = callbackData.replace("ds_accept_", "").split("_")
     const sequenceId = parts[0]
-    const planId = parts[1]
-    const price = parseFloat(parts[2]) || 0
-    
-    console.log("[v0] DS Accept - sequenceId:", sequenceId, "planId:", planId, "price:", price)
-          
-          if (price > 0) {
+const planId = parts[1]
+  const price = parseFloat(parts[2]) || 0
+  
+  if (price > 0) {
             // Buscar gateway de pagamento
             const { data: gateway } = await supabase
               .from("payment_gateways")
@@ -2689,12 +2687,8 @@ if (isAccept) {
           plans?: Array<{ id: string; buttonText: string; price: number }>; deliveryType?: string; deliverableId?: string; customDelivery?: string
         }> } | undefined
         
-        console.log("[v0] DOWNSELL CONFIG:", JSON.stringify(downsellConfig, null, 2))
-        
         if (downsellConfig?.enabled && downsellConfig.sequences && downsellConfig.sequences.length > 0) {
           const now = new Date()
-          
-          console.log("[v0] DOWNSELL: Found", downsellConfig.sequences.length, "sequences to process")
           
           // Cancelar agendamentos anteriores deste usuario
           await supabase
@@ -2704,79 +2698,40 @@ if (isAccept) {
             .eq("telegram_user_id", String(telegramUserId))
             .eq("status", "pending")
           
-          // Processar todas as sequencias de downsell (enviadas apos o /start se usuario nao pagou)
+          // Processar todas as sequencias de downsell
           for (const seq of downsellConfig.sequences) {
-            const isImmediate = !seq.sendTiming || seq.sendTiming === "immediate"
+            // Calcular delay em minutos
+            let delayMinutes = seq.sendDelayValue || 1
+            if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
+            else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
             
-            console.log("[v0] DOWNSELL SEQ:", seq.id, "isImmediate:", isImmediate, "sendTiming:", seq.sendTiming)
+            // Calcular horario exato para envio
+            const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
             
-            if (isImmediate) {
-              // ENVIAR IMEDIATAMENTE - nao depende de cron
-              try {
-                // Enviar midias se tiver
-                if (seq.medias && seq.medias.length > 0) {
-                  const validMedias = seq.medias.filter(m => m && !m.startsWith("data:") && m.startsWith("http"))
-                  if (validMedias.length > 0) {
-                    await sendMediaGroup(botToken, chatId, validMedias, seq.message || "")
-                  } else if (seq.message) {
-                    await sendTelegramMessage(botToken, chatId, seq.message)
-                  }
-                } else if (seq.message) {
-                  await sendTelegramMessage(botToken, chatId, seq.message)
-                }
-                
-                // Enviar botoes para cada plano
-                if (seq.plans && seq.plans.length > 0) {
-                  const inlineKeyboard = {
-                    inline_keyboard: [
-                      ...seq.plans.map(plan => [{ 
-                        text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
-                        callback_data: `ds_accept_${seq.id}_${plan.id}_${plan.price}` 
-                      }]),
-                      [{ text: "Nao tenho interesse", callback_data: `ds_decline_${seq.id}` }]
-                    ]
-                  }
-                  await sendTelegramMessage(botToken, chatId, "Escolha uma opcao:", inlineKeyboard)
-                }
-              } catch (err) {
-                console.error("[DOWNSELL] Erro ao enviar downsell imediato:", err)
+            // Salvar no banco para o cron processar
+            await supabase.from("scheduled_messages").insert({
+              bot_id: botUuid,
+              flow_id: startFlow.id,
+              telegram_user_id: String(telegramUserId),
+              telegram_chat_id: String(chatId),
+              message_type: "downsell",
+              sequence_id: seq.id,
+              sequence_index: downsellConfig.sequences.indexOf(seq),
+              scheduled_for: scheduledFor.toISOString(),
+              status: "pending",
+              metadata: {
+                message: seq.message,
+                medias: seq.medias || [],
+                plans: seq.plans || [],
+                deliveryType: seq.deliveryType,
+                deliverableId: seq.deliverableId,
+                customDelivery: seq.customDelivery,
+                botToken: botToken,
               }
-            } else {
-              // AGENDAR PARA DEPOIS - salva no banco para cron externo processar
-              let delayMinutes = seq.sendDelayValue || 30
-              if (seq.sendDelayUnit === "hours") delayMinutes = (seq.sendDelayValue || 1) * 60
-              else if (seq.sendDelayUnit === "days") delayMinutes = (seq.sendDelayValue || 1) * 60 * 24
-              
-              const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
-              
-              console.log("[v0] DOWNSELL: Scheduling seq", seq.id, "for", scheduledFor.toISOString(), "(delay:", delayMinutes, "min)")
-              
-              const insertResult = await supabase.from("scheduled_messages").insert({
-                bot_id: botUuid,
-                flow_id: startFlow.id,
-                telegram_user_id: String(telegramUserId),
-                telegram_chat_id: String(chatId),
-                message_type: "downsell",
-                sequence_id: seq.id,
-                sequence_index: downsellConfig.sequences.indexOf(seq),
-                scheduled_for: scheduledFor.toISOString(),
-                status: "pending",
-                metadata: {
-                  message: seq.message,
-                  medias: seq.medias || [],
-                  plans: seq.plans || [],
-                  deliveryType: seq.deliveryType,
-                  deliverableId: seq.deliverableId,
-                  customDelivery: seq.customDelivery,
-                  botToken: botToken,
-                }
-              })
-              
-              console.log("[v0] DOWNSELL INSERT RESULT:", insertResult.error ? insertResult.error.message : "SUCCESS")
-            }
+            })
           }
-        } else {
-          console.log("[v0] DOWNSELL: Not enabled or no sequences. enabled:", downsellConfig?.enabled, "sequences:", downsellConfig?.sequences?.length)
+          
+          console.log(`[DOWNSELL] Scheduled ${downsellConfig.sequences.length} downsell(s) for user ${telegramUserId}`)
         }
         
         return
