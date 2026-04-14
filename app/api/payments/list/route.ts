@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
     // Se tiver userId, buscar os bots desse usuario
-    // INCLUI bots com user_id = userId OU bots sem user_id (null) que podem ter sido criados antes da associacao
     let userBotIds: string[] = []
     if (userId) {
       // Buscar bots do usuario
@@ -25,17 +24,9 @@ export async function GET(request: NextRequest) {
         .select("id")
         .eq("user_id", userId)
       
-      // Tambem buscar bots sem user_id (legado) - esses precisam ser associados
-      const { data: orphanBots } = await supabase
-        .from("bots")
-        .select("id")
-        .is("user_id", null)
+      userBotIds = userBots?.map(b => b.id) || []
       
-      const ownedBotIds = userBots?.map(b => b.id) || []
-      const orphanBotIds = orphanBots?.map(b => b.id) || []
-      userBotIds = [...ownedBotIds, ...orphanBotIds]
-      
-      console.log("[v0] Payments list - userId:", userId, "ownedBots:", ownedBotIds.length, "orphanBots:", orphanBotIds.length, "totalBotIds:", userBotIds.length, "error:", botsError)
+      console.log("[v0] Payments list - userId:", userId, "userBots:", userBotIds.length, "error:", botsError)
     }
 
     // Build query - buscar pagamentos dos bots do usuario OU com user_id direto
@@ -55,7 +46,6 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         // Tem bots: buscar por bot_id OU user_id
-        // Formato correto para .or() - SEM aspas nos UUIDs
         const botIdsString = userBotIds.join(",")
         const orFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
         console.log("[v0] Payments list - OR filter:", orFilter)
@@ -91,7 +81,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Calculate stats - mesmo filtro
+    // Calculate stats - mesmo filtro da query principal
     let statsQuery = supabase
       .from("payments")
       .select("status, amount")
@@ -99,7 +89,8 @@ export async function GET(request: NextRequest) {
     if (userId) {
       if (userBotIds.length > 0) {
         const botIdsString = userBotIds.join(",")
-        statsQuery = statsQuery.or(`bot_id.in.(${botIdsString}),user_id.eq.${userId}`)
+        const statsOrFilter = `bot_id.in.(${botIdsString}),user_id.eq.${userId}`
+        statsQuery = statsQuery.or(statsOrFilter)
       } else {
         statsQuery = statsQuery.eq("user_id", userId)
       }

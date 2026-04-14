@@ -1400,23 +1400,87 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           undefined
         )
         
-        // Get user_id from bot to find gateway
+        // Get user_id - IMPORTANTE: Buscar do FLOW primeiro, pois o bot pode nao ter user_id
+        // O flow sempre tem user_id atraves da relacao flow -> bot -> user
+        let ownerUserId: string | null = null
+        
+        // Primeiro tenta buscar do bot atual
         const { data: botDataOB } = await supabase
           .from("bots")
           .select("user_id")
           .eq("id", botUuid)
           .single()
         
-        if (!botDataOB?.user_id) {
-          await sendTelegramMessage(botToken, chatId, "Erro: Bot nao encontrado.", undefined)
+        if (botDataOB?.user_id) {
+          ownerUserId = botDataOB.user_id
+          console.log("[v0] Order Bump - user_id from bot:", ownerUserId)
+        } else {
+          // Bot nao tem user_id, buscar do flow
+          // O userState.flow_id vem do estado salvo quando o order bump foi oferecido
+          const flowIdFromState = userState?.flow_id
+          console.log("[v0] Order Bump - bot sem user_id, buscando do flow:", flowIdFromState)
+          
+          if (flowIdFromState) {
+            // Buscar o flow e seu bot associado para pegar o user_id
+            const { data: flowData } = await supabase
+              .from("flows")
+              .select("bot_id, user_id")
+              .eq("id", flowIdFromState)
+              .single()
+            
+            if (flowData?.user_id) {
+              ownerUserId = flowData.user_id
+              console.log("[v0] Order Bump - user_id from flow.user_id:", ownerUserId)
+            } else if (flowData?.bot_id) {
+              // Flow tem bot_id, buscar user_id desse bot
+              const { data: flowBotData } = await supabase
+                .from("bots")
+                .select("user_id")
+                .eq("id", flowData.bot_id)
+                .single()
+              
+              if (flowBotData?.user_id) {
+                ownerUserId = flowBotData.user_id
+                console.log("[v0] Order Bump - user_id from flow's bot:", ownerUserId)
+              }
+            }
+          }
+          
+          // Ultimo fallback: buscar qualquer flow ativo deste bot
+          if (!ownerUserId) {
+            const activeFlow = await getActiveFlowForBot(supabase, botUuid)
+            if (activeFlow) {
+              // Tentar user_id do flow
+              const flowWithUser = activeFlow as { user_id?: string; bot_id?: string }
+              if (flowWithUser.user_id) {
+                ownerUserId = flowWithUser.user_id
+                console.log("[v0] Order Bump - user_id from active flow:", ownerUserId)
+              } else if (flowWithUser.bot_id) {
+                const { data: activeBotData } = await supabase
+                  .from("bots")
+                  .select("user_id")
+                  .eq("id", flowWithUser.bot_id)
+                  .single()
+                if (activeBotData?.user_id) {
+                  ownerUserId = activeBotData.user_id
+                  console.log("[v0] Order Bump - user_id from active flow's bot:", ownerUserId)
+                }
+              }
+            }
+          }
+        }
+        
+        if (!ownerUserId) {
+          console.error("[v0] Order Bump - NAO CONSEGUIU ENCONTRAR user_id! botUuid:", botUuid, "flow_id:", userState?.flow_id)
+          await sendTelegramMessage(botToken, chatId, "Erro: Configuracao do bot incompleta.", undefined)
           return
         }
         
-        // Get gateway
+        // Get gateway usando o ownerUserId encontrado
         const { data: gatewayOB } = await supabase
           .from("user_gateways")
           .select("*")
-          .eq("user_id", botDataOB.user_id)
+          .eq("user_id", ownerUserId)
           .eq("is_active", true)
           .limit(1)
           .single()
@@ -1470,11 +1534,11 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             console.log("[v0] Order Bump - flow_id from fallback:", flowIdForPayment)
           }
           
-          // Save payment
-          console.log("[v0] Saving OB payment - user_id:", botDataOB.user_id, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment, "productType:", productType)
+          // Save payment - IMPORTANTE: usar ownerUserId que foi encontrado corretamente
+          console.log("[v0] Saving OB payment - user_id:", ownerUserId, "bot_id:", botUuid, "amount:", totalAmount, "flow_id:", flowIdForPayment, "productType:", productType)
           const { error: obPaymentError } = await supabase.from("payments").insert({
             bot_id: botUuid,
-            user_id: botDataOB.user_id,
+            user_id: ownerUserId,
             flow_id: flowIdForPayment,
             amount: totalAmount,
             status: "pending",
@@ -1500,7 +1564,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             console.error("[v0] Error saving OB payment:", obPaymentError)
             console.error("[v0] OB payment error details:", JSON.stringify(obPaymentError))
           } else {
-            console.log("[v0] OB payment saved successfully - bot_id:", botUuid, "user_id:", botDataOB.user_id, "amount:", totalAmount, "product_type:", productType)
+            console.log("[v0] OB payment saved successfully - bot_id:", botUuid, "user_id:", ownerUserId, "amount:", totalAmount, "product_type:", productType)
           }
           
         } catch (pixError) {
