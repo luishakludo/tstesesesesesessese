@@ -1,7 +1,346 @@
 import { getSupabaseAdmin } from "@/lib/supabase"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
-// GET /api/test/downsell - PUXA TUDO E TESTA TUDO AUTOMATICO
+// ---------------------------------------------------------------------------
+// Telegram helpers - Envio de mensagens
+// ---------------------------------------------------------------------------
+async function sendTelegramMessage(
+  botToken: string,
+  chatId: number | string,
+  text: string,
+  replyMarkup?: unknown
+) {
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+  }
+  if (replyMarkup) body.reply_markup = replyMarkup
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+async function sendTelegramPhoto(
+  botToken: string,
+  chatId: number | string,
+  photoUrl: string,
+  caption?: string
+) {
+  const url = `https://api.telegram.org/bot${botToken}/sendPhoto`
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    photo: photoUrl,
+    parse_mode: "HTML",
+  }
+  if (caption) body.caption = caption
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+async function sendTelegramVideo(
+  botToken: string,
+  chatId: number | string,
+  videoUrl: string,
+  caption?: string
+) {
+  const url = `https://api.telegram.org/bot${botToken}/sendVideo`
+  const body: Record<string, unknown> = {
+    chat_id: chatId,
+    video: videoUrl,
+    parse_mode: "HTML",
+  }
+  if (caption) body.caption = caption
+  
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  })
+  return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/test/downsell - DISPARA TESTE DE DOWNSELL INSTANTANEO
+// Params:
+//   - botId: ID do bot (opcional, se nao passar testa todos)
+//   - flowId: ID do fluxo (opcional)
+//   - telegramChatId: Chat ID do Telegram para enviar o teste
+//   - sequenceIndex: Index da sequencia (opcional, 0 = primeira, -1 = todas)
+// ---------------------------------------------------------------------------
+export async function POST(request: NextRequest) {
+  const supabase = getSupabaseAdmin()
+  
+  try {
+    const body = await request.json()
+    const { botId, flowId, telegramChatId, sequenceIndex = 0 } = body
+
+    if (!telegramChatId) {
+      return NextResponse.json({ 
+        erro: "telegramChatId obrigatorio - envie o chat_id do Telegram onde quer receber o teste" 
+      }, { status: 400 })
+    }
+
+    // Se passou flowId, busca direto
+    let targetFlow: {
+      id: string
+      name: string
+      bot_id: string | null
+      config: Record<string, unknown>
+    } | null = null
+
+    if (flowId) {
+      const { data: flow } = await supabase
+        .from("flows")
+        .select("id, name, bot_id, config")
+        .eq("id", flowId)
+        .single()
+      targetFlow = flow
+    } else if (botId) {
+      // Busca via flow_bots ou direto
+      const { data: flowBot } = await supabase
+        .from("flow_bots")
+        .select("flow_id")
+        .eq("bot_id", botId)
+        .limit(1)
+        .single()
+      
+      if (flowBot?.flow_id) {
+        const { data: flow } = await supabase
+          .from("flows")
+          .select("id, name, bot_id, config")
+          .eq("id", flowBot.flow_id)
+          .single()
+        targetFlow = flow
+      } else {
+        // Fallback: busca direto pelo bot_id
+        const { data: flow } = await supabase
+          .from("flows")
+          .select("id, name, bot_id, config")
+          .eq("bot_id", botId)
+          .limit(1)
+          .single()
+        targetFlow = flow
+      }
+    } else {
+      // Busca primeiro fluxo que tenha downsell ativo
+      const { data: flows } = await supabase
+        .from("flows")
+        .select("id, name, bot_id, config")
+      
+      for (const flow of flows || []) {
+        const config = (flow.config as Record<string, unknown>) || {}
+        const downsell = config.downsell as { enabled?: boolean; sequences?: unknown[] }
+        if (downsell?.enabled && downsell?.sequences?.length) {
+          targetFlow = flow
+          break
+        }
+      }
+    }
+
+    if (!targetFlow) {
+      return NextResponse.json({ 
+        erro: "Nenhum fluxo encontrado com downsell ativo",
+        dica: "Passe botId ou flowId, ou certifique-se de ter um fluxo com downsell habilitado"
+      }, { status: 404 })
+    }
+
+    // Buscar bot vinculado
+    let botToken: string | null = null
+    let botUuid: string | null = targetFlow.bot_id
+
+    // Se nao tem bot_id direto, busca via flow_bots
+    if (!botUuid) {
+      const { data: flowBot } = await supabase
+        .from("flow_bots")
+        .select("bot_id")
+        .eq("flow_id", targetFlow.id)
+        .limit(1)
+        .single()
+      botUuid = flowBot?.bot_id || null
+    }
+
+    if (botUuid) {
+      const { data: bot } = await supabase
+        .from("bots")
+        .select("id, name, token")
+        .eq("id", botUuid)
+        .single()
+      
+      if (bot?.token) {
+        botToken = bot.token
+      }
+    }
+
+    if (!botToken) {
+      return NextResponse.json({ 
+        erro: "Bot sem token configurado",
+        flowId: targetFlow.id,
+        flowName: targetFlow.name,
+        dica: "Configure o token do bot vinculado a esse fluxo"
+      }, { status: 400 })
+    }
+
+    // Extrair config de downsell
+    const config = (targetFlow.config as Record<string, unknown>) || {}
+    const downsell = config.downsell as {
+      enabled?: boolean
+      sequences?: Array<{
+        id: string
+        message: string
+        medias?: string[]
+        sendDelayValue?: number
+        sendDelayUnit?: string
+        plans?: Array<{ id: string; buttonText: string; price: number }>
+      }>
+    }
+
+    if (!downsell?.enabled) {
+      return NextResponse.json({ 
+        erro: "Downsell desabilitado neste fluxo",
+        flowId: targetFlow.id,
+        flowName: targetFlow.name
+      }, { status: 400 })
+    }
+
+    if (!downsell?.sequences?.length) {
+      return NextResponse.json({ 
+        erro: "Nenhuma sequencia de downsell configurada",
+        flowId: targetFlow.id,
+        flowName: targetFlow.name
+      }, { status: 400 })
+    }
+
+    // Determinar quais sequencias disparar
+    const sequencesToSend = sequenceIndex === -1 
+      ? downsell.sequences 
+      : [downsell.sequences[sequenceIndex] || downsell.sequences[0]]
+
+    const resultados: Array<{
+      sequenceId: string
+      sequenceIndex: number
+      message: string
+      medias: number
+      plans: number
+      delay: string
+      enviado: boolean
+      telegram_response?: unknown
+      erro?: string
+    }> = []
+
+    // Disparar cada sequencia
+    for (let i = 0; i < sequencesToSend.length; i++) {
+      const seq = sequencesToSend[i]
+      const seqIndex = sequenceIndex === -1 ? i : sequenceIndex
+
+      try {
+        const message = seq.message || "(mensagem vazia)"
+        const medias = seq.medias || []
+        const plans = seq.plans || []
+
+        // Montar delay info (apenas informativo, nao vamos esperar)
+        let delayInfo = `${seq.sendDelayValue || 0} ${seq.sendDelayUnit || "min"}`
+        
+        let telegramResponse: unknown = null
+
+        // Enviar midias (se tiver)
+        if (medias.length > 0) {
+          const firstMedia = medias[0]
+          if (firstMedia.includes("video") || firstMedia.includes("mp4")) {
+            telegramResponse = await sendTelegramVideo(botToken!, telegramChatId, firstMedia, message)
+          } else {
+            telegramResponse = await sendTelegramPhoto(botToken!, telegramChatId, firstMedia, message)
+          }
+          
+          // Enviar demais midias
+          for (let m = 1; m < medias.length; m++) {
+            const media = medias[m]
+            if (media.includes("video") || media.includes("mp4")) {
+              await sendTelegramVideo(botToken!, telegramChatId, media)
+            } else {
+              await sendTelegramPhoto(botToken!, telegramChatId, media)
+            }
+          }
+        } else {
+          // Apenas texto
+          telegramResponse = await sendTelegramMessage(botToken!, telegramChatId, message)
+        }
+
+        // Enviar botoes dos planos (se tiver)
+        if (plans.length > 0) {
+          const inlineKeyboard = {
+            inline_keyboard: [
+              ...plans.map(plan => [{ 
+                text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
+                callback_data: `ds_test_${seq.id}_${plan.id}_${plan.price}` 
+              }]),
+              [{ text: "Nao tenho interesse", callback_data: `ds_test_decline_${seq.id}` }]
+            ]
+          }
+          await sendTelegramMessage(botToken!, telegramChatId, "Escolha uma opcao:", inlineKeyboard)
+        }
+
+        resultados.push({
+          sequenceId: seq.id,
+          sequenceIndex: seqIndex,
+          message: message.substring(0, 100) + (message.length > 100 ? "..." : ""),
+          medias: medias.length,
+          plans: plans.length,
+          delay: delayInfo,
+          enviado: true,
+          telegram_response: telegramResponse
+        })
+
+      } catch (err) {
+        resultados.push({
+          sequenceId: seq.id,
+          sequenceIndex: seqIndex,
+          message: seq.message?.substring(0, 50) || "(vazio)",
+          medias: seq.medias?.length || 0,
+          plans: seq.plans?.length || 0,
+          delay: `${seq.sendDelayValue || 0} ${seq.sendDelayUnit || "min"}`,
+          enviado: false,
+          erro: err instanceof Error ? err.message : "Erro desconhecido"
+        })
+      }
+    }
+
+    return NextResponse.json({
+      sucesso: true,
+      teste: "DOWNSELL_INSTANTANEO",
+      fluxo: {
+        id: targetFlow.id,
+        nome: targetFlow.name
+      },
+      destino: {
+        telegramChatId,
+        nota: "Mensagens enviadas instantaneamente (sem esperar delay)"
+      },
+      sequencias_total: downsell.sequences.length,
+      sequencias_testadas: resultados.length,
+      resultados
+    })
+
+  } catch (err) {
+    return NextResponse.json({ 
+      erro: err instanceof Error ? err.message : "Erro" 
+    }, { status: 500 })
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/test/downsell - PUXA TUDO E ANALISA (sem disparar)
+// ---------------------------------------------------------------------------
 export async function GET() {
   const supabase = getSupabaseAdmin()
   const agora = new Date()
