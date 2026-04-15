@@ -69,20 +69,31 @@ async function sendTelegramVideo(
 }
 
 export async function GET(request: NextRequest) {
+  console.log("[CRON] Iniciando processamento de mensagens agendadas")
+  
   // Autorizacao opcional - se CRON_SECRET estiver definido, verifica
   const authHeader = request.headers.get("authorization")
   const cronSecret = process.env.CRON_SECRET
   
   // Apenas verifica se CRON_SECRET estiver definido E nao for vazio
   if (cronSecret && cronSecret.length > 0 && authHeader !== `Bearer ${cronSecret}`) {
+    console.log("[CRON] Unauthorized - CRON_SECRET mismatch")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
   
   // Criar cliente Supabase dentro da funcao (lazy initialization)
-  const supabaseAdmin = getSupabaseAdmin()
+  let supabaseAdmin
+  try {
+    supabaseAdmin = getSupabaseAdmin()
+    console.log("[CRON] Supabase client criado com sucesso")
+  } catch (e) {
+    console.error("[CRON] Erro ao criar Supabase client:", e)
+    return NextResponse.json({ error: "Failed to create Supabase client", details: String(e) }, { status: 500 })
+  }
   
   try {
     const now = new Date().toISOString()
+    console.log("[CRON] Data atual:", now)
     
     // Buscar mensagens pendentes que devem ser enviadas agora
     const { data: pendingMessages, error } = await supabaseAdmin
@@ -93,9 +104,11 @@ export async function GET(request: NextRequest) {
       .limit(50) // Processar em lotes
     
     if (error) {
-      console.error("Erro ao buscar mensagens agendadas:", error)
+      console.error("[CRON] Erro ao buscar mensagens agendadas:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
+    
+    console.log("[CRON] Mensagens pendentes encontradas:", pendingMessages?.length || 0)
     
     if (!pendingMessages || pendingMessages.length === 0) {
       return NextResponse.json({ processed: 0, message: "Nenhuma mensagem pendente" })
@@ -279,9 +292,11 @@ export async function GET(request: NextRequest) {
       message: `Processado ${processed} mensagens, ${failed} falhas`
     })
   } catch (error) {
-    console.error("Erro no cron:", error)
+    console.error("[CRON] Erro geral no cron:", error)
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error
     }, { status: 500 })
   }
 }
