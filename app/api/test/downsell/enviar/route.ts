@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 // ---------------------------------------------------------------------------
 // SUPABASE DIRETO - SEM DEPENDER DE NADA EXTERNO
@@ -30,13 +30,26 @@ async function telegramSend(token: string, method: string, body: Record<string, 
 // 
 // DISPARA TESTE DE DOWNSELL AUTOMATICO
 // 
-// Pega o primeiro bot disponivel, pega o primeiro fluxo com downsell,
-// e envia a primeira sequencia pra um chat de teste (o proprio bot ou um chat especifico)
+// Aceita query params opcionais:
+//   ?chat=123456789  - Seu chat_id do Telegram (se nao passar, tenta buscar automatico)
+//   ?bot=BOT_ID      - ID especifico do bot (se nao passar, pega o primeiro)
+//   ?flow=FLOW_ID    - ID especifico do fluxo (se nao passar, pega o primeiro com downsell)
+//
+// Como descobrir seu chat_id:
+//   1. Mande qualquer mensagem pro @userinfobot no Telegram
+//   2. Ele vai responder com seu ID
+//   3. Use: /api/test/downsell/enviar?chat=SEU_ID
 // ---------------------------------------------------------------------------
-export async function GET() {
+export async function GET(request: NextRequest) {
   const db = getDb()
   const agora = new Date()
   const agoraBR = agora.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
+
+  // Pegar query params
+  const searchParams = request.nextUrl.searchParams
+  const chatIdParam = searchParams.get("chat")
+  const botIdParam = searchParams.get("bot")
+  const flowIdParam = searchParams.get("flow")
 
   try {
     // =========================================================================
@@ -110,23 +123,31 @@ export async function GET() {
     }
 
     // =========================================================================
-    // BUSCAR CHAT_ID DE MULTIPLAS FONTES (pra nao depender de uma so)
+    // BUSCAR CHAT_ID - PRIORIDADE: URL > BANCO > TELEGRAM
     // =========================================================================
     let chatIdTeste: string | number | null = null
     let fonteChat = ""
 
-    // Fonte 1: user_flows (usuarios que deram /start)
-    const { data: userFlow } = await db
-      .from("user_flows")
-      .select("telegram_user_id, telegram_chat_id")
-      .eq("bot_id", botAlvo.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single()
+    // FONTE 0: Query param ?chat=XXXX (prioridade maxima)
+    if (chatIdParam) {
+      chatIdTeste = chatIdParam
+      fonteChat = "query_param_url"
+    }
 
-    if (userFlow?.telegram_chat_id || userFlow?.telegram_user_id) {
-      chatIdTeste = userFlow.telegram_chat_id || userFlow.telegram_user_id
-      fonteChat = "user_flows"
+    // Fonte 1: user_flows (usuarios que deram /start)
+    if (!chatIdTeste) {
+      const { data: userFlow } = await db
+        .from("user_flows")
+        .select("telegram_user_id, telegram_chat_id")
+        .eq("bot_id", botAlvo.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+
+      if (userFlow?.telegram_chat_id || userFlow?.telegram_user_id) {
+        chatIdTeste = userFlow.telegram_chat_id || userFlow.telegram_user_id
+        fonteChat = "user_flows"
+      }
     }
 
     // Fonte 2: scheduled_messages (mensagens agendadas)
@@ -231,10 +252,19 @@ export async function GET() {
     if (!chatIdTeste) {
       return NextResponse.json({
         erro: "SEM CHAT DE TESTE",
-        detalhes: "Nao encontrei nenhum chat em lugar nenhum. Preciso que voce mande pelo menos UMA mensagem pro bot.",
-        tabelas_verificadas: ["user_flows", "scheduled_messages", "downsell_pending", "funnel_users", "purchases"],
-        fontes_telegram: ["getUpdates (ultimas mensagens)", "bot self ID"],
-        instrucao: `Abra o Telegram, busque @${botInfoRes.result?.username} e envie /start. Depois tente novamente.`,
+        detalhes: "Nao encontrei nenhum chat automaticamente. Use uma das opcoes abaixo:",
+        
+        opcao_1_url: {
+          descricao: "Passe seu chat_id na URL (mais facil)",
+          como_descobrir_chat_id: "Mande qualquer mensagem pro @userinfobot no Telegram - ele responde com seu ID",
+          exemplo: `/api/test/downsell/enviar?chat=SEU_CHAT_ID`
+        },
+        
+        opcao_2_start: {
+          descricao: "Mande /start no bot e tente novamente",
+          instrucao: `Abra o Telegram, busque @${botInfoRes.result?.username} e envie /start`
+        },
+
         bot: botAlvo.name,
         bot_username: botInfoRes.result?.username
       }, { status: 400 })
