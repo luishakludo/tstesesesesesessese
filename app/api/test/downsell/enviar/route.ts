@@ -205,12 +205,42 @@ export async function GET(request: NextRequest) {
     }
 
     // Enviar botoes dos planos
+    // USAR O MESMO CALLBACK DOS PLANOS NORMAIS: plan_${planId}
+    // Pra isso, vou criar planos temporarios na tabela flow_plans
     if (planos.length > 0) {
-      log(`Enviando ${planos.length} botao(es) de plano...`)
+      log(`Criando ${planos.length} plano(s) temporario(s) na tabela flow_plans...`)
+      
+      const planIds: string[] = []
+      
+      for (const plan of planos) {
+        // Criar plano temporario com ID unico
+        const tempPlanId = `ds_temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+        
+        const { error: insertError } = await db.from("flow_plans").insert({
+          id: tempPlanId,
+          flow_id: fluxoAlvo!.id,
+          name: plan.buttonText,
+          price: plan.price,
+          is_active: true,
+          position: 999,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        
+        if (insertError) {
+          log(`Erro ao criar plano temporario: ${insertError.message}`)
+        } else {
+          planIds.push(tempPlanId)
+          log(`Plano temporario criado: ${tempPlanId}`)
+        }
+      }
+      
+      // Usar callback IGUAL aos planos normais: plan_${planId}
+      log(`Enviando ${planIds.length} botao(es) com callback plan_...`)
       const keyboard = {
-        inline_keyboard: planos.map(plan => [{
-          text: plan.buttonText,
-          callback_data: `ds_${sequenciaAlvo!.id}_${plan.id}_${plan.price}`
+        inline_keyboard: planIds.map((planId, i) => [{
+          text: planos[i].buttonText,
+          callback_data: `plan_${planId}`
         }])
       }
       
@@ -219,7 +249,7 @@ export async function GET(request: NextRequest) {
         text: "Clique abaixo para aproveitar:",
         reply_markup: keyboard
       })
-      log("Botoes enviados!")
+      log("Botoes enviados com callback plan_!")
     }
 
     // =========================================================================
