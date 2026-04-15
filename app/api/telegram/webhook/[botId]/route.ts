@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { getSupabase } from "@/lib/supabase"
+import { getSupabase, getSupabaseAdmin } from "@/lib/supabase"
 import { createPixPayment } from "@/lib/payments/gateways/mercadopago"
 
 // ---------------------------------------------------------------------------
@@ -2009,7 +2009,7 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
               })
               
               // 6. Cancelar outros downsells pendentes
-              await supabase
+              await getSupabaseAdmin()
                 .from("scheduled_messages")
                 .update({ status: "cancelled" })
                 .eq("bot_id", botUuid)
@@ -2709,9 +2709,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
         
         if (downsellConfig?.enabled && downsellConfig.sequences && downsellConfig.sequences.length > 0) {
           const now = new Date()
+          const supabaseAdmin = getSupabaseAdmin() // Usar admin pra bypassar RLS
           
           // Cancelar agendamentos anteriores deste usuario
-          await supabase
+          await supabaseAdmin
             .from("scheduled_messages")
             .update({ status: "cancelled" })
             .eq("bot_id", botUuid)
@@ -2729,7 +2730,9 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
             const scheduledFor = new Date(now.getTime() + delayMinutes * 60 * 1000)
             
             // Salvar no banco para o cron processar
-            await supabase.from("scheduled_messages").insert({
+            console.log(`[DOWNSELL] Agendando downsell para ${scheduledFor.toISOString()} (delay: ${delayMinutes} min)`)
+            
+            const { error: insertError } = await supabaseAdmin.from("scheduled_messages").insert({
               bot_id: botUuid,
               flow_id: startFlow.id,
               telegram_user_id: String(telegramUserId),
@@ -2749,9 +2752,15 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
                 botToken: botToken,
               }
             })
+            
+            if (insertError) {
+              console.error(`[DOWNSELL] ERRO ao agendar: ${insertError.message}`)
+            } else {
+              console.log(`[DOWNSELL] Agendado com sucesso para user ${telegramUserId}`)
+            }
           }
           
-          console.log(`[DOWNSELL] Scheduled ${downsellConfig.sequences.length} downsell(s) for user ${telegramUserId}`)
+          console.log(`[DOWNSELL] Total: ${downsellConfig.sequences.length} downsell(s) agendados para user ${telegramUserId}`)
         }
         
         return
