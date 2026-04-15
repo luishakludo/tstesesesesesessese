@@ -967,7 +967,39 @@ async function processCallbackQuery({
     return
   }
 
-  // ========== DOWNSELL CALLBACKS ==========
+  // ========== DOWNSELL CALLBACKS (NOVO FORMATO) ==========
+  // Formato: ds_sequenceId_planId_price
+  if (callbackData.startsWith("ds_") && !callbackData.startsWith("ds_test_")) {
+    console.log("[v0] Downsell Callback (ds_) recebido:", callbackData)
+    
+    // Confirmar recebimento do callback
+    await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        callback_query_id: callbackQueryId,
+        text: "Gerando pagamento..."
+      })
+    })
+    
+    // Parsear: ds_sequenceId_planId_price
+    const parts = callbackData.replace("ds_", "").split("_")
+    const price = parseFloat(parts[2]) || 0
+    
+    if (price > 0) {
+      // Usar a funcao generatePayment que ja existe
+      await generatePayment(
+        supabase, botToken, chatId, telegramUserId, bot,
+        price, "Oferta Especial - Downsell",
+        "downsell"
+      )
+    } else {
+      await sendTelegramMessage(botToken, chatId, "Erro: Preco invalido.")
+    }
+    return
+  }
+
+  // ========== DOWNSELL CALLBACKS (FORMATO ANTIGO) ==========
   // Formato: down_accept_{amount}_{downsellIndex} ou down_decline_{downsellIndex}
   if (callbackData.startsWith("down_accept_") || callbackData.startsWith("down_decline_")) {
     const isAccept = callbackData.startsWith("down_accept_")
@@ -1511,8 +1543,7 @@ async function sendDownsellOffer(
     const amount = validButtons[0].amount.replace(",", ".")
     const inlineKeyboard = {
       inline_keyboard: [
-        [{ text: validButtons[0].text, callback_data: `down_accept_${amount}_${downsellIndex}` }],
-        [{ text: "Nao, obrigado", callback_data: `down_decline_${downsellIndex}` }]
+        [{ text: validButtons[0].text, callback_data: `down_accept_${amount}_${downsellIndex}` }]
       ]
     }
 

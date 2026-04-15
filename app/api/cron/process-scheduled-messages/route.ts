@@ -221,17 +221,40 @@ export async function GET(request: NextRequest) {
         }
         
         // Enviar botoes para cada plano
+        // USAR O MESMO CALLBACK DOS PLANOS NORMAIS: plan_${planId}
+        // Pra isso, criar plano temporario na tabela flow_plans
         if (plans && plans.length > 0) {
-          const inlineKeyboard = {
-            inline_keyboard: [
-              ...plans.map(plan => [{ 
-                text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
-                callback_data: `ds_accept_${msg.sequence_id}_${plan.id}_${plan.price}` 
-              }]),
-              [{ text: "Nao tenho interesse", callback_data: `ds_decline_${msg.sequence_id}` }]
-            ]
+          const planButtons: Array<Array<{ text: string; callback_data: string }>> = []
+          
+          for (const plan of plans) {
+            // Criar plano temporario na flow_plans com o preco do downsell
+            const tempPlanId = `ds_${msg.id}_${plan.id}_${Date.now()}`
+            
+            const { error: insertError } = await supabaseAdmin.from("flow_plans").insert({
+              id: tempPlanId,
+              flow_id: msg.flow_id,
+              name: plan.buttonText,
+              price: plan.price,
+              is_active: true,
+              position: 999,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            
+            if (!insertError) {
+              // Usar callback IGUAL aos planos normais
+              planButtons.push([{
+                text: plan.buttonText,
+                callback_data: `plan_${tempPlanId}`
+              }])
+            } else {
+              console.error("[CRON] Erro ao criar plano temporario:", insertError.message)
+            }
           }
-          await sendTelegramMessage(botToken, chatId, "Escolha uma opcao:", inlineKeyboard)
+          
+          if (planButtons.length > 0) {
+            await sendTelegramMessage(botToken, chatId, "Clique abaixo para aproveitar:", { inline_keyboard: planButtons })
+          }
         }
         
         // Marcar como enviado
