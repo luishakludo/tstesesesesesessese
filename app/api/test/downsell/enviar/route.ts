@@ -109,8 +109,14 @@ export async function GET() {
       }, { status: 400 })
     }
 
-    // Tentar pegar ultimo chat que interagiu com o bot
-    const { data: ultimoUser } = await db
+    // =========================================================================
+    // BUSCAR CHAT_ID DE MULTIPLAS FONTES (pra nao depender de uma so)
+    // =========================================================================
+    let chatIdTeste: string | number | null = null
+    let fonteChat = ""
+
+    // Fonte 1: user_flows (usuarios que deram /start)
+    const { data: userFlow } = await db
       .from("user_flows")
       .select("telegram_user_id, telegram_chat_id")
       .eq("bot_id", botAlvo.id)
@@ -118,17 +124,89 @@ export async function GET() {
       .limit(1)
       .single()
 
-    let chatIdTeste = ultimoUser?.telegram_chat_id || ultimoUser?.telegram_user_id
+    if (userFlow?.telegram_chat_id || userFlow?.telegram_user_id) {
+      chatIdTeste = userFlow.telegram_chat_id || userFlow.telegram_user_id
+      fonteChat = "user_flows"
+    }
+
+    // Fonte 2: scheduled_messages (mensagens agendadas)
+    if (!chatIdTeste) {
+      const { data: scheduled } = await db
+        .from("scheduled_messages")
+        .select("telegram_chat_id")
+        .eq("bot_id", botAlvo.id)
+        .not("telegram_chat_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+
+      if (scheduled?.telegram_chat_id) {
+        chatIdTeste = scheduled.telegram_chat_id
+        fonteChat = "scheduled_messages"
+      }
+    }
+
+    // Fonte 3: downsell_pending (usuarios com downsell pendente)
+    if (!chatIdTeste) {
+      const { data: pending } = await db
+        .from("downsell_pending")
+        .select("telegram_chat_id, telegram_user_id")
+        .eq("flow_id", fluxoAlvo.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+
+      if (pending?.telegram_chat_id || pending?.telegram_user_id) {
+        chatIdTeste = pending.telegram_chat_id || pending.telegram_user_id
+        fonteChat = "downsell_pending"
+      }
+    }
+
+    // Fonte 4: funnel_users (usuarios no funil)
+    if (!chatIdTeste) {
+      const { data: funnelUser } = await db
+        .from("funnel_users")
+        .select("telegram_user_id, chat_id")
+        .eq("bot_id", botAlvo.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+
+      if (funnelUser?.chat_id || funnelUser?.telegram_user_id) {
+        chatIdTeste = funnelUser.chat_id || funnelUser.telegram_user_id
+        fonteChat = "funnel_users"
+      }
+    }
+
+    // Fonte 5: QUALQUER tabela com telegram_user_id (ultimo recurso)
+    if (!chatIdTeste) {
+      // Tenta purchases
+      const { data: purchase } = await db
+        .from("purchases")
+        .select("telegram_user_id")
+        .not("telegram_user_id", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single()
+
+      if (purchase?.telegram_user_id) {
+        chatIdTeste = purchase.telegram_user_id
+        fonteChat = "purchases"
+      }
+    }
 
     if (!chatIdTeste) {
       return NextResponse.json({
         erro: "SEM CHAT DE TESTE",
-        detalhes: "Nenhum usuario interagiu com esse bot ainda. Preciso de um chat_id pra enviar o teste.",
+        detalhes: "Nenhum usuario encontrado em nenhuma tabela do banco. Preciso de pelo menos 1 usuario pra enviar o teste.",
+        tabelas_verificadas: ["user_flows", "scheduled_messages", "downsell_pending", "funnel_users", "purchases"],
         dica: "Envie /start no bot primeiro, depois tente novamente",
         bot: botAlvo.name,
         bot_username: botInfoRes.result?.username
       }, { status: 400 })
     }
+
+    console.log("[v0] Chat ID encontrado:", chatIdTeste, "fonte:", fonteChat)
 
     // =========================================================================
     // PASSO 4: ENVIAR TODAS AS SEQUENCIAS (simulando passagem de tempo)
@@ -260,7 +338,8 @@ export async function GET() {
       
       destino: {
         chat_id: chatIdTeste,
-        nota: "Ultimo usuario que interagiu com o bot"
+        fonte: fonteChat,
+        nota: `Encontrado na tabela ${fonteChat}`
       },
 
       resumo: {
