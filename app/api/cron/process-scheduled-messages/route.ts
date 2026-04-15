@@ -1,13 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
-
-// Funcao para criar cliente Supabase (lazy initialization)
-function getSupabaseAdmin() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-}
+import { getSupabaseAdmin } from "@/lib/supabase"
 
 // Funcoes de envio do Telegram (copiadas do webhook)
 async function sendTelegramMessage(
