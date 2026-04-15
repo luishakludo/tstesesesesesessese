@@ -77,6 +77,15 @@ async function sendTelegramVideo(
 }
 
 export async function GET(request: NextRequest) {
+  // Verificar variaveis de ambiente antes de tudo
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("[CRON] Missing environment variables: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY")
+    return NextResponse.json({ 
+      error: "Missing Supabase environment variables",
+      required: ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]
+    }, { status: 500 })
+  }
+  
   // Autorizacao opcional - se CRON_SECRET estiver definido, verifica
   const authHeader = request.headers.get("authorization")
   const cronSecret = process.env.CRON_SECRET
