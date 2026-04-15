@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { NextRequest, NextResponse } from "next/server"
+import MercadoPagoConfig, { Payment } from "mercadopago"
 
 // ---------------------------------------------------------------------------
 // SUPABASE DIRETO - SEM DEPENDER DE NADA EXTERNO
@@ -14,6 +15,52 @@ function getDb() {
 }
 
 // ---------------------------------------------------------------------------
+// PIX PAYMENT - MESMA FUNCAO DOS PLANOS NORMAIS
+// ---------------------------------------------------------------------------
+async function createPixPayment(params: {
+  accessToken: string
+  amount: number
+  description: string
+  payerEmail: string
+}): Promise<{
+  success: boolean
+  paymentId?: number
+  qrCode?: string
+  qrCodeUrl?: string
+  copyPaste?: string
+  error?: string
+}> {
+  try {
+    const client = new MercadoPagoConfig({ accessToken: params.accessToken })
+    const payment = new Payment(client)
+    
+    const result = await payment.create({
+      body: {
+        transaction_amount: params.amount,
+        description: params.description,
+        payment_method_id: "pix",
+        payer: {
+          email: params.payerEmail
+        }
+      }
+    })
+    
+    return {
+      success: true,
+      paymentId: result.id,
+      qrCode: result.point_of_interaction?.transaction_data?.qr_code_base64,
+      qrCodeUrl: result.point_of_interaction?.transaction_data?.qr_code,
+      copyPaste: result.point_of_interaction?.transaction_data?.qr_code
+    }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Erro ao criar PIX"
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // TELEGRAM HELPERS
 // ---------------------------------------------------------------------------
 async function telegramSend(token: string, method: string, body: Record<string, unknown>) {
@@ -23,6 +70,300 @@ async function telegramSend(token: string, method: string, body: Record<string, 
     body: JSON.stringify(body),
   })
   return res.json()
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/test/downsell/enviar
+// 
+// SIMULA O CLIQUE NO BOTAO DE DOWNSELL
+// Faz tudo que o webhook faria quando clica no botao: busca gateway, gera PIX, envia
+// 
+// Acesse: /api/test/downsell/enviar?chat=SEU_CHAT_ID&simular=1
+// Ou POST com body: { "chat": "SEU_CHAT_ID" }
+// ---------------------------------------------------------------------------
+export async function POST(request: NextRequest) {
+  const db = getDb()
+  const logs: string[] = []
+  const log = (msg: string) => { logs.push(msg); console.log("[v0]", msg) }
+
+  try {
+    const body = await request.json().catch(() => ({}))
+    const chatId = body.chat || body.chatId || body.telegram_chat_id
+
+    if (!chatId) {
+      return NextResponse.json({
+        erro: "Passe o chat_id no body: { chat: 'SEU_CHAT_ID' }",
+        exemplo: "POST /api/test/downsell/enviar com body { chat: '5099610171' }"
+      }, { status: 400 })
+    }
+
+    log(`Iniciando simulacao de clique para chat: ${chatId}`)
+
+    // PASSO 1: Buscar bot e fluxo com downsell
+    log("Buscando bots e fluxos...")
+    const [botsRes, flowsRes, flowBotsRes] = await Promise.all([
+      db.from("bots").select("*"),
+      db.from("flows").select("*"),
+      db.from("flow_bots").select("*")
+    ])
+
+    const bots = botsRes.data || []
+    const flows = flowsRes.data || []
+    const flowBots = flowBotsRes.data || []
+
+    log(`Encontrados: ${bots.length} bots, ${flows.length} fluxos`)
+
+    // Encontrar fluxo com downsell
+    let fluxoAlvo = null
+    let botAlvo = null
+    let primeiroPlano: { id: string; buttonText: string; price: number } | null = null
+    let sequenciaId = ""
+
+    for (const flow of flows) {
+      const config = (flow.config || {}) as Record<string, unknown>
+      const downsell = config.downsell as { 
+        enabled?: boolean
+        sequences?: Array<{
+          id: string
+          plans?: Array<{ id: string; buttonText: string; price: number }>
+        }> 
+      }
+
+      if (!downsell?.enabled || !downsell?.sequences?.length) continue
+
+      // Encontrar bot
+      let botId = flow.bot_id
+      if (!botId) {
+        const fb = flowBots.find((fb: { flow_id: string; bot_id: string }) => fb.flow_id === flow.id)
+        if (fb) botId = fb.bot_id
+      }
+
+      const bot = bots.find((b: { id: string }) => b.id === botId)
+      if (!bot?.token) continue
+
+      // Pegar primeiro plano da primeira sequencia
+      const seq = downsell.sequences[0]
+      if (seq.plans && seq.plans.length > 0) {
+        fluxoAlvo = flow
+        botAlvo = bot
+        primeiroPlano = seq.plans[0]
+        sequenciaId = seq.id
+        break
+      }
+    }
+
+    if (!fluxoAlvo || !botAlvo || !primeiroPlano) {
+      return NextResponse.json({
+        erro: "Nenhum fluxo com downsell e planos encontrado",
+        logs
+      }, { status: 400 })
+    }
+
+    log(`Fluxo: ${fluxoAlvo.name}, Bot: ${botAlvo.name}`)
+    log(`Plano: ${primeiroPlano.buttonText}, Preco: R$ ${primeiroPlano.price}`)
+
+    // PASSO 2: Buscar user_id do bot (IGUAL AOS PLANOS NORMAIS)
+    log("Buscando user_id do bot...")
+    const { data: botData, error: botError } = await db
+      .from("bots")
+      .select("user_id")
+      .eq("id", botAlvo.id)
+      .single()
+
+    if (botError || !botData?.user_id) {
+      return NextResponse.json({
+        erro: "Bot sem user_id",
+        botError,
+        logs
+      }, { status: 400 })
+    }
+
+    log(`user_id do bot: ${botData.user_id}`)
+
+    // PASSO 3: Buscar gateway de pagamento (IGUAL AOS PLANOS NORMAIS)
+    log("Buscando gateway em user_gateways...")
+    const { data: gateway, error: gatewayError } = await db
+      .from("user_gateways")
+      .select("*")
+      .eq("user_id", botData.user_id)
+      .eq("is_active", true)
+      .limit(1)
+      .single()
+
+    log(`Gateway encontrado: ${gateway ? "SIM" : "NAO"}`)
+    
+    if (gatewayError) {
+      log(`Erro gateway: ${JSON.stringify(gatewayError)}`)
+    }
+
+    if (!gateway) {
+      // Tentar buscar de payment_gateways como fallback
+      log("Tentando buscar em payment_gateways...")
+      const { data: gatewayAlt, error: gatewayAltError } = await db
+        .from("payment_gateways")
+        .select("*")
+        .eq("bot_id", botAlvo.id)
+        .eq("is_active", true)
+        .limit(1)
+        .single()
+
+      log(`Gateway alt encontrado: ${gatewayAlt ? "SIM" : "NAO"}`)
+      
+      if (gatewayAltError) {
+        log(`Erro gateway alt: ${JSON.stringify(gatewayAltError)}`)
+      }
+
+      if (!gatewayAlt) {
+        return NextResponse.json({
+          erro: "GATEWAY NAO ENCONTRADO",
+          detalhes: "Nenhum gateway de pagamento configurado para este bot",
+          user_id: botData.user_id,
+          bot_id: botAlvo.id,
+          tabelas_verificadas: ["user_gateways", "payment_gateways"],
+          logs
+        }, { status: 400 })
+      }
+
+      // Usar gateway alternativo
+      const accessToken = gatewayAlt.credentials?.access_token || gatewayAlt.access_token
+      if (!accessToken) {
+        return NextResponse.json({
+          erro: "Gateway sem access_token",
+          gateway: gatewayAlt,
+          logs
+        }, { status: 400 })
+      }
+
+      log(`Usando gateway de payment_gateways: ${gatewayAlt.gateway_name}`)
+      log("Gerando PIX...")
+
+      const pixResult = await createPixPayment({
+        accessToken,
+        amount: primeiroPlano.price,
+        description: `Downsell - ${primeiroPlano.buttonText}`,
+        payerEmail: "teste@teste.com"
+      })
+
+      if (!pixResult.success) {
+        return NextResponse.json({
+          erro: "Erro ao gerar PIX",
+          pixResult,
+          logs
+        }, { status: 400 })
+      }
+
+      log(`PIX gerado! ID: ${pixResult.paymentId}`)
+
+      // Enviar no Telegram
+      log("Enviando PIX no Telegram...")
+      
+      if (pixResult.qrCode) {
+        const qrCodeBase64 = pixResult.qrCode.startsWith("data:") 
+          ? pixResult.qrCode 
+          : `data:image/png;base64,${pixResult.qrCode}`
+        
+        await telegramSend(botAlvo.token, "sendPhoto", {
+          chat_id: chatId,
+          photo: qrCodeBase64,
+          caption: `Pague R$ ${primeiroPlano.price.toFixed(2).replace(".", ",")} via PIX\n\nCopie o codigo abaixo:`
+        })
+      }
+
+      if (pixResult.copyPaste) {
+        await telegramSend(botAlvo.token, "sendMessage", {
+          chat_id: chatId,
+          text: `<code>${pixResult.copyPaste}</code>`,
+          parse_mode: "HTML"
+        })
+      }
+
+      return NextResponse.json({
+        sucesso: true,
+        teste: "SIMULACAO_CLIQUE_DOWNSELL",
+        fluxo: fluxoAlvo.name,
+        bot: botAlvo.name,
+        plano: primeiroPlano,
+        gateway_usado: "payment_gateways",
+        pix: {
+          payment_id: pixResult.paymentId,
+          tem_qrcode: !!pixResult.qrCode,
+          tem_copypaste: !!pixResult.copyPaste
+        },
+        logs
+      })
+    }
+
+    // Gateway encontrado em user_gateways
+    const accessToken = gateway.access_token
+    if (!accessToken) {
+      return NextResponse.json({
+        erro: "Gateway sem access_token",
+        gateway,
+        logs
+      }, { status: 400 })
+    }
+
+    log(`Usando gateway de user_gateways: ${gateway.gateway_name}`)
+    log("Gerando PIX...")
+
+    const pixResult = await createPixPayment({
+      accessToken,
+      amount: primeiroPlano.price,
+      description: `Downsell - ${primeiroPlano.buttonText}`,
+      payerEmail: "teste@teste.com"
+    })
+
+    if (!pixResult.success) {
+      return NextResponse.json({
+        erro: "Erro ao gerar PIX",
+        pixResult,
+        logs
+      }, { status: 400 })
+    }
+
+    log(`PIX gerado! ID: ${pixResult.paymentId}`)
+
+    // Enviar no Telegram
+    log("Enviando PIX no Telegram...")
+    
+    if (pixResult.qrCode) {
+      await telegramSend(botAlvo.token, "sendPhoto", {
+        chat_id: chatId,
+        photo: pixResult.qrCode,
+        caption: `Pague R$ ${primeiroPlano.price.toFixed(2).replace(".", ",")} via PIX\n\nCopie o codigo abaixo:`
+      })
+    }
+
+    if (pixResult.copyPaste) {
+      await telegramSend(botAlvo.token, "sendMessage", {
+        chat_id: chatId,
+        text: `<code>${pixResult.copyPaste}</code>`,
+        parse_mode: "HTML"
+      })
+    }
+
+    return NextResponse.json({
+      sucesso: true,
+      teste: "SIMULACAO_CLIQUE_DOWNSELL",
+      fluxo: fluxoAlvo.name,
+      bot: botAlvo.name,
+      plano: primeiroPlano,
+      gateway_usado: "user_gateways",
+      pix: {
+        payment_id: pixResult.paymentId,
+        tem_qrcode: !!pixResult.qrCode,
+        tem_copypaste: !!pixResult.copyPaste
+      },
+      logs
+    })
+
+  } catch (err) {
+    return NextResponse.json({
+      erro: err instanceof Error ? err.message : "Erro",
+      stack: err instanceof Error ? err.stack : null,
+      logs
+    }, { status: 500 })
+  }
 }
 
 // ---------------------------------------------------------------------------
