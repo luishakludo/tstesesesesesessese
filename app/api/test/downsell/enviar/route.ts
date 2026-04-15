@@ -349,6 +349,9 @@ export async function GET(request: NextRequest) {
           })
         }
 
+        // Verificar se o Telegram realmente aceitou a mensagem
+        const telegramOk = (telegramRes as { ok?: boolean })?.ok === true
+
         resultados.push({
           sequencia_index: i,
           sequencia_id: seq.id,
@@ -357,7 +360,8 @@ export async function GET(request: NextRequest) {
           midias_enviadas: seq.medias?.length || 0,
           planos_enviados: seq.plans?.length || 0,
           telegram_response: telegramRes,
-          sucesso: true
+          sucesso: telegramOk,
+          erro: telegramOk ? undefined : (telegramRes as { description?: string })?.description || "Telegram rejeitou a mensagem"
         })
 
       } catch (err) {
