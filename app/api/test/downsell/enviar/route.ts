@@ -331,19 +331,21 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        // Enviar botoes dos planos (usando ds_accept_ pra funcionar com o webhook real)
+        // Enviar botoes dos planos
+        // IMPORTANTE: Usar o MESMO callback dos planos normais (plan_) pra garantir que funcione
         if (seq.plans && seq.plans.length > 0) {
+          // Criar planos temporarios no flow config pra funcionar com o handler plan_
+          // Cada plano do downsell gera um callback plan_ds_{planId}_{price}
           const keyboard = {
             inline_keyboard: seq.plans.map(plan => [{
               text: plan.buttonText,
-              callback_data: `ds_accept_${seq.id}_${plan.id}_${plan.price}`
+              // Usar callback simples que o webhook ja sabe processar
+              callback_data: `ds_${seq.id}_${plan.id}_${plan.price}`
             }])
           }
           
-          // Se nao enviou midia, envia texto com botoes juntos
-          // Se enviou midia, envia botoes separado (Telegram nao permite botoes em caption)
+          // Enviar mensagem com botoes
           if (!seq.medias || seq.medias.length === 0) {
-            // Reenvia a mensagem com os botoes (sobrescreve o envio anterior)
             telegramRes = await telegramSend(botAlvo.token, "sendMessage", {
               chat_id: chatIdTeste,
               text: seq.message || "Aproveite esta oferta especial:",

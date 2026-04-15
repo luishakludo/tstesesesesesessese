@@ -220,12 +220,12 @@ export async function GET(request: NextRequest) {
           await sendTelegramMessage(botToken, chatId, message)
         }
         
-        // Enviar botoes para cada plano (sem botao de recusar)
+        // Enviar botoes para cada plano (usando ds_ pra funcionar com o webhook)
         if (plans && plans.length > 0) {
           const inlineKeyboard = {
             inline_keyboard: plans.map(plan => [{ 
               text: plan.buttonText, 
-              callback_data: `ds_accept_${msg.sequence_id}_${plan.id}_${plan.price}` 
+              callback_data: `ds_${msg.sequence_id}_${plan.id}_${plan.price}` 
             }])
           }
           await sendTelegramMessage(botToken, chatId, "Clique abaixo para aproveitar:", inlineKeyboard)

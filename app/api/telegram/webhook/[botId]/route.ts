@@ -1897,10 +1897,10 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
       // ========== FIM UPSELL CALLBACKS ==========
       
       // ========== DOWNSELL CALLBACKS ==========
-      if (callbackData.startsWith("ds_accept_") || callbackData.startsWith("ds_decline_")) {
+      // ========== DOWNSELL CALLBACKS ==========
+      // Formato: ds_sequenceId_planId_price (sem o accept no nome)
+      if (callbackData.startsWith("ds_") && !callbackData.startsWith("ds_test_")) {
         console.log("[v0] Downsell Callback recebido:", callbackData)
-        
-        const isAccept = callbackData.startsWith("ds_accept_")
         
         // Confirmar recebimento do callback
         await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
@@ -1908,16 +1908,15 @@ async function processUpdate(botId: string, update: Record<string, unknown>) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             callback_query_id: callbackQueryId,
-            text: isAccept ? "Gerando pagamento..." : "Oferta recusada"
+            text: "Gerando pagamento..."
           })
         })
         
-if (isAccept) {
-          // ds_accept_sequenceId_planId_price
-          const parts = callbackData.replace("ds_accept_", "").split("_")
-          const sequenceId = parts[0]
-          const planId = parts[1]
-          const price = parseFloat(parts[2]) || 0
+        // ds_sequenceId_planId_price
+        const parts = callbackData.replace("ds_", "").split("_")
+        const sequenceId = parts[0]
+        const planId = parts[1]
+        const price = parseFloat(parts[2]) || 0
           
           if (price > 0) {
             // USAR MESMA ESTRUTURA DOS PLANOS NORMAIS
@@ -2023,11 +2022,9 @@ if (isAccept) {
               console.error("Erro ao gerar PIX do downsell:", errorMsg)
               await sendTelegramMessage(botToken, chatId, `Erro ao processar pagamento: ${errorMsg}`)
             }
+          } else {
+            await sendTelegramMessage(botToken, chatId, "Erro: Preco invalido no downsell.")
           }
-        } else {
-          // Usuario recusou o downsell
-          await sendTelegramMessage(botToken, chatId, "Tudo bem! Se mudar de ideia, estamos aqui.")
-        }
         
         return
       }
