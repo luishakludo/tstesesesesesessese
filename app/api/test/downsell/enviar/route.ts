@@ -178,9 +178,8 @@ export async function GET() {
       }
     }
 
-    // Fonte 5: QUALQUER tabela com telegram_user_id (ultimo recurso)
+    // Fonte 5: purchases
     if (!chatIdTeste) {
-      // Tenta purchases
       const { data: purchase } = await db
         .from("purchases")
         .select("telegram_user_id")
@@ -195,18 +194,51 @@ export async function GET() {
       }
     }
 
+    // Fonte 6: TELEGRAM getUpdates - pega direto da API do Telegram
+    // Isso funciona mesmo sem nada no banco!
+    if (!chatIdTeste) {
+      const updatesRes = await telegramSend(botAlvo.token, "getUpdates", { limit: 10 })
+      
+      if (updatesRes.ok && updatesRes.result?.length > 0) {
+        // Pegar o chat mais recente de qualquer update
+        for (const update of updatesRes.result.reverse()) {
+          const chat = update.message?.chat || update.callback_query?.message?.chat
+          if (chat?.id) {
+            chatIdTeste = chat.id
+            fonteChat = "telegram_getUpdates"
+            break
+          }
+        }
+      }
+    }
+
+    // Fonte 7: Usar o proprio ID do bot (self-test)
+    // O bot pode enviar mensagem pra si mesmo em alguns casos
+    if (!chatIdTeste && botInfoRes.result?.id) {
+      // Tenta enviar uma mensagem de teste primeiro pra ver se funciona
+      const selfTest = await telegramSend(botAlvo.token, "sendMessage", {
+        chat_id: botInfoRes.result.id,
+        text: "[TESTE] Verificando se o bot consegue enviar mensagem..."
+      })
+      
+      // Se funcionou, usa o ID do bot
+      if (selfTest.ok) {
+        chatIdTeste = botInfoRes.result.id
+        fonteChat = "bot_self_id"
+      }
+    }
+
     if (!chatIdTeste) {
       return NextResponse.json({
         erro: "SEM CHAT DE TESTE",
-        detalhes: "Nenhum usuario encontrado em nenhuma tabela do banco. Preciso de pelo menos 1 usuario pra enviar o teste.",
+        detalhes: "Nao encontrei nenhum chat em lugar nenhum. Preciso que voce mande pelo menos UMA mensagem pro bot.",
         tabelas_verificadas: ["user_flows", "scheduled_messages", "downsell_pending", "funnel_users", "purchases"],
-        dica: "Envie /start no bot primeiro, depois tente novamente",
+        fontes_telegram: ["getUpdates (ultimas mensagens)", "bot self ID"],
+        instrucao: `Abra o Telegram, busque @${botInfoRes.result?.username} e envie /start. Depois tente novamente.`,
         bot: botAlvo.name,
         bot_username: botInfoRes.result?.username
       }, { status: 400 })
     }
-
-    console.log("[v0] Chat ID encontrado:", chatIdTeste, "fonte:", fonteChat)
 
     // =========================================================================
     // PASSO 4: ENVIAR TODAS AS SEQUENCIAS (simulando passagem de tempo)
