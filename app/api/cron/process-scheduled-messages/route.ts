@@ -169,34 +169,26 @@ export async function GET(request: NextRequest) {
         }
         
         // 2. Verificar se existe pagamento aprovado na tabela payments
-        // Isso cobre casos onde o webhook do MP foi processado mas user_flow_state nao foi atualizado
+        // APENAS verificar pagamentos do MESMO FLUXO e criados DEPOIS do agendamento
         const { data: approvedPayment } = await supabaseAdmin
           .from("payments")
-          .select("id, status")
+          .select("id, status, created_at")
           .eq("bot_id", msg.bot_id)
           .eq("telegram_user_id", msg.telegram_user_id)
+          .eq("flow_id", msg.flow_id)
           .eq("status", "approved")
-          .eq("product_type", "main_product")
+          .in("product_type", ["main_product", "plan"])
+          .gte("created_at", msg.created_at) // Apenas pagamentos apos o agendamento do downsell
           .limit(1)
-          .single()
+          .maybeSingle()
         
         if (approvedPayment) {
-          // Usuario ja tem pagamento aprovado, cancelar downsell
-          console.log(`[CRON] User ${msg.telegram_user_id} has approved payment, cancelling downsell`)
+          // Usuario ja tem pagamento aprovado NESTE FLUXO, cancelar downsell
+          console.log(`[CRON] User ${msg.telegram_user_id} has approved payment in this flow, cancelling downsell`)
           await supabaseAdmin
             .from("scheduled_messages")
             .update({ status: "cancelled" })
             .eq("id", msg.id)
-          
-          // Tambem atualizar user_flow_state para "paid" para futuras verificacoes
-          await supabaseAdmin
-            .from("user_flow_state")
-            .upsert({
-              bot_id: msg.bot_id,
-              telegram_user_id: msg.telegram_user_id,
-              status: "paid",
-              updated_at: new Date().toISOString()
-            }, { onConflict: "bot_id,telegram_user_id" })
           
           continue
         }
