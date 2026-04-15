@@ -205,42 +205,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Enviar botoes dos planos
-    // USAR O MESMO CALLBACK DOS PLANOS NORMAIS: plan_${planId}
-    // Pra isso, vou criar planos temporarios na tabela flow_plans
+    // USAR O MESMO CALLBACK DO UPSELL: up_plan_{index}_{planId}_{priceInCents}
+    // Esse formato ja funciona porque o webhook ja processa up_plan_
     if (planos.length > 0) {
-      log(`Criando ${planos.length} plano(s) temporario(s) na tabela flow_plans...`)
+      log(`Enviando ${planos.length} botao(es)...`)
       
-      const planIds: string[] = []
+      // Primeiro, criar estado de usuario pra simular que esta no fluxo de upsell
+      // Isso e necessario pra o webhook processar o callback
+      const estadoId = `ds_state_${Date.now()}`
+      await db.from("user_flow_state").insert({
+        id: estadoId,
+        bot_id: botAlvo.id,
+        flow_id: fluxoAlvo!.id,
+        telegram_user_id: String(chatIdParam),
+        status: "waiting_upsell",
+        metadata: {
+          upsell_index: 0,
+          upsell_price: planos[0].price,
+          upsell_name: planos[0].buttonText,
+          plans: planos.map(p => ({ id: p.id, name: p.buttonText, price: p.price })),
+          is_downsell: true
+        },
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      log("Estado de usuario criado!")
       
-      for (const plan of planos) {
-        // Criar plano temporario com ID unico
-        const tempPlanId = `ds_temp_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-        
-        const { error: insertError } = await db.from("flow_plans").insert({
-          id: tempPlanId,
-          flow_id: fluxoAlvo!.id,
-          name: plan.buttonText,
-          price: plan.price,
-          is_active: true,
-          position: 999,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        
-        if (insertError) {
-          log(`Erro ao criar plano temporario: ${insertError.message}`)
-        } else {
-          planIds.push(tempPlanId)
-          log(`Plano temporario criado: ${tempPlanId}`)
-        }
-      }
-      
-      // Usar callback IGUAL aos planos normais: plan_${planId}
-      log(`Enviando ${planIds.length} botao(es) com callback plan_...`)
+      // Usar callback do upsell que ja funciona
       const keyboard = {
-        inline_keyboard: planIds.map((planId, i) => [{
-          text: planos[i].buttonText,
-          callback_data: `plan_${planId}`
+        inline_keyboard: planos.map((plan, i) => [{
+          text: plan.buttonText,
+          // up_plan_{upsellIndex}_{planId}_{priceInCents}
+          callback_data: `up_plan_0_${plan.id}_${Math.round(plan.price * 100)}`
         }])
       }
       
@@ -249,7 +245,7 @@ export async function GET(request: NextRequest) {
         text: "Clique abaixo para aproveitar:",
         reply_markup: keyboard
       })
-      log("Botoes enviados com callback plan_!")
+      log("Botoes enviados com callback up_plan_!")
     }
 
     // =========================================================================
