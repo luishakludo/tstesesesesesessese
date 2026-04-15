@@ -1511,8 +1511,7 @@ async function sendDownsellOffer(
     const amount = validButtons[0].amount.replace(",", ".")
     const inlineKeyboard = {
       inline_keyboard: [
-        [{ text: validButtons[0].text, callback_data: `down_accept_${amount}_${downsellIndex}` }],
-        [{ text: "Nao, obrigado", callback_data: `down_decline_${downsellIndex}` }]
+        [{ text: validButtons[0].text, callback_data: `down_accept_${amount}_${downsellIndex}` }]
       ]
     }
 

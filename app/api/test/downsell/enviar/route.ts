@@ -331,22 +331,33 @@ export async function GET(request: NextRequest) {
           })
         }
 
-        // Enviar botoes dos planos
+        // Enviar botoes dos planos (usando ds_accept_ pra funcionar com o webhook real)
         if (seq.plans && seq.plans.length > 0) {
           const keyboard = {
-            inline_keyboard: [
-              ...seq.plans.map(plan => [{
-                text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`,
-                callback_data: `test_ds_${seq.id}_${plan.id}`
-              }]),
-              [{ text: "Nao tenho interesse", callback_data: `test_ds_decline_${seq.id}` }]
-            ]
+            inline_keyboard: seq.plans.map(plan => [{
+              text: plan.buttonText,
+              callback_data: `ds_accept_${seq.id}_${plan.id}_${plan.price}`
+            }])
           }
-          await telegramSend(botAlvo.token, "sendMessage", {
-            chat_id: chatIdTeste,
-            text: "Escolha uma opcao:",
-            reply_markup: keyboard
-          })
+          
+          // Se nao enviou midia, envia texto com botoes juntos
+          // Se enviou midia, envia botoes separado (Telegram nao permite botoes em caption)
+          if (!seq.medias || seq.medias.length === 0) {
+            // Reenvia a mensagem com os botoes (sobrescreve o envio anterior)
+            telegramRes = await telegramSend(botAlvo.token, "sendMessage", {
+              chat_id: chatIdTeste,
+              text: seq.message || "Aproveite esta oferta especial:",
+              parse_mode: "HTML",
+              reply_markup: keyboard
+            })
+          } else {
+            // Midia ja foi enviada, envia so os botoes
+            await telegramSend(botAlvo.token, "sendMessage", {
+              chat_id: chatIdTeste,
+              text: "Clique abaixo para aproveitar:",
+              reply_markup: keyboard
+            })
+          }
         }
 
         // Verificar se o Telegram realmente aceitou a mensagem

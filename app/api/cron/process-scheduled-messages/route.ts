@@ -220,18 +220,15 @@ export async function GET(request: NextRequest) {
           await sendTelegramMessage(botToken, chatId, message)
         }
         
-        // Enviar botoes para cada plano
+        // Enviar botoes para cada plano (sem botao de recusar)
         if (plans && plans.length > 0) {
           const inlineKeyboard = {
-            inline_keyboard: [
-              ...plans.map(plan => [{ 
-                text: `${plan.buttonText} - R$ ${plan.price.toFixed(2).replace(".", ",")}`, 
-                callback_data: `ds_accept_${msg.sequence_id}_${plan.id}_${plan.price}` 
-              }]),
-              [{ text: "Nao tenho interesse", callback_data: `ds_decline_${msg.sequence_id}` }]
-            ]
+            inline_keyboard: plans.map(plan => [{ 
+              text: plan.buttonText, 
+              callback_data: `ds_accept_${msg.sequence_id}_${plan.id}_${plan.price}` 
+            }])
           }
-          await sendTelegramMessage(botToken, chatId, "Escolha uma opcao:", inlineKeyboard)
+          await sendTelegramMessage(botToken, chatId, "Clique abaixo para aproveitar:", inlineKeyboard)
         }
         
         // Marcar como enviado
