@@ -193,36 +193,10 @@ export async function GET(request: NextRequest) {
           continue
         }
         
-        // Enviar mensagem
-        if (medias.length > 0) {
-          // Enviar primeira midia com caption
-          const firstMedia = medias[0]
-          if (firstMedia.includes("video") || firstMedia.includes("mp4")) {
-            await sendTelegramVideo(botToken, chatId, firstMedia, message)
-          } else {
-            await sendTelegramPhoto(botToken, chatId, firstMedia, message)
-          }
-          
-          // Enviar demais midias sem caption
-          for (let i = 1; i < medias.length; i++) {
-            const media = medias[i]
-            if (media.includes("video") || media.includes("mp4")) {
-              await sendTelegramVideo(botToken, chatId, media)
-            } else {
-              await sendTelegramPhoto(botToken, chatId, media)
-            }
-          }
-        } else {
-          // Apenas texto
-          await sendTelegramMessage(botToken, chatId, message)
-        }
+        // Montar botoes dos planos primeiro
+        const planButtons: Array<Array<{ text: string; callback_data: string }>> = []
         
-        // Enviar botoes para cada plano
-        // USAR O MESMO CALLBACK DOS PLANOS NORMAIS: plan_${planId}
-        // Pra isso, criar plano temporario na tabela flow_plans
         if (plans && plans.length > 0) {
-          const planButtons: Array<Array<{ text: string; callback_data: string }>> = []
-          
           for (const plan of plans) {
             // Criar plano temporario na flow_plans com o preco do downsell
             const tempPlanId = `ds_${msg.id}_${plan.id}_${Date.now()}`
@@ -239,19 +213,47 @@ export async function GET(request: NextRequest) {
             })
             
             if (!insertError) {
-              // Usar callback IGUAL aos planos normais
               planButtons.push([{
                 text: plan.buttonText,
                 callback_data: `plan_${tempPlanId}`
               }])
+              console.log(`[CRON] Plano temporario criado: ${tempPlanId} - ${plan.buttonText} - R$${plan.price}`)
             } else {
               console.error("[CRON] Erro ao criar plano temporario:", insertError.message)
             }
           }
-          
-          if (planButtons.length > 0) {
-            await sendTelegramMessage(botToken, chatId, "Clique abaixo para aproveitar:", { inline_keyboard: planButtons })
+        }
+        
+        // Reply markup com os botoes (se houver)
+        const replyMarkup = planButtons.length > 0 ? { inline_keyboard: planButtons } : undefined
+        
+        // Enviar mensagem
+        if (medias.length > 0) {
+          // Enviar primeira midia com caption (SEM botoes, telegram nao suporta botoes em foto)
+          const firstMedia = medias[0]
+          if (firstMedia.includes("video") || firstMedia.includes("mp4")) {
+            await sendTelegramVideo(botToken, chatId, firstMedia, message)
+          } else {
+            await sendTelegramPhoto(botToken, chatId, firstMedia, message)
           }
+          
+          // Enviar demais midias sem caption
+          for (let i = 1; i < medias.length; i++) {
+            const media = medias[i]
+            if (media.includes("video") || media.includes("mp4")) {
+              await sendTelegramVideo(botToken, chatId, media)
+            } else {
+              await sendTelegramPhoto(botToken, chatId, media)
+            }
+          }
+          
+          // Enviar botoes separadamente apos as midias
+          if (replyMarkup) {
+            await sendTelegramMessage(botToken, chatId, "Aproveite a oferta:", replyMarkup)
+          }
+        } else {
+          // Apenas texto com botoes
+          await sendTelegramMessage(botToken, chatId, message, replyMarkup)
         }
         
         // Marcar como enviado
